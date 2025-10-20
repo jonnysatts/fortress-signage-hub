@@ -456,7 +456,7 @@ export default function SignageDetail() {
               <>
                 <Button onClick={handleMarkAsUpdated} variant="outline">
                   <CheckCircle2 className="w-4 h-4 mr-2" />
-                  Mark as Updated
+                  Update Status Date
                 </Button>
                 <Button onClick={handleEditToggle}>
                   <Edit2 className="w-4 h-4 mr-2" />
