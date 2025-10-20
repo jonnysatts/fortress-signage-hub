@@ -185,10 +185,12 @@ export type Database = {
           created_by: string | null
           description: string | null
           end_date: string | null
+          groups: string[] | null
           id: string
           is_active: boolean | null
           name: string
           start_date: string | null
+          tags: string[] | null
         }
         Insert: {
           budget_allocated?: number | null
@@ -197,10 +199,12 @@ export type Database = {
           created_by?: string | null
           description?: string | null
           end_date?: string | null
+          groups?: string[] | null
           id?: string
           is_active?: boolean | null
           name: string
           start_date?: string | null
+          tags?: string[] | null
         }
         Update: {
           budget_allocated?: number | null
@@ -209,10 +213,12 @@ export type Database = {
           created_by?: string | null
           description?: string | null
           end_date?: string | null
+          groups?: string[] | null
           id?: string
           is_active?: boolean | null
           name?: string
           start_date?: string | null
+          tags?: string[] | null
         }
         Relationships: [
           {
