@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { StatusBadge } from "@/components/StatusBadge";
-import { ArrowLeft, Trash2, Image as ImageIcon, Edit2, Save, X, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, Trash2, Image as ImageIcon, Edit2, Save, X, CheckCircle2, Maximize2 } from "lucide-react";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -40,6 +40,7 @@ export default function SignageDetail() {
   const [editedSpot, setEditedSpot] = useState<any>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [users, setUsers] = useState<any[]>([]);
+  const [expandedImage, setExpandedImage] = useState<string | null>(null);
 
   useEffect(() => {
     checkUser();
@@ -385,13 +386,24 @@ export default function SignageDetail() {
                   <CardTitle>Current Image</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="aspect-video bg-muted rounded-lg flex items-center justify-center overflow-hidden">
+                  <div className="relative bg-muted rounded-lg flex items-center justify-center overflow-hidden min-h-[300px]">
                     {spot.current_image_url ? (
-                      <img
-                        src={spot.current_image_url}
-                        alt={spot.location_name}
-                        className="w-full h-full object-cover"
-                      />
+                      <>
+                        <img
+                          src={spot.current_image_url}
+                          alt={spot.location_name}
+                          className="max-w-full max-h-[600px] w-auto h-auto object-contain cursor-pointer"
+                          onClick={() => setExpandedImage(spot.current_image_url)}
+                        />
+                        <Button
+                          variant="secondary"
+                          size="icon"
+                          className="absolute top-2 right-2"
+                          onClick={() => setExpandedImage(spot.current_image_url)}
+                        >
+                          <Maximize2 className="w-4 h-4" />
+                        </Button>
+                      </>
                     ) : (
                       <div className="text-center text-muted-foreground">
                         <ImageIcon className="w-12 h-12 mx-auto mb-2 opacity-50" />
@@ -880,12 +892,21 @@ export default function SignageDetail() {
                   <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                     {photoHistory.map((photo) => (
                       <Card key={photo.id} className="overflow-hidden">
-                        <div className="aspect-video bg-muted">
+                        <div className="relative bg-muted min-h-[200px] flex items-center justify-center">
                           <img
                             src={photo.image_url}
                             alt={photo.caption || "Signage photo"}
-                            className="w-full h-full object-cover"
+                            className="max-w-full max-h-[300px] w-auto h-auto object-contain cursor-pointer"
+                            onClick={() => setExpandedImage(photo.image_url)}
                           />
+                          <Button
+                            variant="secondary"
+                            size="icon"
+                            className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                            onClick={() => setExpandedImage(photo.image_url)}
+                          >
+                            <Maximize2 className="w-4 h-4" />
+                          </Button>
                         </div>
                         <CardContent className="p-4">
                           <div className="flex items-start justify-between mb-2">
@@ -915,6 +936,29 @@ export default function SignageDetail() {
             </Card>
           </TabsContent>
         </Tabs>
+
+        {/* Full Image Viewer Dialog */}
+        {expandedImage && (
+          <div 
+            className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
+            onClick={() => setExpandedImage(null)}
+          >
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute top-4 right-4 text-white hover:bg-white/20"
+              onClick={() => setExpandedImage(null)}
+            >
+              <X className="w-6 h-6" />
+            </Button>
+            <img
+              src={expandedImage}
+              alt="Expanded view"
+              className="max-w-full max-h-full object-contain"
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+        )}
       </div>
     </div>
   );
