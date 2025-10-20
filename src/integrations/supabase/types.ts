@@ -573,6 +573,7 @@ export type Database = {
           last_update_date: string | null
           legacy_drive_link: string | null
           location_name: string
+          location_photo_url: string | null
           material_type: string | null
           mounting_type: string | null
           next_planned_date: string | null
@@ -615,6 +616,7 @@ export type Database = {
           last_update_date?: string | null
           legacy_drive_link?: string | null
           location_name: string
+          location_photo_url?: string | null
           material_type?: string | null
           mounting_type?: string | null
           next_planned_date?: string | null
@@ -657,6 +659,7 @@ export type Database = {
           last_update_date?: string | null
           legacy_drive_link?: string | null
           location_name?: string
+          location_photo_url?: string | null
           material_type?: string | null
           mounting_type?: string | null
           next_planned_date?: string | null

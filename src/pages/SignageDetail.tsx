@@ -12,7 +12,7 @@ import { StatusBadge } from "@/components/StatusBadge";
 import { TagSelector } from "@/components/TagSelector";
 import { GroupSelector } from "@/components/GroupSelector";
 import { CampaignLinker } from "@/components/CampaignLinker";
-import { ArrowLeft, Trash2, Image as ImageIcon, Edit2, Save, X, CheckCircle2, Maximize2, QrCode, Download, DollarSign, Calendar, Clock, Printer, Undo } from "lucide-react";
+import { ArrowLeft, Trash2, Image as ImageIcon, Edit2, Save, X, CheckCircle2, Maximize2, QrCode, Download, DollarSign, Calendar, Clock, Printer, Undo, MapPin, Upload } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
@@ -44,12 +44,14 @@ export default function SignageDetail() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const locationPhotoInputRef = useRef<HTMLInputElement>(null);
   
   const [spot, setSpot] = useState<any>(null);
   const [campaigns, setCampaigns] = useState<any[]>([]);
   const [photoHistory, setPhotoHistory] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isUploading, setIsUploading] = useState(false);
+  const [isUploadingLocationPhoto, setIsUploadingLocationPhoto] = useState(false);
   const [uploadCaption, setUploadCaption] = useState("");
   const [imageType, setImageType] = useState<"current" | "before" | "after" | "reference" | "planned">("current");
   const [scheduledDate, setScheduledDate] = useState<string>("");
@@ -260,6 +262,47 @@ export default function SignageDetail() {
       setIsUploading(false);
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  const handleLocationPhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploadingLocationPhoto(true);
+    try {
+      // Upload to Supabase Storage
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${id}/location-${Date.now()}.${fileExt}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from('signage')
+        .upload(fileName, file);
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('signage')
+        .getPublicUrl(fileName);
+
+      // Update signage spot with location photo
+      const { error: updateError } = await supabase
+        .from('signage_spots')
+        .update({ location_photo_url: publicUrl })
+        .eq('id', id);
+
+      if (updateError) throw updateError;
+
+      toast.success("Location photo uploaded successfully!");
+      fetchSpot();
+    } catch (error: any) {
+      toast.error("Failed to upload location photo: " + error.message);
+    } finally {
+      setIsUploadingLocationPhoto(false);
+      if (locationPhotoInputRef.current) {
+        locationPhotoInputRef.current.value = '';
       }
     }
   };
@@ -507,19 +550,84 @@ export default function SignageDetail() {
 
           <TabsContent value="details" className="space-y-6">
             <div className="grid gap-6 lg:grid-cols-2">
-              {/* Current Image */}
+              {/* Location Photo */}
               <Card>
                 <CardHeader>
-                  <CardTitle>Current Image</CardTitle>
+                  <CardTitle className="flex items-center gap-2">
+                    <MapPin className="h-5 w-5" />
+                    Location Photo
+                  </CardTitle>
+                  <p className="text-sm text-muted-foreground">
+                    Photo of the physical space (wall, frame, window)
+                  </p>
                 </CardHeader>
                 <CardContent>
-                  <div className="relative bg-muted rounded-lg flex items-center justify-center overflow-hidden min-h-[300px]">
+                  <div className="space-y-4">
+                    <div className="relative bg-muted rounded-lg flex items-center justify-center overflow-hidden min-h-[200px]">
+                      {spot.location_photo_url ? (
+                        <>
+                          <img
+                            src={spot.location_photo_url}
+                            alt={`${spot.location_name} location`}
+                            className="max-w-full max-h-[400px] w-auto h-auto object-contain cursor-pointer"
+                            onClick={() => setExpandedImage(spot.location_photo_url)}
+                          />
+                          <Button
+                            variant="secondary"
+                            size="icon"
+                            className="absolute top-2 right-2"
+                            onClick={() => setExpandedImage(spot.location_photo_url)}
+                          >
+                            <Maximize2 className="w-4 h-4" />
+                          </Button>
+                        </>
+                      ) : (
+                        <div className="text-center text-muted-foreground">
+                          <MapPin className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                          <p>No location photo</p>
+                        </div>
+                      )}
+                    </div>
+                    {canEdit && (
+                      <div>
+                        <input
+                          ref={locationPhotoInputRef}
+                          type="file"
+                          accept="image/*"
+                          onChange={handleLocationPhotoUpload}
+                          className="hidden"
+                        />
+                        <Button
+                          onClick={() => locationPhotoInputRef.current?.click()}
+                          disabled={isUploadingLocationPhoto}
+                          variant="outline"
+                          className="w-full"
+                        >
+                          <Upload className="w-4 h-4 mr-2" />
+                          {isUploadingLocationPhoto ? "Uploading..." : spot.location_photo_url ? "Replace Location Photo" : "Upload Location Photo"}
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Current Content */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Current Content</CardTitle>
+                  <p className="text-sm text-muted-foreground">
+                    Design/poster currently displayed
+                  </p>
+                </CardHeader>
+                <CardContent>
+                  <div className="relative bg-muted rounded-lg flex items-center justify-center overflow-hidden min-h-[200px]">
                     {spot.current_image_url ? (
                       <>
                         <img
                           src={spot.current_image_url}
                           alt={spot.location_name}
-                          className="max-w-full max-h-[600px] w-auto h-auto object-contain cursor-pointer"
+                          className="max-w-full max-h-[400px] w-auto h-auto object-contain cursor-pointer"
                           onClick={() => setExpandedImage(spot.current_image_url)}
                         />
                         <Button
@@ -534,14 +642,16 @@ export default function SignageDetail() {
                     ) : (
                       <div className="text-center text-muted-foreground">
                         <ImageIcon className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                        <p>No image uploaded</p>
+                        <p>No content uploaded</p>
                       </div>
                     )}
                   </div>
                 </CardContent>
               </Card>
+            </div>
 
-              {/* Content Timeline */}
+            {/* Content Timeline */}
+            <div className="grid gap-6">
               <Card className="lg:col-span-2">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
