@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusBadge } from "@/components/StatusBadge";
+import { ImportDataButton } from "@/components/ImportDataButton";
 import { 
   LayoutGrid, 
   LogOut, 
@@ -126,6 +127,7 @@ export default function Dashboard() {
             </div>
 
             <div className="flex items-center gap-2">
+              <ImportDataButton />
               <Button variant="ghost" size="icon" onClick={handleSignOut}>
                 <LogOut className="w-5 h-5" />
               </Button>
