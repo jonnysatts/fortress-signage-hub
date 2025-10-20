@@ -12,7 +12,13 @@ import { StatusBadge } from "@/components/StatusBadge";
 import { TagSelector } from "@/components/TagSelector";
 import { GroupSelector } from "@/components/GroupSelector";
 import { CampaignLinker } from "@/components/CampaignLinker";
-import { ArrowLeft, Trash2, Image as ImageIcon, Edit2, Save, X, CheckCircle2, Maximize2, QrCode, Download, DollarSign } from "lucide-react";
+import { ArrowLeft, Trash2, Image as ImageIcon, Edit2, Save, X, CheckCircle2, Maximize2, QrCode, Download, DollarSign, Calendar, Clock, Printer } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
+import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
+import { ApprovalWorkflow } from "@/components/ApprovalWorkflow";
+import { format } from "date-fns";
 import { QRCodeSVG } from "qrcode.react";
 import { toast } from "sonner";
 import {
@@ -39,7 +45,14 @@ export default function SignageDetail() {
   const [isLoading, setIsLoading] = useState(true);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadCaption, setUploadCaption] = useState("");
-  const [imageType, setImageType] = useState<"current" | "before" | "after" | "reference">("current");
+  const [imageType, setImageType] = useState<"current" | "before" | "after" | "reference" | "planned">("current");
+  const [scheduledDate, setScheduledDate] = useState<string>("");
+  const [autoPromote, setAutoPromote] = useState<boolean>(true);
+  const [printRequired, setPrintRequired] = useState<boolean>(false);
+  const [printVendor, setPrintVendor] = useState<string>("");
+  const [printDueDate, setPrintDueDate] = useState<string>("");
+  const [printNotes, setPrintNotes] = useState<string>("");
+  const [historyFilter, setHistoryFilter] = useState<'all' | 'current' | 'planned' | 'reference' | 'before'>('all');
   const [user, setUser] = useState<any>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
@@ -201,7 +214,13 @@ export default function SignageDetail() {
           image_url: publicUrl,
           image_type: imageType,
           caption: uploadCaption || null,
-          uploaded_by: user.id
+          uploaded_by: user.id,
+          scheduled_date: imageType === 'planned' ? scheduledDate || null : null,
+          auto_promote: imageType === 'planned' ? autoPromote : false,
+          print_status: printRequired ? 'pending' : 'not_required',
+          print_vendor: printRequired ? printVendor : null,
+          print_due_date: printRequired ? printDueDate : null,
+          print_notes: printRequired ? printNotes : null,
         });
 
       if (historyError) throw historyError;
@@ -221,6 +240,12 @@ export default function SignageDetail() {
 
       toast.success("Image uploaded successfully!");
       setUploadCaption("");
+      setScheduledDate("");
+      setAutoPromote(true);
+      setPrintRequired(false);
+      setPrintVendor("");
+      setPrintDueDate("");
+      setPrintNotes("");
       fetchSpot();
       fetchPhotoHistory();
     } catch (error: any) {
@@ -360,8 +385,26 @@ export default function SignageDetail() {
     }
   };
 
+  const handlePromotePlannedImage = async (photoId: string) => {
+    try {
+      const { data, error } = await supabase.rpc('promote_planned_to_current', {
+        p_photo_id: photoId,
+        p_promoted_by: user?.id
+      });
+
+      if (error) throw error;
+
+      toast.success("Image promoted to current!");
+      fetchSpot();
+      fetchPhotoHistory();
+    } catch (error: any) {
+      toast.error("Failed to promote image: " + error.message);
+    }
+  };
+
   const canEdit = userRole === 'admin' || userRole === 'manager' || spot?.assigned_user_id === user?.id;
   const canDelete = userRole === 'admin';
+  const canPromote = userRole === 'admin' || userRole === 'manager';
 
   if (isLoading) {
     return (
@@ -466,6 +509,144 @@ export default function SignageDetail() {
                 </CardContent>
               </Card>
 
+              {/* Content Timeline */}
+              <Card className="lg:col-span-2">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Calendar className="h-5 w-5" />
+                    Content Timeline
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {/* PREVIOUS */}
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        <div className="h-4 w-4 rounded-full bg-muted" />
+                        <h4 className="font-semibold text-sm uppercase tracking-wide text-muted-foreground">Previous</h4>
+                      </div>
+                      {spot.previous_image_url ? (
+                        <div className="space-y-2">
+                          <div 
+                            className="relative bg-muted rounded-lg overflow-hidden cursor-pointer border-2 border-transparent hover:border-primary transition-all"
+                            onClick={() => setExpandedImage(spot.previous_image_url)}
+                          >
+                            <img
+                              src={spot.previous_image_url}
+                              alt="Previous image"
+                              className="w-full h-32 object-cover"
+                            />
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            {spot.previous_update_date 
+                              ? `Replaced ${format(new Date(spot.previous_update_date), 'MMM d, yyyy')}`
+                              : 'Historical'
+                            }
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="text-center py-8 text-muted-foreground text-sm">
+                          No previous image
+                        </div>
+                      )}
+                    </div>
+
+                    {/* CURRENT */}
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle2 className="h-4 w-4 text-green-500" />
+                        <h4 className="font-semibold text-sm uppercase tracking-wide">Current</h4>
+                      </div>
+                      {spot.current_image_url ? (
+                        <div className="space-y-2">
+                          <div 
+                            className="relative bg-muted rounded-lg overflow-hidden cursor-pointer border-2 border-green-500 hover:border-green-600 transition-all"
+                            onClick={() => setExpandedImage(spot.current_image_url)}
+                          >
+                            <img
+                              src={spot.current_image_url}
+                              alt="Current image"
+                              className="w-full h-32 object-cover"
+                            />
+                            <div className="absolute top-2 right-2 bg-green-500 text-white px-2 py-1 rounded text-xs font-semibold">
+                              LIVE
+                            </div>
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            {spot.last_update_date 
+                              ? `Updated ${format(new Date(spot.last_update_date), 'MMM d, yyyy')}`
+                              : 'Current'
+                            }
+                          </p>
+                          {spot.last_update_date && (
+                            <p className="text-xs font-semibold">
+                              {Math.floor((Date.now() - new Date(spot.last_update_date).getTime()) / (1000 * 60 * 60 * 24))} days active
+                            </p>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="text-center py-8 border-2 border-dashed border-muted-foreground/30 rounded-lg">
+                          <ImageIcon className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                          <p className="text-sm text-muted-foreground">Empty</p>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* UPCOMING */}
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        <Clock className="h-4 w-4 text-blue-500" />
+                        <h4 className="font-semibold text-sm uppercase tracking-wide text-blue-600">Upcoming</h4>
+                      </div>
+                      {spot.next_planned_image_url ? (
+                        <div className="space-y-2">
+                          <div 
+                            className="relative bg-muted rounded-lg overflow-hidden cursor-pointer border-2 border-blue-500 hover:border-blue-600 transition-all"
+                            onClick={() => setExpandedImage(spot.next_planned_image_url)}
+                          >
+                            <img
+                              src={spot.next_planned_image_url}
+                              alt="Upcoming image"
+                              className="w-full h-32 object-cover"
+                            />
+                            <div className="absolute top-2 right-2 bg-blue-500 text-white px-2 py-1 rounded text-xs font-semibold">
+                              PLANNED
+                            </div>
+                          </div>
+                          <p className="text-xs font-semibold text-blue-600">
+                            Goes live {format(new Date(spot.next_planned_date), 'MMM d, yyyy')}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {Math.ceil((new Date(spot.next_planned_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24))} days away
+                          </p>
+                          
+                          {canPromote && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="w-full"
+                              onClick={() => {
+                                const plannedPhoto = photoHistory.find(p => p.image_url === spot.next_planned_image_url);
+                                if (plannedPhoto) handlePromotePlannedImage(plannedPhoto.id);
+                              }}
+                            >
+                              <CheckCircle2 className="h-3 w-3 mr-2" />
+                              Promote to Current Now
+                            </Button>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="text-center py-8 text-muted-foreground text-sm">
+                          No upcoming update scheduled
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            <div className="grid gap-6 lg:grid-cols-2">
               {/* Basic Information */}
               <Card>
                 <CardHeader>
@@ -997,7 +1178,8 @@ export default function SignageDetail() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="current">Current (Main Display)</SelectItem>
+                      <SelectItem value="current">Current (Replace Now)</SelectItem>
+                      <SelectItem value="planned">Planned (Schedule for Future)</SelectItem>
                       <SelectItem value="before">Before</SelectItem>
                       <SelectItem value="after">After</SelectItem>
                       <SelectItem value="reference">Reference</SelectItem>
@@ -1015,6 +1197,92 @@ export default function SignageDetail() {
                     rows={3}
                   />
                 </div>
+
+                {imageType === 'planned' && (
+                  <>
+                    <div className="space-y-2">
+                      <Label htmlFor="scheduledDate">Go Live Date *</Label>
+                      <Input
+                        id="scheduledDate"
+                        type="date"
+                        value={scheduledDate}
+                        onChange={(e) => setScheduledDate(e.target.value)}
+                        min={new Date().toISOString().split('T')[0]}
+                        required
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        When should this image replace the current one?
+                      </p>
+                    </div>
+
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="autoPromote"
+                        checked={autoPromote}
+                        onCheckedChange={(checked) => setAutoPromote(checked as boolean)}
+                      />
+                      <Label htmlFor="autoPromote" className="text-sm font-normal">
+                        Automatically promote on scheduled date (requires approval)
+                      </Label>
+                    </div>
+
+                    <Separator />
+
+                    {/* Print Job Section */}
+                    <div className="space-y-4 p-4 border rounded-lg">
+                      <div className="flex items-center justify-between">
+                        <Label>Print Job Required?</Label>
+                        <Switch
+                          checked={printRequired}
+                          onCheckedChange={setPrintRequired}
+                        />
+                      </div>
+
+                      {printRequired && (
+                        <>
+                          <div className="space-y-2">
+                            <Label htmlFor="printVendor">Print Vendor</Label>
+                            <Select value={printVendor} onValueChange={setPrintVendor}>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select vendor" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="Senpais">Senpais</SelectItem>
+                                <SelectItem value="VistaPrint">VistaPrint</SelectItem>
+                                <SelectItem value="Local Print Shop">Local Print Shop</SelectItem>
+                                <SelectItem value="Other">Other</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="printDueDate">Print Due Date</Label>
+                            <Input
+                              id="printDueDate"
+                              type="date"
+                              value={printDueDate}
+                              onChange={(e) => setPrintDueDate(e.target.value)}
+                            />
+                            <p className="text-xs text-muted-foreground">
+                              When do you need the print ready?
+                            </p>
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="printNotes">Print Notes</Label>
+                            <Textarea
+                              id="printNotes"
+                              value={printNotes}
+                              onChange={(e) => setPrintNotes(e.target.value)}
+                              placeholder="Size, material, special requirements..."
+                              rows={2}
+                            />
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </>
+                )}
 
                 <div className="space-y-2">
                   <Label>Select Image File</Label>
@@ -1044,56 +1312,137 @@ export default function SignageDetail() {
           <TabsContent value="history">
             <Card>
               <CardHeader>
-                <CardTitle>Photo History</CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle>Photo History</CardTitle>
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      variant={historyFilter === 'all' ? 'default' : 'outline'}
+                      onClick={() => setHistoryFilter('all')}
+                    >
+                      All ({photoHistory.length})
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant={historyFilter === 'current' ? 'default' : 'outline'}
+                      onClick={() => setHistoryFilter('current')}
+                    >
+                      Current ({photoHistory.filter(p => p.image_type === 'current').length})
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant={historyFilter === 'planned' ? 'default' : 'outline'}
+                      onClick={() => setHistoryFilter('planned')}
+                    >
+                      Planned ({photoHistory.filter(p => p.image_type === 'planned').length})
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant={historyFilter === 'reference' ? 'default' : 'outline'}
+                      onClick={() => setHistoryFilter('reference')}
+                    >
+                      Reference ({photoHistory.filter(p => p.image_type === 'reference').length})
+                    </Button>
+                  </div>
+                </div>
               </CardHeader>
               <CardContent>
-                {photoHistory.length === 0 ? (
+                {photoHistory.filter(p => historyFilter === 'all' || p.image_type === historyFilter).length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
                     <ImageIcon className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                    <p>No photos uploaded yet</p>
+                    <p>No {historyFilter === 'all' ? '' : historyFilter} photos uploaded yet</p>
                   </div>
                 ) : (
                   <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                    {photoHistory.map((photo) => (
-                      <Card key={photo.id} className="overflow-hidden">
-                        <div className="relative bg-muted min-h-[200px] flex items-center justify-center">
-                          <img
-                            src={photo.image_url}
-                            alt={photo.caption || "Signage photo"}
-                            className="max-w-full max-h-[300px] w-auto h-auto object-contain cursor-pointer"
-                            onClick={() => setExpandedImage(photo.image_url)}
-                          />
-                          <Button
-                            variant="secondary"
-                            size="icon"
-                            className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
-                            onClick={() => setExpandedImage(photo.image_url)}
-                          >
-                            <Maximize2 className="w-4 h-4" />
-                          </Button>
-                        </div>
-                        <CardContent className="p-4">
-                          <div className="flex items-start justify-between mb-2">
-                            <div className="flex-1">
-                              <p className="text-sm font-semibold capitalize">{photo.image_type}</p>
-                              <p className="text-xs text-muted-foreground">
-                                {new Date(photo.upload_date).toLocaleDateString()}
-                              </p>
+                    {photoHistory.filter(p => historyFilter === 'all' || p.image_type === historyFilter).map((photo) => {
+                      const statusConfig: Record<string, { color: string; label: string }> = {
+                        current: { color: 'bg-green-500', label: 'CURRENT' },
+                        planned: { color: 'bg-blue-500', label: 'PLANNED' },
+                        reference: { color: 'bg-gray-500', label: 'REFERENCE' },
+                        before: { color: 'bg-gray-400', label: 'BEFORE' },
+                        after: { color: 'bg-gray-400', label: 'AFTER' },
+                      };
+                      const config = statusConfig[photo.image_type] || statusConfig.reference;
+                      
+                      return (
+                        <Card key={photo.id} className="overflow-hidden group">
+                          <div className="relative bg-muted min-h-[200px] flex items-center justify-center">
+                            <img
+                              src={photo.image_url}
+                              alt={photo.caption || "Signage photo"}
+                              className="max-w-full max-h-[300px] w-auto h-auto object-contain cursor-pointer"
+                              onClick={() => setExpandedImage(photo.image_url)}
+                            />
+                            <div className={`absolute top-2 left-2 px-2 py-1 rounded text-xs font-semibold ${config.color} text-white`}>
+                              {config.label}
                             </div>
                             <Button
-                              variant="ghost"
+                              variant="secondary"
                               size="icon"
-                              onClick={() => handleDeleteImage(photo.id, photo.image_url, photo.image_type === 'current')}
+                              className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                              onClick={() => setExpandedImage(photo.image_url)}
                             >
-                              <Trash2 className="w-4 h-4" />
+                              <Maximize2 className="w-4 h-4" />
                             </Button>
                           </div>
-                          {photo.caption && (
-                            <p className="text-sm text-muted-foreground mt-2">{photo.caption}</p>
-                          )}
-                        </CardContent>
-                      </Card>
-                    ))}
+                          <CardContent className="p-4 space-y-2">
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <p className="text-sm font-semibold">
+                                  Uploaded {format(new Date(photo.upload_date), 'MMM d, yyyy')}
+                                </p>
+                                
+                                {photo.image_type === 'planned' && photo.scheduled_date && (
+                                  <p className="text-xs text-blue-600 font-semibold mt-1">
+                                    📅 Scheduled: {format(new Date(photo.scheduled_date), 'MMM d, yyyy')}
+                                  </p>
+                                )}
+                                
+                                {photo.print_status && photo.print_status !== 'not_required' && (
+                                  <div className="mt-2">
+                                    <Badge className={
+                                      photo.print_status === 'pending' ? 'bg-gray-500' :
+                                      photo.print_status === 'ordered' ? 'bg-blue-500' :
+                                      photo.print_status === 'in_production' ? 'bg-yellow-500' :
+                                      'bg-green-500'
+                                    }>
+                                      <Printer className="w-3 h-3 mr-1" />
+                                      {photo.print_status.replace('_', ' ').toUpperCase()}
+                                      {photo.print_vendor && ` • ${photo.print_vendor}`}
+                                    </Badge>
+                                  </div>
+                                )}
+                              </div>
+                              
+                              <div className="flex gap-1">
+                                {photo.image_type === 'planned' && canPromote && (
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handlePromotePlannedImage(photo.id)}
+                                    title="Promote to current"
+                                  >
+                                    <CheckCircle2 className="w-4 h-4 text-green-600" />
+                                  </Button>
+                                )}
+                                
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => handleDeleteImage(photo.id, photo.image_url, photo.image_type === 'current')}
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            </div>
+                            
+                            {photo.caption && (
+                              <p className="text-sm text-muted-foreground">{photo.caption}</p>
+                            )}
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
                   </div>
                 )}
               </CardContent>

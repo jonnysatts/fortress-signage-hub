@@ -14,6 +14,7 @@ import SignageDetail from "./pages/SignageDetail";
 import Settings from "./pages/Settings";
 import CustomFields from "./pages/CustomFields";
 import Analytics from "./pages/Analytics";
+import UpcomingUpdates from "./pages/UpcomingUpdates";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -130,6 +131,24 @@ const App = () => (
                       </div>
                     </header>
                     <Analytics />
+                  </div>
+                </div>
+              </SidebarProvider>
+            }
+          />
+          <Route
+            path="/upcoming-updates"
+            element={
+              <SidebarProvider>
+                <div className="flex min-h-screen w-full">
+                  <AppSidebar />
+                  <div className="flex-1">
+                    <header className="sticky top-0 z-10 border-b bg-card/50 backdrop-blur-sm">
+                      <div className="flex items-center gap-4 p-4">
+                        <SidebarTrigger />
+                      </div>
+                    </header>
+                    <UpcomingUpdates />
                   </div>
                 </div>
               </SidebarProvider>

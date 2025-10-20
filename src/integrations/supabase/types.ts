@@ -280,10 +280,21 @@ export type Database = {
       photo_history: {
         Row: {
           approval_status: Database["public"]["Enums"]["approval_status"] | null
+          auto_promote: boolean | null
           caption: string | null
           id: string
           image_type: Database["public"]["Enums"]["image_type"] | null
           image_url: string
+          print_cost: number | null
+          print_due_date: string | null
+          print_job_id: string | null
+          print_notes: string | null
+          print_ordered_date: string | null
+          print_status: string | null
+          print_vendor: string | null
+          promoted_at: string | null
+          promoted_by: string | null
+          scheduled_date: string | null
           signage_spot_id: string
           upload_date: string | null
           uploaded_by: string | null
@@ -292,10 +303,21 @@ export type Database = {
           approval_status?:
             | Database["public"]["Enums"]["approval_status"]
             | null
+          auto_promote?: boolean | null
           caption?: string | null
           id?: string
           image_type?: Database["public"]["Enums"]["image_type"] | null
           image_url: string
+          print_cost?: number | null
+          print_due_date?: string | null
+          print_job_id?: string | null
+          print_notes?: string | null
+          print_ordered_date?: string | null
+          print_status?: string | null
+          print_vendor?: string | null
+          promoted_at?: string | null
+          promoted_by?: string | null
+          scheduled_date?: string | null
           signage_spot_id: string
           upload_date?: string | null
           uploaded_by?: string | null
@@ -304,10 +326,21 @@ export type Database = {
           approval_status?:
             | Database["public"]["Enums"]["approval_status"]
             | null
+          auto_promote?: boolean | null
           caption?: string | null
           id?: string
           image_type?: Database["public"]["Enums"]["image_type"] | null
           image_url?: string
+          print_cost?: number | null
+          print_due_date?: string | null
+          print_job_id?: string | null
+          print_notes?: string | null
+          print_ordered_date?: string | null
+          print_status?: string | null
+          print_vendor?: string | null
+          promoted_at?: string | null
+          promoted_by?: string | null
+          scheduled_date?: string | null
           signage_spot_id?: string
           upload_date?: string | null
           uploaded_by?: string | null
@@ -530,8 +563,12 @@ export type Database = {
           location_name: string
           material_type: string | null
           mounting_type: string | null
+          next_planned_date: string | null
+          next_planned_image_url: string | null
           notes: string | null
           orientation: Database["public"]["Enums"]["orientation_type"] | null
+          previous_image_url: string | null
+          previous_update_date: string | null
           priority_level: Database["public"]["Enums"]["priority_level"] | null
           production_cost: number | null
           qr_code_data: string | null
@@ -568,8 +605,12 @@ export type Database = {
           location_name: string
           material_type?: string | null
           mounting_type?: string | null
+          next_planned_date?: string | null
+          next_planned_image_url?: string | null
           notes?: string | null
           orientation?: Database["public"]["Enums"]["orientation_type"] | null
+          previous_image_url?: string | null
+          previous_update_date?: string | null
           priority_level?: Database["public"]["Enums"]["priority_level"] | null
           production_cost?: number | null
           qr_code_data?: string | null
@@ -606,8 +647,12 @@ export type Database = {
           location_name?: string
           material_type?: string | null
           mounting_type?: string | null
+          next_planned_date?: string | null
+          next_planned_image_url?: string | null
           notes?: string | null
           orientation?: Database["public"]["Enums"]["orientation_type"] | null
+          previous_image_url?: string | null
+          previous_update_date?: string | null
           priority_level?: Database["public"]["Enums"]["priority_level"] | null
           production_cost?: number | null
           qr_code_data?: string | null
@@ -722,12 +767,28 @@ export type Database = {
         }
         Returns: string
       }
+      get_signage_timeline: {
+        Args: { spot_id: string }
+        Returns: {
+          curr_date: string
+          curr_image: string
+          previous_date: string
+          previous_image: string
+          upcoming_auto_promote: boolean
+          upcoming_date: string
+          upcoming_image: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
         Returns: boolean
+      }
+      promote_planned_to_current: {
+        Args: { p_photo_id: string; p_promoted_by: string }
+        Returns: Json
       }
     }
     Enums: {

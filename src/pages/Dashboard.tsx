@@ -36,6 +36,7 @@ export default function Dashboard() {
   const [showAssignedToMe, setShowAssignedToMe] = useState(false);
   const [selectedSpots, setSelectedSpots] = useState<Set<string>>(new Set());
   const [isMultiSelectMode, setIsMultiSelectMode] = useState(false);
+  const [showUpcomingOnly, setShowUpcomingOnly] = useState(false);
 
   useEffect(() => {
     checkAuth();
@@ -132,9 +133,16 @@ export default function Dashboard() {
         return false;
       }
       
+      // Upcoming changes filter
+      if (showUpcomingOnly && !spot.next_planned_date) {
+        return false;
+      }
+      
       return true;
     });
-  }, [signageSpots, searchQuery, selectedStatus, selectedPriority, selectedCategory, showAssignedToMe, user?.id]);
+  }, [signageSpots, searchQuery, selectedStatus, selectedPriority, selectedCategory, showAssignedToMe, showUpcomingOnly, user?.id]);
+
+  const upcomingCount = signageSpots.filter(s => s.next_planned_date).length;
 
   const handleSelectAll = () => {
     if (selectedSpots.size === filteredSpots.length) {
@@ -267,6 +275,14 @@ export default function Dashboard() {
           >
             <User className="w-3 h-3 mr-1" />
             Assigned to Me
+          </Button>
+          <Button
+            variant={showUpcomingOnly ? "default" : "outline"}
+            size="sm"
+            onClick={() => setShowUpcomingOnly(!showUpcomingOnly)}
+          >
+            <Clock className="w-3 h-3 mr-1" />
+            Upcoming Changes ({upcomingCount})
           </Button>
         </div>
 
