@@ -50,13 +50,15 @@ export default function Dashboard() {
     }
     setUser(session.user);
 
-    const { data: profileData } = await supabase
+    const { data: profileData, error: profileError } = await supabase
       .from("profiles" as any)
       .select("*")
       .eq("id", session.user.id)
       .maybeSingle();
     
-    setProfile(profileData);
+    if (!profileError && profileData) {
+      setProfile(profileData);
+    }
   };
 
   const fetchData = async () => {
@@ -80,7 +82,7 @@ export default function Dashboard() {
       const { data: spotsData } = await query;
       setSignageSpots(spotsData || []);
     } catch (error: any) {
-      toast.error("Failed to load data");
+      console.error("Failed to load data:", error);
     } finally {
       setIsLoading(false);
     }
@@ -92,7 +94,7 @@ export default function Dashboard() {
   };
 
   const filteredSpots = signageSpots.filter((spot) =>
-    spot.location_name?.toLowerCase().includes(searchQuery.toLowerCase())
+    spot.location_name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const stats = {
@@ -123,9 +125,11 @@ export default function Dashboard() {
               </div>
             </div>
 
-            <Button variant="ghost" size="icon" onClick={handleSignOut}>
-              <LogOut className="w-5 h-5" />
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button variant="ghost" size="icon" onClick={handleSignOut}>
+                <LogOut className="w-5 h-5" />
+              </Button>
+            </div>
           </div>
         </div>
       </header>
