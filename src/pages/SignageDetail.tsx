@@ -9,6 +9,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { StatusBadge } from "@/components/StatusBadge";
+import { TagSelector } from "@/components/TagSelector";
+import { GroupSelector } from "@/components/GroupSelector";
+import { CampaignLinker } from "@/components/CampaignLinker";
 import { ArrowLeft, Trash2, Image as ImageIcon, Edit2, Save, X, CheckCircle2, Maximize2 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -44,6 +47,7 @@ export default function SignageDetail() {
   const [users, setUsers] = useState<any[]>([]);
   const [expandedImage, setExpandedImage] = useState<string | null>(null);
   const [defaultTab, setDefaultTab] = useState("details");
+  const [spotGroups, setSpotGroups] = useState<any[]>([]);
 
   useEffect(() => {
     checkUser();
@@ -51,6 +55,7 @@ export default function SignageDetail() {
     fetchCampaigns();
     fetchPhotoHistory();
     fetchUsers();
+    fetchSpotGroups();
     
     // Check for tab param in URL
     const tab = searchParams.get('tab');
@@ -149,6 +154,20 @@ export default function SignageDetail() {
       setPhotoHistory(data || []);
     } catch (error: any) {
       console.error("Failed to load photo history:", error);
+    }
+  };
+
+  const fetchSpotGroups = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("signage_spot_groups")
+        .select("*, signage_groups(*)")
+        .eq("signage_spot_id", id);
+
+      if (error) throw error;
+      setSpotGroups(data || []);
+    } catch (error: any) {
+      console.error("Failed to load spot groups:", error);
     }
   };
 
@@ -284,6 +303,7 @@ export default function SignageDetail() {
           assigned_user_id: editedSpot.assigned_user_id,
           expiry_date: editedSpot.expiry_date,
           expiry_behavior: editedSpot.expiry_behavior,
+          tags: editedSpot.tags || [],
           updated_by: user?.id
         })
         .eq('id', id);
@@ -557,30 +577,40 @@ export default function SignageDetail() {
                     )}
                   </div>
 
-                  {campaigns.length > 0 && (
-                    <div className="space-y-2">
-                      <Label>Linked Campaigns</Label>
-                      <div className="flex flex-col gap-2">
-                        {campaigns.map((sc) => (
-                          <Button
-                            key={sc.id}
-                            variant="outline"
-                            className="justify-start h-auto py-2"
-                            onClick={() => navigate(`/campaigns`)}
-                          >
-                            <div className="flex flex-col items-start text-left">
-                              <span className="font-medium">{sc.campaigns?.name}</span>
-                              <span className="text-xs text-muted-foreground">
-                                {sc.campaigns?.is_active ? "Active Campaign" : "Inactive Campaign"}
-                              </span>
-                            </div>
-                          </Button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+                  <div className="space-y-2">
+                    <Label>Tags</Label>
+                    <TagSelector
+                      tags={editedSpot?.tags || []}
+                      onChange={(tags) => setEditedSpot({ ...editedSpot, tags })}
+                      disabled={!isEditMode}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Groups</Label>
+                    <GroupSelector
+                      signageSpotId={id!}
+                      selectedGroups={spotGroups.map(sg => sg.signage_groups)}
+                      onChange={() => {
+                        fetchSpotGroups();
+                        fetchSpot();
+                      }}
+                      disabled={!isEditMode}
+                    />
+                  </div>
                 </CardContent>
               </Card>
+
+              {/* Campaign Linking Card */}
+              <CampaignLinker
+                signageSpotId={id!}
+                linkedCampaigns={campaigns}
+                onUpdate={() => {
+                  fetchCampaigns();
+                  fetchSpot();
+                }}
+                disabled={!isEditMode && userRole !== 'admin' && userRole !== 'manager'}
+              />
             </div>
 
             {/* Physical Specifications */}

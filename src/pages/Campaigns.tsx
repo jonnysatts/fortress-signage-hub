@@ -7,7 +7,6 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CampaignDialog } from "@/components/CampaignDialog";
-import { ImportDataButton } from "@/components/ImportDataButton";
 import { 
   Plus, 
   Calendar as CalendarIcon, 
@@ -140,7 +139,6 @@ export default function Campaigns() {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <ImportDataButton />
             <CampaignDialog
               onSuccess={fetchCampaigns}
               trigger={

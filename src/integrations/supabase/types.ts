@@ -336,6 +336,75 @@ export type Database = {
           },
         ]
       }
+      signage_groups: {
+        Row: {
+          color: string | null
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          icon: string | null
+          id: string
+          name: string
+          updated_at: string | null
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          name: string
+          updated_at?: string | null
+        }
+        Update: {
+          color?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          name?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      signage_spot_groups: {
+        Row: {
+          created_at: string | null
+          group_id: string
+          id: string
+          signage_spot_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          group_id: string
+          id?: string
+          signage_spot_id: string
+        }
+        Update: {
+          created_at?: string | null
+          group_id?: string
+          id?: string
+          signage_spot_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "signage_spot_groups_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "signage_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "signage_spot_groups_signage_spot_id_fkey"
+            columns: ["signage_spot_id"]
+            isOneToOne: false
+            referencedRelation: "signage_spots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       signage_spots: {
         Row: {
           assigned_user_id: string | null
@@ -366,6 +435,7 @@ export type Database = {
           specs_notes: string | null
           status: Database["public"]["Enums"]["signage_status"] | null
           supplier_vendor: string | null
+          tags: string[] | null
           updated_at: string | null
           updated_by: string | null
           venue_id: string
@@ -400,6 +470,7 @@ export type Database = {
           specs_notes?: string | null
           status?: Database["public"]["Enums"]["signage_status"] | null
           supplier_vendor?: string | null
+          tags?: string[] | null
           updated_at?: string | null
           updated_by?: string | null
           venue_id: string
@@ -434,6 +505,7 @@ export type Database = {
           specs_notes?: string | null
           status?: Database["public"]["Enums"]["signage_status"] | null
           supplier_vendor?: string | null
+          tags?: string[] | null
           updated_at?: string | null
           updated_by?: string | null
           venue_id?: string
