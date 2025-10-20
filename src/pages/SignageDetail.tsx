@@ -12,7 +12,8 @@ import { StatusBadge } from "@/components/StatusBadge";
 import { TagSelector } from "@/components/TagSelector";
 import { GroupSelector } from "@/components/GroupSelector";
 import { CampaignLinker } from "@/components/CampaignLinker";
-import { ArrowLeft, Trash2, Image as ImageIcon, Edit2, Save, X, CheckCircle2, Maximize2 } from "lucide-react";
+import { ArrowLeft, Trash2, Image as ImageIcon, Edit2, Save, X, CheckCircle2, Maximize2, QrCode, Download } from "lucide-react";
+import { QRCodeSVG } from "qrcode.react";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -420,6 +421,10 @@ export default function SignageDetail() {
             <TabsTrigger value="details">Details</TabsTrigger>
             <TabsTrigger value="upload">Upload Image</TabsTrigger>
             <TabsTrigger value="history">Photo History ({photoHistory.length})</TabsTrigger>
+            <TabsTrigger value="qrcode">
+              <QrCode className="w-4 h-4 mr-2" />
+              QR Code
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="details" className="space-y-6">
@@ -1009,6 +1014,84 @@ export default function SignageDetail() {
                     ))}
                   </div>
                 )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="qrcode">
+            <Card>
+              <CardHeader>
+                <CardTitle>QR Code for Quick Access</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="text-sm text-muted-foreground space-y-2">
+                  <p>Print this QR code and stick it on the physical signage location.</p>
+                  <p>Staff can scan it with their phone camera to instantly access this spot and upload new photos.</p>
+                </div>
+
+                <div className="flex flex-col items-center space-y-4 p-8 bg-muted rounded-lg">
+                  <div className="bg-white p-6 rounded-lg shadow-lg" id="qr-code-container">
+                    <QRCodeSVG
+                      value={`${window.location.origin}/signage/${id}`}
+                      size={256}
+                      level="H"
+                      includeMargin={true}
+                    />
+                  </div>
+                  
+                  <div className="text-center space-y-2">
+                    <p className="font-medium">{spot?.location_name}</p>
+                    <p className="text-xs text-muted-foreground font-mono break-all max-w-md">
+                      {`${window.location.origin}/signage/${id}`}
+                    </p>
+                  </div>
+
+                  <Button
+                    onClick={() => {
+                      const svg = document.querySelector('#qr-code-container svg');
+                      if (svg) {
+                        const svgData = new XMLSerializer().serializeToString(svg);
+                        const canvas = document.createElement('canvas');
+                        const ctx = canvas.getContext('2d');
+                        const img = new Image();
+                        
+                        img.onload = () => {
+                          canvas.width = img.width;
+                          canvas.height = img.height;
+                          ctx?.drawImage(img, 0, 0);
+                          
+                          canvas.toBlob((blob) => {
+                            if (blob) {
+                              const url = URL.createObjectURL(blob);
+                              const a = document.createElement('a');
+                              a.href = url;
+                              a.download = `qr-code-${spot?.location_name?.replace(/\s+/g, '-').toLowerCase() || id}.png`;
+                              a.click();
+                              URL.revokeObjectURL(url);
+                              toast.success('QR code downloaded!');
+                            }
+                          });
+                        };
+                        
+                        img.src = 'data:image/svg+xml;base64,' + btoa(svgData);
+                      }
+                    }}
+                  >
+                    <Download className="w-4 h-4 mr-2" />
+                    Download QR Code
+                  </Button>
+                </div>
+
+                <div className="border-t pt-6">
+                  <h4 className="font-semibold mb-3">How to use QR codes:</h4>
+                  <ol className="list-decimal list-inside space-y-2 text-sm text-muted-foreground">
+                    <li>Download the QR code using the button above</li>
+                    <li>Print it on a sticker or label (recommended size: 5cm x 5cm minimum)</li>
+                    <li>Stick the QR code on or near the physical signage location</li>
+                    <li>Staff can scan it with their phone camera to open this page directly</li>
+                    <li>They can then upload new photos without searching through the dashboard</li>
+                  </ol>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
