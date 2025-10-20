@@ -17,36 +17,29 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    // Create both venues
-    const { data: melbourneVenue, error: melbourneError } = await supabaseClient
-      .from('venues')
-      .upsert([
-        {
-          name: 'Fortress Melbourne',
-          address: 'Melbourne CBD',
-          timezone: 'Australia/Melbourne',
-          is_active: true
-        }
-      ], { onConflict: 'name' })
-      .select()
-      .single()
+    // Fetch or create venues by name (avoid onConflict on non-unique column)
+    const getOrCreateVenue = async (name: string, address: string, timezone: string) => {
+      const { data: existing, error: selErr } = await supabaseClient
+        .from('venues')
+        .select('*')
+        .ilike('name', name)
+        .maybeSingle()
 
-    if (melbourneError) throw melbourneError
+      if (selErr) throw selErr
+      if (existing) return existing
 
-    const { data: sydneyVenue, error: sydneyError } = await supabaseClient
-      .from('venues')
-      .upsert([
-        {
-          name: 'Fortress Sydney',
-          address: 'Sydney CBD',
-          timezone: 'Australia/Sydney',
-          is_active: true
-        }
-      ], { onConflict: 'name' })
-      .select()
-      .single()
+      const { data: created, error: insErr } = await supabaseClient
+        .from('venues')
+        .insert([{ name, address, timezone, is_active: true }])
+        .select()
+        .single()
 
-    if (sydneyError) throw sydneyError
+      if (insErr) throw insErr
+      return created
+    }
+
+    const melbourneVenue = await getOrCreateVenue('Melbourne', 'Melbourne CBD, Victoria', 'Australia/Melbourne')
+    const sydneyVenue = await getOrCreateVenue('Sydney', 'Sydney CBD, NSW', 'Australia/Sydney')
 
     const melbourneId = melbourneVenue.id
     const sydneyId = sydneyVenue.id
