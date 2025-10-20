@@ -279,8 +279,10 @@ export type Database = {
       }
       photo_history: {
         Row: {
+          actual_cost: number | null
           approval_status: Database["public"]["Enums"]["approval_status"] | null
           auto_promote: boolean | null
+          campaign_batch_id: string | null
           caption: string | null
           id: string
           image_type: Database["public"]["Enums"]["image_type"] | null
@@ -300,10 +302,12 @@ export type Database = {
           uploaded_by: string | null
         }
         Insert: {
+          actual_cost?: number | null
           approval_status?:
             | Database["public"]["Enums"]["approval_status"]
             | null
           auto_promote?: boolean | null
+          campaign_batch_id?: string | null
           caption?: string | null
           id?: string
           image_type?: Database["public"]["Enums"]["image_type"] | null
@@ -323,10 +327,12 @@ export type Database = {
           uploaded_by?: string | null
         }
         Update: {
+          actual_cost?: number | null
           approval_status?:
             | Database["public"]["Enums"]["approval_status"]
             | null
           auto_promote?: boolean | null
+          campaign_batch_id?: string | null
           caption?: string | null
           id?: string
           image_type?: Database["public"]["Enums"]["image_type"] | null
@@ -753,6 +759,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      bulk_promote_planned_images: {
+        Args: { p_photo_ids: string[]; p_promoted_by: string }
+        Returns: Json
+      }
       calculate_campaign_budget: {
         Args: { campaign_id: string }
         Returns: number
@@ -779,6 +789,17 @@ export type Database = {
           upcoming_image: string
         }[]
       }
+      get_stale_spots_without_replacements: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          assigned_user_id: string
+          days_since_update: number
+          last_update_date: string
+          location_name: string
+          spot_id: string
+          venue_name: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -788,6 +809,10 @@ export type Database = {
       }
       promote_planned_to_current: {
         Args: { p_photo_id: string; p_promoted_by: string }
+        Returns: Json
+      }
+      rollback_to_previous: {
+        Args: { p_spot_id: string; p_user_id: string }
         Returns: Json
       }
     }

@@ -3,6 +3,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Search, Grid3x3, List } from "lucide-react";
+import { BulkScheduleDialog } from "@/components/BulkScheduleDialog";
 
 interface DashboardFiltersProps {
   searchQuery: string;
@@ -19,6 +20,8 @@ interface DashboardFiltersProps {
   isMultiSelectMode: boolean;
   setIsMultiSelectMode: (value: boolean) => void;
   setSelectedSpots: (spots: Set<string>) => void;
+  selectedSpots: Set<string>;
+  onBulkSuccess: () => void;
 }
 
 export function DashboardFilters({
@@ -36,6 +39,8 @@ export function DashboardFilters({
   isMultiSelectMode,
   setIsMultiSelectMode,
   setSelectedSpots,
+  selectedSpots,
+  onBulkSuccess,
 }: DashboardFiltersProps) {
   return (
     <div className="flex flex-col md:flex-row gap-4 mb-6">
@@ -118,6 +123,12 @@ export function DashboardFilters({
         >
           <List className="w-4 h-4" />
         </Button>
+        {isMultiSelectMode && selectedSpots.size > 0 && (
+          <BulkScheduleDialog 
+            selectedSpotIds={Array.from(selectedSpots)} 
+            onSuccess={onBulkSuccess}
+          />
+        )}
       </div>
     </div>
   );

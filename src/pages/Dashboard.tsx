@@ -302,6 +302,8 @@ export default function Dashboard() {
           isMultiSelectMode={isMultiSelectMode}
           setIsMultiSelectMode={setIsMultiSelectMode}
           setSelectedSpots={setSelectedSpots}
+          selectedSpots={selectedSpots}
+          onBulkSuccess={fetchData}
         />
 
         {/* Bulk Operations Toolbar */}

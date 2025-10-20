@@ -12,7 +12,7 @@ import { StatusBadge } from "@/components/StatusBadge";
 import { TagSelector } from "@/components/TagSelector";
 import { GroupSelector } from "@/components/GroupSelector";
 import { CampaignLinker } from "@/components/CampaignLinker";
-import { ArrowLeft, Trash2, Image as ImageIcon, Edit2, Save, X, CheckCircle2, Maximize2, QrCode, Download, DollarSign, Calendar, Clock, Printer } from "lucide-react";
+import { ArrowLeft, Trash2, Image as ImageIcon, Edit2, Save, X, CheckCircle2, Maximize2, QrCode, Download, DollarSign, Calendar, Clock, Printer, Undo } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
@@ -402,6 +402,23 @@ export default function SignageDetail() {
     }
   };
 
+  const handleRollback = async () => {
+    try {
+      const { data, error } = await supabase.rpc('rollback_to_previous', {
+        p_spot_id: id,
+        p_user_id: user?.id
+      });
+
+      if (error) throw error;
+
+      toast.success("Rolled back to previous image!");
+      fetchSpot();
+      fetchPhotoHistory();
+    } catch (error: any) {
+      toast.error("Failed to rollback: " + error.message);
+    }
+  };
+
   const canEdit = userRole === 'admin' || userRole === 'manager' || spot?.assigned_user_id === user?.id;
   const canDelete = userRole === 'admin';
   const canPromote = userRole === 'admin' || userRole === 'manager';
@@ -633,6 +650,53 @@ export default function SignageDetail() {
                               <CheckCircle2 className="h-3 w-3 mr-2" />
                               Promote to Current Now
                             </Button>
+                          )}
+                          
+                          {spot.previous_image_url && canPromote && (
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="w-full"
+                                >
+                                  <Undo className="h-3 w-3 mr-2" />
+                                  Rollback to Previous
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Rollback to Previous Image?</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    This will swap the current and previous images. The current image will become the previous, and vice versa.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <div className="grid grid-cols-2 gap-4 my-4">
+                                  <div className="space-y-2">
+                                    <p className="text-sm font-semibold">Current → Previous</p>
+                                    <img
+                                      src={spot.current_image_url}
+                                      alt="Current"
+                                      className="w-full h-24 object-cover rounded border"
+                                    />
+                                  </div>
+                                  <div className="space-y-2">
+                                    <p className="text-sm font-semibold text-green-600">Previous → Current</p>
+                                    <img
+                                      src={spot.previous_image_url}
+                                      alt="Previous"
+                                      className="w-full h-24 object-cover rounded border-2 border-green-500"
+                                    />
+                                  </div>
+                                </div>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction onClick={handleRollback}>
+                                    Confirm Rollback
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
                           )}
                         </div>
                       ) : (
@@ -1178,7 +1242,7 @@ export default function SignageDetail() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="current">Current (Replace Now)</SelectItem>
+                      <SelectItem value="current">Current</SelectItem>
                       <SelectItem value="planned">Planned (Schedule for Future)</SelectItem>
                       <SelectItem value="before">Before</SelectItem>
                       <SelectItem value="after">After</SelectItem>
@@ -1201,17 +1265,16 @@ export default function SignageDetail() {
                 {imageType === 'planned' && (
                   <>
                     <div className="space-y-2">
-                      <Label htmlFor="scheduledDate">Go Live Date *</Label>
+                      <Label htmlFor="scheduledDate">Go Live Date (Optional)</Label>
                       <Input
                         id="scheduledDate"
                         type="date"
                         value={scheduledDate}
                         onChange={(e) => setScheduledDate(e.target.value)}
                         min={new Date().toISOString().split('T')[0]}
-                        required
                       />
                       <p className="text-xs text-muted-foreground">
-                        When should this image replace the current one?
+                        When should this image replace the current one? Leave blank if uncertain.
                       </p>
                     </div>
 
