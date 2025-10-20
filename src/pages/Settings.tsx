@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Bell, Save } from "lucide-react";
+import { ArrowLeft, Bell, Save, Settings2 } from "lucide-react";
 import { toast } from "sonner";
 
 export default function Settings() {
@@ -193,6 +193,10 @@ export default function Settings() {
             <TabsTrigger value="alerts">
               <Bell className="w-4 h-4 mr-2" />
               Alert Settings
+            </TabsTrigger>
+            <TabsTrigger value="fields" onClick={() => navigate("/custom-fields")}>
+              <Settings2 className="w-4 h-4 mr-2" />
+              Custom Fields
             </TabsTrigger>
           </TabsList>
 
