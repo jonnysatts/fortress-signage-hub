@@ -89,6 +89,94 @@ export type Database = {
         }
         Relationships: []
       }
+      approval_history: {
+        Row: {
+          comments: string | null
+          created_at: string | null
+          id: string
+          photo_id: string | null
+          previous_status: Database["public"]["Enums"]["approval_status"] | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          signage_spot_id: string | null
+          status: Database["public"]["Enums"]["approval_status"]
+        }
+        Insert: {
+          comments?: string | null
+          created_at?: string | null
+          id?: string
+          photo_id?: string | null
+          previous_status?:
+            | Database["public"]["Enums"]["approval_status"]
+            | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          signage_spot_id?: string | null
+          status: Database["public"]["Enums"]["approval_status"]
+        }
+        Update: {
+          comments?: string | null
+          created_at?: string | null
+          id?: string
+          photo_id?: string | null
+          previous_status?:
+            | Database["public"]["Enums"]["approval_status"]
+            | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          signage_spot_id?: string | null
+          status?: Database["public"]["Enums"]["approval_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "approval_history_photo_id_fkey"
+            columns: ["photo_id"]
+            isOneToOne: false
+            referencedRelation: "photo_history"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "approval_history_signage_spot_id_fkey"
+            columns: ["signage_spot_id"]
+            isOneToOne: false
+            referencedRelation: "signage_spots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      campaign_templates: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          template_config: Json
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          template_config: Json
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          template_config?: Json
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       campaigns: {
         Row: {
           created_at: string | null
@@ -185,6 +273,7 @@ export type Database = {
       }
       photo_history: {
         Row: {
+          approval_status: Database["public"]["Enums"]["approval_status"] | null
           caption: string | null
           id: string
           image_type: Database["public"]["Enums"]["image_type"] | null
@@ -194,6 +283,9 @@ export type Database = {
           uploaded_by: string | null
         }
         Insert: {
+          approval_status?:
+            | Database["public"]["Enums"]["approval_status"]
+            | null
           caption?: string | null
           id?: string
           image_type?: Database["public"]["Enums"]["image_type"] | null
@@ -203,6 +295,9 @@ export type Database = {
           uploaded_by?: string | null
         }
         Update: {
+          approval_status?:
+            | Database["public"]["Enums"]["approval_status"]
+            | null
           caption?: string | null
           id?: string
           image_type?: Database["public"]["Enums"]["image_type"] | null
@@ -625,6 +720,7 @@ export type Database = {
         | "image_uploaded"
         | "assigned"
       app_role: "admin" | "manager" | "staff"
+      approval_status: "pending" | "approved" | "rejected"
       content_category:
         | "evergreen"
         | "event_based"
@@ -787,6 +883,7 @@ export const Constants = {
         "assigned",
       ],
       app_role: ["admin", "manager", "staff"],
+      approval_status: ["pending", "approved", "rejected"],
       content_category: [
         "evergreen",
         "event_based",

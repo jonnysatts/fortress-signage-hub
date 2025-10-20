@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Bell, Save, Settings2 } from "lucide-react";
+import { ArrowLeft, Bell, Save, Settings2, Users, Tags } from "lucide-react";
 import { toast } from "sonner";
 
 export default function Settings() {
@@ -188,15 +188,23 @@ export default function Settings() {
           </p>
         </div>
 
-        <Tabs defaultValue="alerts">
-          <TabsList>
+        <Tabs defaultValue="alerts" className="space-y-4">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="alerts">
               <Bell className="w-4 h-4 mr-2" />
-              Alert Settings
+              Alerts
             </TabsTrigger>
-            <TabsTrigger value="fields" onClick={() => navigate("/custom-fields")}>
+            <TabsTrigger value="fields">
               <Settings2 className="w-4 h-4 mr-2" />
               Custom Fields
+            </TabsTrigger>
+            <TabsTrigger value="users">
+              <Users className="w-4 h-4 mr-2" />
+              Users
+            </TabsTrigger>
+            <TabsTrigger value="categories">
+              <Tags className="w-4 h-4 mr-2" />
+              Categories
             </TabsTrigger>
           </TabsList>
 
@@ -292,6 +300,38 @@ export default function Settings() {
                 <Button onClick={() => navigate('/custom-fields')}>
                   Manage Custom Fields
                 </Button>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="users">
+            <Card>
+              <CardHeader>
+                <CardTitle>User Management</CardTitle>
+                <CardDescription>
+                  Manage user roles and permissions (Admin only)
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground">
+                  User management features coming soon. Contact your administrator to manage user roles.
+                </p>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="categories">
+            <Card>
+              <CardHeader>
+                <CardTitle>Categories & Tags</CardTitle>
+                <CardDescription>
+                  Manage groups and tag taxonomies for signage spots
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground">
+                  Category management features coming soon. Groups can currently be viewed in the dashboard filters.
+                </p>
               </CardContent>
             </Card>
           </TabsContent>

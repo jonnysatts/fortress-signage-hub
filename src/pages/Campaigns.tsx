@@ -7,6 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CampaignDialog } from "@/components/CampaignDialog";
+import { TemplateSelector } from "@/components/TemplateSelector";
+import { TemplateDialog } from "@/components/TemplateDialog";
 import { 
   Plus, 
   Calendar as CalendarIcon, 
@@ -35,6 +37,9 @@ export default function Campaigns() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [selectedGroups, setSelectedGroups] = useState<string[]>([]);
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [userRole, setUserRole] = useState<string | null>(null);
 
   useEffect(() => {
     checkAuth();
@@ -45,7 +50,17 @@ export default function Campaigns() {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
       navigate("/auth");
+      return;
     }
+
+    const { data: roles } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', session.user.id);
+
+    const roleList = roles?.map(r => r.role) || [];
+    const effectiveRole = roleList.includes('admin') ? 'admin' : roleList.includes('manager') ? 'manager' : 'staff';
+    setUserRole(effectiveRole);
   };
 
   const fetchCampaigns = async () => {
@@ -150,6 +165,34 @@ export default function Campaigns() {
             />
           </div>
         </div>
+
+        {/* Template Management */}
+        {(userRole === 'admin' || userRole === 'manager') && (
+          <Card className="mb-6 border-0 shadow-md">
+            <CardHeader>
+              <CardTitle className="text-lg">Campaign Templates</CardTitle>
+              <CardDescription>
+                Load saved templates or save current selection as a template
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-wrap gap-4 items-center">
+              <TemplateSelector 
+                onTemplateSelect={(groups, tags) => {
+                  setSelectedGroups(groups);
+                  setSelectedTags(tags);
+                }}
+                userRole={userRole}
+              />
+              <TemplateDialog
+                selectedGroups={selectedGroups}
+                selectedTags={selectedTags}
+                onTemplateSaved={() => {
+                  // Refresh templates if needed
+                }}
+              />
+            </CardContent>
+          </Card>
+        )}
 
         {/* Filters */}
         <div className="flex flex-col md:flex-row gap-4 mb-8">
