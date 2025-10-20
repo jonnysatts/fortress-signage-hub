@@ -1,5 +1,6 @@
-import { useState, useEffect, useMemo } from "react";
-import { Calendar as BigCalendar, momentLocalizer, View, SlotInfo } from "react-big-calendar";
+import { useState, useEffect } from "react";
+import { Calendar as BigCalendar, momentLocalizer, View } from "react-big-calendar";
+import withDragAndDrop from "react-big-calendar/lib/addons/dragAndDrop";
 import moment from "moment-timezone";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -11,10 +12,12 @@ import { Calendar as CalendarIcon, Download, Settings, Plus } from "lucide-react
 import { CalendarEventDialog } from "@/components/CalendarEventDialog";
 import { CreateEventDialog } from "@/components/CreateEventDialog";
 import "react-big-calendar/lib/css/react-big-calendar.css";
+import "react-big-calendar/lib/addons/dragAndDrop/styles.css";
 
 // Set timezone to Australia/Sydney
 moment.tz.setDefault("Australia/Sydney");
 const localizer = momentLocalizer(moment);
+const DnDCalendar = withDragAndDrop(BigCalendar);
 
 interface CalendarEvent {
   id: string;
@@ -458,7 +461,7 @@ export default function Calendar() {
             <p className="text-muted-foreground">Loading calendar...</p>
           </div>
         ) : (
-          <BigCalendar
+          <DnDCalendar
             localizer={localizer}
             events={events}
             startAccessor="start"
@@ -472,8 +475,7 @@ export default function Calendar() {
             views={['month', 'week', 'day', 'agenda']}
             onSelectEvent={handleSelectEvent}
             onEventDrop={handleEventDrop}
-            draggableAccessor={() => true}
-            resizable
+            resizable={false}
           />
         )}
       </Card>
