@@ -526,6 +526,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      calculate_expiry_date: {
+        Args: {
+          p_campaign_end_date: string
+          p_custom_expiry_date: string
+          p_expiry_behavior: string
+          p_install_date: string
+          p_last_update_date: string
+        }
+        Returns: string
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
