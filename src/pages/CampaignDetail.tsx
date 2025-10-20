@@ -182,8 +182,8 @@ export default function CampaignDetail() {
     };
   };
 
-  const calculateEstimatedCost = (spots: any[]) => {
-    return spots.reduce((total, spot) => {
+  const calculateEstimatedCost = () => {
+    return linkedSpots.reduce((total, spot) => {
       const production = Number(spot.production_cost) || 0;
       const installation = Number(spot.installation_cost) || 0;
       return total + production + installation;
@@ -211,7 +211,7 @@ export default function CampaignDetail() {
 
   const status = getCampaignStatus();
   const health = getHealthMetrics();
-  const estimatedCost = calculateEstimatedCost(linkedSpots);
+  const estimatedCost = calculateEstimatedCost();
 
   return (
     <div className="min-h-screen bg-gradient-subtle">

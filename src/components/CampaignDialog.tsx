@@ -46,7 +46,7 @@ export function CampaignDialog({ campaign, onSuccess, trigger }: CampaignDialogP
         start_date: startDate ? format(startDate, "yyyy-MM-dd") : null,
         end_date: endDate ? format(endDate, "yyyy-MM-dd") : null,
         is_active: isActive,
-        budget_allocated: budgetAllocated ? Number(budgetAllocated) : null,
+        budget_allocated: budgetAllocated || null,
         budget_notes: budgetNotes || null,
         created_by: user?.id,
       };
@@ -134,6 +134,7 @@ export function CampaignDialog({ campaign, onSuccess, trigger }: CampaignDialogP
                     selected={startDate}
                     onSelect={setStartDate}
                     initialFocus
+                    className="pointer-events-auto"
                   />
                 </PopoverContent>
               </Popover>
@@ -160,6 +161,7 @@ export function CampaignDialog({ campaign, onSuccess, trigger }: CampaignDialogP
                     selected={endDate}
                     onSelect={setEndDate}
                     initialFocus
+                    className="pointer-events-auto"
                   />
                 </PopoverContent>
               </Popover>
