@@ -53,16 +53,15 @@ export default function SignageDetail() {
     if (session?.user) {
       setUser(session.user);
       
-      // Get user role from profiles table
-      const { data: profile, error } = await supabase
-        .from('profiles')
+      // Get user role from user_roles table (secure)
+      const { data: userRoles } = await supabase
+        .from('user_roles')
         .select('role')
-        .eq('id', session.user.id)
+        .eq('user_id', session.user.id)
+        .limit(1)
         .single();
       
-      console.log('User profile:', profile, 'Error:', error);
-      console.log('User role set to:', profile?.role || null);
-      setUserRole(profile?.role || null);
+      setUserRole(userRoles?.role || null);
     }
   };
 
@@ -301,8 +300,6 @@ export default function SignageDetail() {
 
   const canEdit = userRole === 'admin' || userRole === 'manager' || spot?.assigned_user_id === user?.id;
   const canDelete = userRole === 'admin';
-
-  console.log('canEdit check:', { userRole, spotAssigned: spot?.assigned_user_id, userId: user?.id, canEdit, canDelete });
 
   if (isLoading) {
     return (
