@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { Calendar as BigCalendar, momentLocalizer, View, Event } from "react-big-calendar";
+import { Calendar as BigCalendar, momentLocalizer, View, SlotInfo } from "react-big-calendar";
 import moment from "moment-timezone";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -7,7 +7,9 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Calendar as CalendarIcon, Download, Settings } from "lucide-react";
+import { Calendar as CalendarIcon, Download, Settings, Plus } from "lucide-react";
+import { CalendarEventDialog } from "@/components/CalendarEventDialog";
+import { CreateEventDialog } from "@/components/CreateEventDialog";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 
 // Set timezone to Australia/Sydney
@@ -42,6 +44,9 @@ export default function Calendar() {
   const [view, setView] = useState<View>('month');
   const [date, setDate] = useState(new Date());
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
+  const [showEventDialog, setShowEventDialog] = useState(false);
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
   
   const [settings, setSettings] = useState<CalendarSettings>({
     show_scheduled_promotions: true,
@@ -182,7 +187,7 @@ export default function Calendar() {
         }
       }
 
-      // Campaigns
+      // Campaigns - show as bars spanning dates
       if (settings.show_campaigns) {
         const { data: campaigns } = await supabase
           .from('campaigns')
@@ -191,7 +196,18 @@ export default function Calendar() {
 
         if (campaigns) {
           campaigns.forEach(c => {
-            if (c.start_date) {
+            if (c.start_date && c.end_date) {
+              // Campaign as a bar spanning the dates
+              allEvents.push({
+                id: c.id + '_campaign',
+                title: `📊 ${c.name}`,
+                start: new Date(c.start_date),
+                end: new Date(c.end_date),
+                type: 'campaign_start',
+                campaignId: c.id,
+                metadata: c,
+              });
+            } else if (c.start_date) {
               allEvents.push({
                 id: c.id + '_start',
                 title: `🚀 ${c.name} (Start)`,
@@ -202,7 +218,7 @@ export default function Calendar() {
                 metadata: c,
               });
             }
-            if (c.end_date) {
+            if (c.end_date && !c.start_date) {
               allEvents.push({
                 id: c.id + '_end',
                 title: `🏁 ${c.name} (End)`,
@@ -310,6 +326,56 @@ export default function Calendar() {
     });
   };
 
+  const handleSelectEvent = (event: CalendarEvent) => {
+    setSelectedEvent(event);
+    setShowEventDialog(true);
+  };
+
+  const handleEventDrop = async ({ event, start, end }: any) => {
+    const calEvent = event as CalendarEvent;
+    
+    try {
+      // Handle rescheduling based on event type
+      if (calEvent.type === 'scheduled_promotion' && calEvent.photoId) {
+        const { error } = await supabase
+          .from('photo_history')
+          .update({ scheduled_date: start.toISOString().split('T')[0] })
+          .eq('id', calEvent.photoId);
+        
+        if (error) throw error;
+      } else if (calEvent.type === 'print_job' && calEvent.photoId) {
+        const { error } = await supabase
+          .from('photo_history')
+          .update({ print_due_date: start.toISOString().split('T')[0] })
+          .eq('id', calEvent.photoId);
+        
+        if (error) throw error;
+      }
+
+      toast({
+        title: "Success",
+        description: "Event rescheduled successfully",
+      });
+
+      loadEvents();
+    } catch (error: any) {
+      console.error('Error rescheduling event:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to reschedule event",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleReschedule = (event: CalendarEvent, newDate: Date) => {
+    handleEventDrop({ event, start: newDate, end: newDate });
+  };
+
+  const handleComplete = (event: CalendarEvent) => {
+    loadEvents();
+  };
+
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
@@ -318,6 +384,10 @@ export default function Calendar() {
           <h1 className="text-3xl font-bold">Calendar</h1>
         </div>
         <div className="flex gap-2">
+          <Button onClick={() => setShowCreateDialog(true)}>
+            <Plus className="w-4 h-4 mr-2" />
+            New Event
+          </Button>
           <Button variant="outline" onClick={handleExport}>
             <Download className="w-4 h-4 mr-2" />
             Export
@@ -400,9 +470,28 @@ export default function Calendar() {
             onNavigate={setDate}
             eventPropGetter={eventStyleGetter}
             views={['month', 'week', 'day', 'agenda']}
+            onSelectEvent={handleSelectEvent}
+            onEventDrop={handleEventDrop}
+            draggableAccessor={() => true}
+            resizable
           />
         )}
       </Card>
+
+      <CalendarEventDialog
+        event={selectedEvent}
+        open={showEventDialog}
+        onClose={() => setShowEventDialog(false)}
+        onReschedule={handleReschedule}
+        onComplete={handleComplete}
+        onRefresh={loadEvents}
+      />
+
+      <CreateEventDialog
+        open={showCreateDialog}
+        onClose={() => setShowCreateDialog(false)}
+        onEventCreated={loadEvents}
+      />
     </div>
   );
 }
