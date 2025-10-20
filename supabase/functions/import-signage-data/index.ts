@@ -17,8 +17,8 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    // First, create the Melbourne venue
-    const { data: venueData, error: venueError } = await supabaseClient
+    // Create both venues
+    const { data: melbourneVenue, error: melbourneError } = await supabaseClient
       .from('venues')
       .upsert([
         {
@@ -31,14 +31,30 @@ serve(async (req) => {
       .select()
       .single()
 
-    if (venueError) throw venueError
+    if (melbourneError) throw melbourneError
 
-    const venueId = venueData.id
+    const { data: sydneyVenue, error: sydneyError } = await supabaseClient
+      .from('venues')
+      .upsert([
+        {
+          name: 'Fortress Sydney',
+          address: 'Sydney CBD',
+          timezone: 'Australia/Sydney',
+          is_active: true
+        }
+      ], { onConflict: 'name' })
+      .select()
+      .single()
 
-    // Parse and import signage spots from the spreadsheet data
-    const signageSpots = [
+    if (sydneyError) throw sydneyError
+
+    const melbourneId = melbourneVenue.id
+    const sydneyId = sydneyVenue.id
+
+    // Melbourne signage spots
+    const melbourneSpots = [
       {
-        venue_id: venueId,
+        venue_id: melbourneId,
         location_name: 'Inside venue floor facing towards outside Cal Lane',
         width_cm: 126,
         height_cm: 200,
@@ -52,7 +68,7 @@ serve(async (req) => {
         legacy_drive_link: 'https://drive.google.com/drive/folders/1xNBjP4EODu0BtaelN4efZQaoOfz2zHhQ?usp=sharing'
       },
       {
-        venue_id: venueId,
+        venue_id: melbourneId,
         location_name: 'Inside venue wall facing towards outside Cal Lane',
         width_cm: 480,
         height_cm: 168,
@@ -66,7 +82,7 @@ serve(async (req) => {
         legacy_drive_link: 'https://drive.google.com/drive/folders/1xNBjP4EODu0BtaelN4efZQaoOfz2zHhQ?usp=sharing'
       },
       {
-        venue_id: venueId,
+        venue_id: melbourneId,
         location_name: 'Alienware Arena lightbox',
         width_cm: 200,
         height_cm: 300,
@@ -79,7 +95,7 @@ serve(async (req) => {
         legacy_drive_link: 'https://drive.google.com/drive/folders/1E_d8h5zeIbk9g3KOXwDwLVN2kzciZynC?usp=sharing'
       },
       {
-        venue_id: venueId,
+        venue_id: melbourneId,
         location_name: 'Retail merch beside Alienware Arena doors entrance',
         width_cm: 74,
         height_cm: 350,
@@ -93,7 +109,7 @@ serve(async (req) => {
         legacy_drive_link: 'https://drive.google.com/drive/folders/1R1vK7v9G4mzbcpnogk_u4AYtmRiSkpOr?usp=sharing'
       },
       {
-        venue_id: venueId,
+        venue_id: melbourneId,
         location_name: 'Retail merch front panel',
         width_cm: 60,
         height_cm: 200,
@@ -107,7 +123,7 @@ serve(async (req) => {
         legacy_drive_link: 'https://drive.google.com/drive/folders/1R1vK7v9G4mzbcpnogk_u4AYtmRiSkpOr?usp=sharing'
       },
       {
-        venue_id: venueId,
+        venue_id: melbourneId,
         location_name: 'Retail merch side panel (outer)',
         width_cm: 85,
         height_cm: 200,
@@ -120,7 +136,7 @@ serve(async (req) => {
         legacy_drive_link: 'https://drive.google.com/drive/folders/1R1vK7v9G4mzbcpnogk_u4AYtmRiSkpOr?usp=sharing'
       },
       {
-        venue_id: venueId,
+        venue_id: melbourneId,
         location_name: 'Retail merch back panel',
         width_cm: 60,
         height_cm: 200,
@@ -133,7 +149,7 @@ serve(async (req) => {
         legacy_drive_link: 'https://drive.google.com/drive/folders/1R1vK7v9G4mzbcpnogk_u4AYtmRiSkpOr?usp=sharing'
       },
       {
-        venue_id: venueId,
+        venue_id: melbourneId,
         location_name: 'Retail merch side panel (inner)',
         width_cm: 85,
         height_cm: 200,
@@ -145,7 +161,7 @@ serve(async (req) => {
         legacy_drive_link: 'https://drive.google.com/drive/folders/1R1vK7v9G4mzbcpnogk_u4AYtmRiSkpOr?usp=sharing'
       },
       {
-        venue_id: venueId,
+        venue_id: melbourneId,
         location_name: 'Retail merch poster behind reception counter',
         width_cm: 83,
         height_cm: 120,
@@ -158,7 +174,7 @@ serve(async (req) => {
         recommendations: 'Replace with new artwork - ideally evergreen. A0 size (0.83m W x 1.2m H inc. frame)'
       },
       {
-        venue_id: venueId,
+        venue_id: melbourneId,
         location_name: 'Alienware Arena wall (next to lightbox)',
         width_cm: 330,
         content_category: 'marketing',
@@ -170,7 +186,7 @@ serve(async (req) => {
         recommendations: 'Consider putting a permanent aesthetic wall decal.'
       },
       {
-        venue_id: venueId,
+        venue_id: melbourneId,
         location_name: 'Upstairs female bathroom wall (between toilets and sinks)',
         width_cm: 176,
         height_cm: 267,
@@ -183,7 +199,7 @@ serve(async (req) => {
         recommendations: 'Consider putting a permanent aesthetic wall decal'
       },
       {
-        venue_id: venueId,
+        venue_id: melbourneId,
         location_name: 'Upstairs female bathroom wall (small separator)',
         width_cm: 103,
         height_cm: 267,
@@ -196,7 +212,7 @@ serve(async (req) => {
         recommendations: 'Consider putting a permanent aesthetic wall decal - Theming'
       },
       {
-        venue_id: venueId,
+        venue_id: melbourneId,
         location_name: 'Upstairs female bathroom wall (opposite toilets)',
         width_cm: 380,
         height_cm: 267,
@@ -209,7 +225,7 @@ serve(async (req) => {
         recommendations: 'Consider putting a permanent aesthetic wall decal'
       },
       {
-        venue_id: venueId,
+        venue_id: melbourneId,
         location_name: 'Upstairs male bathroom wall (above urinals)',
         width_cm: 400,
         height_cm: 177,
@@ -222,7 +238,7 @@ serve(async (req) => {
         recommendations: 'Consider putting a permanent aesthetic wall decal'
       },
       {
-        venue_id: venueId,
+        venue_id: melbourneId,
         location_name: 'Upstairs male bathroom divider wall (behind urinals)',
         width_cm: 258,
         height_cm: 268,
@@ -234,7 +250,7 @@ serve(async (req) => {
         recommendations: 'Consider putting a permanent aesthetic wall decal'
       },
       {
-        venue_id: venueId,
+        venue_id: melbourneId,
         location_name: 'Upstairs male bathroom back wall (next to sinks)',
         width_cm: 288,
         height_cm: 268,
@@ -246,7 +262,7 @@ serve(async (req) => {
         recommendations: 'Consider putting a permanent aesthetic wall decal'
       },
       {
-        venue_id: venueId,
+        venue_id: melbourneId,
         location_name: 'Upstairs male hallway to bathroom side wall (1 of 2)',
         width_cm: 148,
         height_cm: 268,
@@ -257,7 +273,7 @@ serve(async (req) => {
         recommendations: 'Consider putting a permanent aesthetic wall decal'
       },
       {
-        venue_id: venueId,
+        venue_id: melbourneId,
         location_name: 'Upstairs male hallway to bathroom side wall (2 of 2)',
         width_cm: 148,
         height_cm: 268,
@@ -267,7 +283,7 @@ serve(async (req) => {
         recommendations: 'Consider putting a permanent aesthetic wall decal'
       },
       {
-        venue_id: venueId,
+        venue_id: melbourneId,
         location_name: 'Top of staircase towards Cal Lane exit',
         width_cm: 230,
         height_cm: 299,
@@ -280,7 +296,7 @@ serve(async (req) => {
         recommendations: 'Consider removing the signage & putting a permanent aesthetic wall decal'
       },
       {
-        venue_id: venueId,
+        venue_id: melbourneId,
         location_name: 'Cal Lane entrance (left of door when entering from outside)',
         width_cm: 36,
         height_cm: 116,
@@ -291,7 +307,7 @@ serve(async (req) => {
         legacy_drive_link: 'https://drive.google.com/drive/folders/1xNBjP4EODu0BtaelN4efZQaoOfz2zHhQ?usp=sharing'
       },
       {
-        venue_id: venueId,
+        venue_id: melbourneId,
         location_name: 'Cal Lane entrance short window (right of door)',
         width_cm: 70,
         height_cm: 300,
@@ -304,7 +320,7 @@ serve(async (req) => {
         legacy_drive_link: 'https://drive.google.com/drive/folders/1xNBjP4EODu0BtaelN4efZQaoOfz2zHhQ?usp=sharing'
       },
       {
-        venue_id: venueId,
+        venue_id: melbourneId,
         location_name: 'Cal Lane entrance wide window (right of door)',
         width_cm: 127,
         height_cm: 300,
@@ -316,7 +332,7 @@ serve(async (req) => {
         recommendations: 'Consider making a graphic with a clear message (be careful not to block the inner sign)'
       },
       {
-        venue_id: venueId,
+        venue_id: melbourneId,
         location_name: 'Tavern escalator landing towards kitchen',
         width_cm: 280,
         height_cm: 232,
@@ -329,7 +345,7 @@ serve(async (req) => {
         recommendations: 'Consider putting a permanent aesthetic wall decal'
       },
       {
-        venue_id: venueId,
+        venue_id: melbourneId,
         location_name: 'Tavern escalator landing towards Tavern',
         content_category: 'theming',
         priority_level: 'low',
@@ -338,7 +354,7 @@ serve(async (req) => {
         recommendations: 'Consider putting a permanent easel'
       },
       {
-        venue_id: venueId,
+        venue_id: melbourneId,
         location_name: 'Tavern bathroom hallway (back wall)',
         width_cm: 166,
         height_cm: 238,
@@ -348,7 +364,7 @@ serve(async (req) => {
         recommendations: 'Consider putting a permanent aesthetic wall decal'
       },
       {
-        venue_id: venueId,
+        venue_id: melbourneId,
         location_name: 'Arcade window wall',
         width_cm: 290,
         height_cm: 200,
@@ -359,7 +375,7 @@ serve(async (req) => {
         recommendations: 'Consider putting a permanent aesthetic wall decal'
       },
       {
-        venue_id: venueId,
+        venue_id: melbourneId,
         location_name: 'Tavern bar overhead panel (half)',
         width_cm: 140,
         height_cm: 42,
@@ -370,7 +386,7 @@ serve(async (req) => {
         recommendations: 'Consider putting a permanent aesthetic signage thin plastic'
       },
       {
-        venue_id: venueId,
+        venue_id: melbourneId,
         location_name: 'LAN/Streamer Pods - Sound Absorber Wall 1',
         width_cm: 270,
         height_cm: 298,
@@ -381,7 +397,7 @@ serve(async (req) => {
         recommendations: 'Adding foam padding for audio improvement and signage to cover the hole'
       },
       {
-        venue_id: venueId,
+        venue_id: melbourneId,
         location_name: 'LAN/Streamer Pods - Character Wall',
         width_cm: 223,
         height_cm: 298,
@@ -393,7 +409,7 @@ serve(async (req) => {
         recommendations: 'Remove redbull decal and shelf, then add fortress theming that\'s not too in your face. Character sticker decals'
       },
       {
-        venue_id: venueId,
+        venue_id: melbourneId,
         location_name: 'LAN/Streamer Pods - Carina Wall',
         width_cm: 382,
         height_cm: 298,
@@ -406,7 +422,7 @@ serve(async (req) => {
         legacy_drive_link: 'https://drive.google.com/file/d/1oBzN42xXNiwop0c59waMVApD3Dzaw7D0/view?usp=sharing'
       },
       {
-        venue_id: venueId,
+        venue_id: melbourneId,
         location_name: 'LAN/Streamer Pods - Jim Wall',
         width_cm: 199,
         height_cm: 298,
@@ -420,7 +436,7 @@ serve(async (req) => {
         legacy_drive_link: 'https://drive.google.com/file/d/1f_SZ3JuB1dEg3dpnOS-jVH90ffvRdinT/view?usp=sharing'
       },
       {
-        venue_id: venueId,
+        venue_id: melbourneId,
         location_name: 'Left pillar of merch',
         width_cm: 146,
         height_cm: 155,
@@ -431,7 +447,7 @@ serve(async (req) => {
         recommendations: 'Instagramable moment with venue map'
       },
       {
-        venue_id: venueId,
+        venue_id: melbourneId,
         location_name: 'Pillar to the right of arena entry',
         width_cm: 130,
         height_cm: 142.5,
@@ -442,7 +458,7 @@ serve(async (req) => {
         recommendations: 'Lower priority - focus on other walls first. Big character drop maybe?'
       },
       {
-        venue_id: venueId,
+        venue_id: melbourneId,
         location_name: 'Halfway platform of the stairwell',
         width_cm: 136,
         height_cm: 296,
@@ -453,7 +469,7 @@ serve(async (req) => {
         recommendations: 'High priority wayfinding art'
       },
       {
-        venue_id: venueId,
+        venue_id: melbourneId,
         location_name: 'Above the stairwell',
         width_cm: 153,
         height_cm: 190.5,
@@ -464,7 +480,7 @@ serve(async (req) => {
         recommendations: '2315 branding opportunity'
       },
       {
-        venue_id: venueId,
+        venue_id: melbourneId,
         location_name: 'Pillar in Mezzanine x2 (4 sides)',
         width_cm: 131,
         height_cm: 332,
@@ -473,7 +489,7 @@ serve(async (req) => {
         status: 'empty'
       },
       {
-        venue_id: venueId,
+        venue_id: melbourneId,
         location_name: 'Pillar in Mezzanine near arcade',
         width_cm: 89.2,
         height_cm: 297,
@@ -483,18 +499,151 @@ serve(async (req) => {
       }
     ]
 
+    // Sydney signage spots
+    const sydneySpots = [
+      {
+        venue_id: sydneyId,
+        location_name: 'Left pillar of merch',
+        width_cm: 146,
+        height_cm: 155,
+        content_category: 'marketing',
+        priority_level: 'medium',
+        status: 'empty',
+        creative_brief: 'It would be really cool to take inspiration from In Game maps and use that for Wayfinding in the venue (but also an awesome instagramable moment for engagement). We would have "locations" for each area of the venue Tavern, LAN, Retail, 2315, Mezz and Arcade with some highlight art for each to make people curious. Some cool tavern graphics with a arrow and same for the arcade to compliment the signage that\'s there',
+        recommendations: 'In-game map wayfinding concept'
+      },
+      {
+        venue_id: sydneyId,
+        location_name: 'Pillar to the right of arena entry',
+        width_cm: 130,
+        height_cm: 142.5,
+        content_category: 'theming',
+        priority_level: 'low',
+        status: 'empty',
+        creative_brief: 'This is an opportunity but I would actually leave this blank as white space can be as important as character so the other walls pop. This is also a "retail space now" and we will be implementing for pricing / retail drivers. Big ol character drop maybe?',
+        recommendations: 'Lower priority - consider white space, possibly large character art'
+      },
+      {
+        venue_id: sydneyId,
+        location_name: 'Halfway platform of the stairwell',
+        width_cm: 136,
+        height_cm: 296,
+        content_category: 'marketing',
+        priority_level: 'high',
+        status: 'empty',
+        creative_brief: 'It would be great to have creative here that "beckons" people upstairs. A combination of intriguing world based lore art but also a call to action of some kind that hints that what waits upstairs is worth exploring. This could tie into the teasers on the world map wayfinding downstairs. Look at creative psychology - lots of imagery sweeping upwards then outwards at the top, or artwork that wraps around the stairs from bottom to top',
+        recommendations: 'High priority - wayfinding with upward motion design'
+      },
+      {
+        venue_id: sydneyId,
+        location_name: 'Above the stairwell',
+        width_cm: 153,
+        height_cm: 190.5,
+        content_category: 'marketing',
+        priority_level: 'high',
+        status: 'empty',
+        creative_brief: 'This would be a great place for 2315 branded art as an extension to the entryway. A driver to enter the bar before they even get to the top of the stairs. Some kind of rebellion call to action or reference to the "Green Mist" lore',
+        recommendations: '2315 branding - rebellion theme'
+      },
+      {
+        venue_id: sydneyId,
+        location_name: 'Pillar in Mezzanine x2 (4 sides)',
+        width_cm: 131,
+        height_cm: 332,
+        content_category: 'theming',
+        priority_level: 'medium',
+        status: 'empty'
+      },
+      {
+        venue_id: sydneyId,
+        location_name: 'Pillar in Mezzanine near arcade',
+        width_cm: 89.2,
+        height_cm: 297,
+        content_category: 'theming',
+        priority_level: 'medium',
+        status: 'empty'
+      },
+      {
+        venue_id: sydneyId,
+        location_name: 'Male/Female Bathrooms Mirrors x 8',
+        width_cm: 45,
+        height_cm: 90,
+        content_category: 'theming',
+        priority_level: 'low',
+        status: 'empty',
+        notes: '8 mirrors total across male and female bathrooms'
+      },
+      {
+        venue_id: sydneyId,
+        location_name: 'Downstairs female bathroom in between mirrors',
+        content_category: 'theming',
+        priority_level: 'low',
+        status: 'empty',
+        notes: 'Measurements in photo'
+      },
+      {
+        venue_id: sydneyId,
+        location_name: 'Unisex Bathrooms Mirrors x 5',
+        width_cm: 60,
+        height_cm: 95,
+        content_category: 'theming',
+        priority_level: 'low',
+        status: 'empty',
+        notes: '5 mirrors total across unisex bathrooms'
+      },
+      {
+        venue_id: sydneyId,
+        location_name: 'Downstairs female bathroom wall',
+        width_cm: 193.5,
+        height_cm: 144.5,
+        content_category: 'theming',
+        priority_level: 'medium',
+        status: 'empty'
+      },
+      {
+        venue_id: sydneyId,
+        location_name: 'Downstairs Female floor to ceiling mirror',
+        width_cm: 60,
+        height_cm: 180,
+        content_category: 'theming',
+        priority_level: 'low',
+        status: 'empty'
+      },
+      {
+        venue_id: sydneyId,
+        location_name: 'Female bathroom 2315',
+        width_cm: 40,
+        height_cm: 90,
+        content_category: 'theming',
+        priority_level: 'low',
+        status: 'empty'
+      },
+      {
+        venue_id: sydneyId,
+        location_name: 'Female Bathroom 2315 - Large Wall',
+        width_cm: 80,
+        height_cm: 189,
+        content_category: 'theming',
+        priority_level: 'low',
+        status: 'empty'
+      }
+    ]
+
+    // Combine all signage spots
+    const allSignageSpots = [...melbourneSpots, ...sydneySpots]
+
     // Insert all signage spots
     const { error: spotsError } = await supabaseClient
       .from('signage_spots')
-      .insert(signageSpots)
+      .insert(allSignageSpots)
 
     if (spotsError) throw spotsError
 
     return new Response(
       JSON.stringify({
         success: true,
-        message: `Successfully imported ${signageSpots.length} signage spots for Fortress Melbourne`,
-        venueId
+        message: `Successfully imported ${melbourneSpots.length} Melbourne spots and ${sydneySpots.length} Sydney spots (${allSignageSpots.length} total)`,
+        venues: { melbourne: melbourneId, sydney: sydneyId }
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
