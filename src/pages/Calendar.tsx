@@ -354,6 +354,12 @@ export default function Calendar() {
           .update({ [field]: start.toISOString().split('T')[0] })
           .eq('id', event.campaignId);
         if (error) throw error;
+      } else if (event.type === 'expiry' && event.spotId) {
+        const { error } = await supabase
+          .from('signage_spots')
+          .update({ expiry_date: start.toISOString().split('T')[0] })
+          .eq('id', event.spotId);
+        if (error) throw error;
       }
 
       toast({
@@ -366,6 +372,34 @@ export default function Calendar() {
       toast({
         title: "Error",
         description: error.message || "Failed to reschedule event",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleEventResize = async ({ event, start, end }: { event: CalendarEvent; start: Date; end: Date }) => {
+    try {
+      if ((event.type === 'campaign_start' || event.type === 'campaign_end') && event.campaignId) {
+        const { error } = await supabase
+          .from('campaigns')
+          .update({ 
+            start_date: start.toISOString().split('T')[0],
+            end_date: end.toISOString().split('T')[0]
+          })
+          .eq('id', event.campaignId);
+        if (error) throw error;
+
+        toast({
+          title: "Success",
+          description: "Campaign dates updated successfully",
+        });
+        loadEvents();
+      }
+    } catch (error: any) {
+      console.error('Error resizing event:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to resize event",
         variant: "destructive",
       });
     }
@@ -475,7 +509,9 @@ export default function Calendar() {
             views={['month', 'week', 'day', 'agenda']}
             onSelectEvent={handleSelectEvent}
             onEventDrop={handleEventDrop}
-            draggableAccessor={() => true}
+            onEventResize={handleEventResize}
+            draggableAccessor={(event: CalendarEvent) => event.type !== 'stale_warning'}
+            resizableAccessor={(event: CalendarEvent) => event.type === 'campaign_start' || event.type === 'campaign_end'}
           />
         )}
       </Card>
