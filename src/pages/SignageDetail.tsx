@@ -32,6 +32,12 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 export default function SignageDetail() {
   const { id } = useParams();
@@ -454,10 +460,19 @@ export default function SignageDetail() {
           <div className="flex gap-2">
             {canEdit && !isEditMode && (
               <>
-                <Button onClick={handleMarkAsUpdated} variant="outline">
-                  <CheckCircle2 className="w-4 h-4 mr-2" />
-                  Update Status Date
-                </Button>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button onClick={handleMarkAsUpdated} variant="outline">
+                        <CheckCircle2 className="w-4 h-4 mr-2" />
+                        Refresh Status
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="max-w-xs">Mark this spot as current and reset the "days active" counter. Use when signage was physically updated but no new photo was taken.</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
                 <Button onClick={handleEditToggle}>
                   <Edit2 className="w-4 h-4 mr-2" />
                   Edit
