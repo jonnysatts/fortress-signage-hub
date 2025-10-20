@@ -1,4 +1,4 @@
-import { LayoutGrid, Calendar, Settings, LogOut } from "lucide-react";
+import { LayoutGrid, Calendar, LogOut } from "lucide-react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -40,7 +40,8 @@ export function AppSidebar() {
               {open && <span className="font-bold">Fortress Signage</span>}
             </div>
           </SidebarGroupLabel>
-          <SidebarGroupContent>
+          
+          <SidebarGroupContent className="mt-4">
             <SidebarMenu>
               {navItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
@@ -53,7 +54,7 @@ export function AppSidebar() {
                           : ""
                       }
                     >
-                      <item.icon className="w-4 h-4" />
+                      <item.icon />
                       <span>{item.title}</span>
                     </NavLink>
                   </SidebarMenuButton>
@@ -62,18 +63,19 @@ export function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
-
-        <div className="mt-auto p-4">
-          <Button
-            variant="ghost"
-            className="w-full justify-start"
-            onClick={handleSignOut}
-          >
-            <LogOut className="w-4 h-4 mr-2" />
-            {open && <span>Sign Out</span>}
-          </Button>
-        </div>
       </SidebarContent>
+
+      <div className="mt-auto border-t p-4">
+        <Button
+          variant="ghost"
+          className="w-full justify-start"
+          onClick={handleSignOut}
+        >
+          <LogOut className="mr-2" />
+          {open && <span>Sign Out</span>}
+        </Button>
+      </div>
     </Sidebar>
   );
 }
+
