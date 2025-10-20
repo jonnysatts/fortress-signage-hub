@@ -52,16 +52,29 @@ export default function SignageDetail() {
     const { data: { session } } = await supabase.auth.getSession();
     if (session?.user) {
       setUser(session.user);
-      
-      // Get user role from user_roles table (secure)
-      const { data: userRoles } = await supabase
+
+      // Get all roles for the user from user_roles (secure)
+      const { data: roles, error } = await supabase
         .from('user_roles')
         .select('role')
-        .eq('user_id', session.user.id)
-        .limit(1)
-        .single();
-      
-      setUserRole(userRoles?.role || null);
+        .eq('user_id', session.user.id);
+
+      const roleList = roles?.map(r => r.role) || [];
+      const effectiveRole = roleList.includes('admin')
+        ? 'admin'
+        : roleList.includes('manager')
+        ? 'manager'
+        : roleList.includes('staff')
+        ? 'staff'
+        : null;
+
+      console.info('Auth debug', {
+        userId: session.user.id,
+        roles: roleList,
+        effectiveRole,
+      });
+
+      setUserRole(effectiveRole);
     }
   };
 
