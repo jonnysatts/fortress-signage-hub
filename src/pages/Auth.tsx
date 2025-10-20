@@ -7,7 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Eye, EyeOff, LayoutGrid } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
+import fortressLogo from "@/assets/fortress-logo.png";
 
 export default function Auth() {
   const navigate = useNavigate();
@@ -76,13 +77,13 @@ export default function Auth() {
     <div className="min-h-screen bg-gradient-subtle flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-primary mb-4 shadow-glow">
-            <LayoutGrid className="w-8 h-8 text-primary-foreground" />
+          <div className="inline-flex items-center justify-center w-24 h-24 mb-4">
+            <img src={fortressLogo} alt="Fortress" className="w-full h-full object-contain drop-shadow-glow" />
           </div>
-          <h1 className="text-3xl font-bold bg-gradient-primary bg-clip-text text-transparent">
-            Fortress Signage
+          <h1 className="text-4xl font-fortress text-foreground mb-2">
+            FORTRESS SIGNAGE
           </h1>
-          <p className="text-muted-foreground mt-2">Venue signage management system</p>
+          <p className="text-muted-foreground font-body">Venue signage management system</p>
         </div>
 
         <Card className="border-0 shadow-lg">

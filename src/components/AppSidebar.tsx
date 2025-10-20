@@ -14,6 +14,7 @@ import {
   SidebarFooter,
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
+import fortressLogo from "@/assets/fortress-logo.png";
 
 const navItems = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutGrid },
@@ -38,10 +39,10 @@ export function AppSidebar() {
         <SidebarGroup>
           <SidebarGroupLabel>
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-gradient-primary flex items-center justify-center">
-                <LayoutGrid className="w-4 h-4 text-primary-foreground" />
+              <div className="w-8 h-8 flex items-center justify-center">
+                <img src={fortressLogo} alt="Fortress" className="w-full h-full object-contain" />
               </div>
-              {open && <span className="font-bold">Fortress Signage</span>}
+              {open && <span className="font-fortress text-foreground">SIGNAGE</span>}
             </div>
           </SidebarGroupLabel>
           

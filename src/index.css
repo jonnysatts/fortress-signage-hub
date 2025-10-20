@@ -2,128 +2,130 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
+/* Fortress Brand Design System - Based on Official Brand Guide 2025
 All colors MUST be HSL.
 */
 
 @layer base {
   :root {
-    /* Modern signage management system colors */
+    /* Fortress Brand Colors */
     --background: 0 0% 100%;
-    --foreground: 222 47% 11%;
+    --foreground: 235 48% 12%; /* Fortress Navy #141529 */
 
     --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
+    --card-foreground: 235 48% 12%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
+    --popover-foreground: 235 48% 12%;
 
-    /* Primary brand - Deep purple */
-    --primary: 263 70% 50%;
+    /* Primary - Fortress Green #00BF65 */
+    --primary: 151 100% 38%;
     --primary-foreground: 0 0% 100%;
-    --primary-glow: 263 70% 60%;
+    --primary-glow: 151 100% 45%;
+    --primary-dark: 151 100% 32%; /* Dark Green #00A457 */
 
-    /* Secondary - Light purple */
-    --secondary: 263 25% 95%;
-    --secondary-foreground: 263 70% 30%;
+    /* Secondary - Fortress Navy */
+    --secondary: 235 48% 96%;
+    --secondary-foreground: 235 48% 12%;
 
-    --muted: 220 13% 96%;
-    --muted-foreground: 220 9% 46%;
+    --muted: 222 11% 93%; /* Light Grey #E7E9EE */
+    --muted-foreground: 220 8% 76%; /* Grey #C1C6D4 */
 
-    /* Accent - Vibrant cyan */
-    --accent: 189 95% 50%;
+    /* Accent - Fortress Green */
+    --accent: 151 100% 38%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    /* Status colors */
-    --status-current: 142 76% 36%;
+    /* Status colors - using Fortress brand colors */
+    --status-current: 151 100% 38%; /* Fortress Green */
     --status-expiring: 43 96% 56%;
     --status-overdue: 0 84% 60%;
-    --status-empty: 220 9% 46%;
-    --status-planned: 217 91% 60%;
+    --status-empty: 220 8% 76%;
+    --status-planned: 151 100% 32%; /* Dark Green */
 
-    --border: 220 13% 91%;
-    --input: 220 13% 91%;
-    --ring: 263 70% 50%;
+    --border: 222 11% 88%;
+    --input: 222 11% 88%;
+    --ring: 151 100% 38%;
 
-    --radius: 0.75rem;
+    --radius: 0.5rem;
 
-    /* Gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(263 70% 50%), hsl(263 70% 60%));
-    --gradient-hero: linear-gradient(135deg, hsl(263 70% 50%) 0%, hsl(189 95% 50%) 100%);
-    --gradient-subtle: linear-gradient(180deg, hsl(0 0% 100%) 0%, hsl(263 25% 99%) 100%);
+    /* Fortress Brand Gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(151 100% 38%), hsl(151 100% 45%));
+    --gradient-hero: linear-gradient(135deg, hsl(151 100% 38%) 0%, hsl(235 48% 12%) 100%);
+    --gradient-subtle: linear-gradient(180deg, hsl(0 0% 100%) 0%, hsl(222 11% 97%) 100%);
     
     /* Shadows */
-    --shadow-sm: 0 1px 2px 0 hsl(222 47% 11% / 0.05);
-    --shadow-md: 0 4px 6px -1px hsl(222 47% 11% / 0.1);
-    --shadow-lg: 0 10px 15px -3px hsl(222 47% 11% / 0.1);
-    --shadow-glow: 0 0 20px hsl(263 70% 50% / 0.3);
+    --shadow-sm: 0 1px 2px 0 hsl(235 48% 12% / 0.05);
+    --shadow-md: 0 4px 6px -1px hsl(235 48% 12% / 0.1);
+    --shadow-lg: 0 10px 15px -3px hsl(235 48% 12% / 0.1);
+    --shadow-glow: 0 0 20px hsl(151 100% 38% / 0.3);
 
     --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 222 47% 11%;
-    --sidebar-primary: 263 70% 50%;
+    --sidebar-foreground: 235 48% 12%;
+    --sidebar-primary: 151 100% 38%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 263 25% 95%;
-    --sidebar-accent-foreground: 263 70% 30%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 263 70% 50%;
+    --sidebar-accent: 235 48% 96%;
+    --sidebar-accent-foreground: 235 48% 12%;
+    --sidebar-border: 222 11% 88%;
+    --sidebar-ring: 151 100% 38%;
   }
 
   .dark {
-    --background: 222 47% 6%;
-    --foreground: 210 40% 98%;
+    --background: 235 48% 8%; /* Fortress Navy dark variation */
+    --foreground: 222 11% 93%;
 
-    --card: 222 47% 8%;
-    --card-foreground: 210 40% 98%;
+    --card: 235 48% 10%;
+    --card-foreground: 222 11% 93%;
 
-    --popover: 222 47% 8%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 235 48% 10%;
+    --popover-foreground: 222 11% 93%;
 
-    --primary: 263 70% 55%;
-    --primary-foreground: 0 0% 100%;
-    --primary-glow: 263 70% 65%;
+    --primary: 151 100% 45%;
+    --primary-foreground: 235 48% 12%;
+    --primary-glow: 151 100% 50%;
+    --primary-dark: 151 100% 32%;
 
-    --secondary: 263 20% 15%;
-    --secondary-foreground: 263 70% 80%;
+    --secondary: 235 48% 15%;
+    --secondary-foreground: 151 100% 45%;
 
-    --muted: 217 33% 17%;
-    --muted-foreground: 215 20% 65%;
+    --muted: 235 30% 18%;
+    --muted-foreground: 220 8% 65%;
 
-    --accent: 189 95% 45%;
-    --accent-foreground: 0 0% 100%;
+    --accent: 151 100% 45%;
+    --accent-foreground: 235 48% 12%;
 
     --destructive: 0 63% 40%;
     --destructive-foreground: 0 0% 100%;
 
-    --status-current: 142 76% 45%;
+    --status-current: 151 100% 45%;
     --status-expiring: 43 96% 60%;
     --status-overdue: 0 84% 60%;
-    --status-empty: 220 9% 50%;
-    --status-planned: 217 91% 65%;
+    --status-empty: 220 8% 50%;
+    --status-planned: 151 100% 38%;
 
-    --border: 217 33% 17%;
-    --input: 217 33% 17%;
-    --ring: 263 70% 55%;
+    --border: 235 30% 18%;
+    --input: 235 30% 18%;
+    --ring: 151 100% 45%;
 
-    --gradient-primary: linear-gradient(135deg, hsl(263 70% 55%), hsl(263 70% 65%));
-    --gradient-hero: linear-gradient(135deg, hsl(263 70% 55%) 0%, hsl(189 95% 45%) 100%);
-    --gradient-subtle: linear-gradient(180deg, hsl(222 47% 6%) 0%, hsl(263 20% 10%) 100%);
+    --gradient-primary: linear-gradient(135deg, hsl(151 100% 38%), hsl(151 100% 50%));
+    --gradient-hero: linear-gradient(135deg, hsl(151 100% 38%) 0%, hsl(235 48% 15%) 100%);
+    --gradient-subtle: linear-gradient(180deg, hsl(235 48% 8%) 0%, hsl(235 48% 12%) 100%);
     
     --shadow-sm: 0 1px 2px 0 hsl(0 0% 0% / 0.1);
     --shadow-md: 0 4px 6px -1px hsl(0 0% 0% / 0.2);
     --shadow-lg: 0 10px 15px -3px hsl(0 0% 0% / 0.3);
-    --shadow-glow: 0 0 30px hsl(263 70% 50% / 0.5);
+    --shadow-glow: 0 0 30px hsl(151 100% 38% / 0.5);
 
-    --sidebar-background: 222 47% 8%;
-    --sidebar-foreground: 210 40% 98%;
-    --sidebar-primary: 263 70% 55%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 263 20% 15%;
-    --sidebar-accent-foreground: 263 70% 80%;
-    --sidebar-border: 217 33% 17%;
-    --sidebar-ring: 263 70% 55%;
+    --sidebar-background: 235 48% 10%;
+    --sidebar-foreground: 222 11% 93%;
+    --sidebar-primary: 151 100% 45%;
+    --sidebar-primary-foreground: 235 48% 12%;
+    --sidebar-accent: 235 48% 15%;
+    --sidebar-accent-foreground: 151 100% 45%;
+    --sidebar-border: 235 30% 18%;
+    --sidebar-ring: 151 100% 45%;
   }
 }
 
@@ -134,6 +136,15 @@ All colors MUST be HSL.
 
   body {
     @apply bg-background text-foreground antialiased;
+    font-family: 'Montserrat', sans-serif;
+  }
+
+  /* Fortress Brand Typography */
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Saira Semi Condensed', sans-serif;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
   }
 }
 
@@ -144,5 +155,17 @@ All colors MUST be HSL.
   
   .hover-lift {
     @apply transition-smooth hover:-translate-y-1 hover:shadow-lg;
+  }
+
+  .font-fortress {
+    font-family: 'Saira Semi Condensed', sans-serif;
+    font-weight: 800;
+    text-transform: uppercase;
+  }
+
+  .font-fortress-bold {
+    font-family: 'Saira Semi Condensed', sans-serif;
+    font-weight: 700;
+    text-transform: uppercase;
   }
 }
