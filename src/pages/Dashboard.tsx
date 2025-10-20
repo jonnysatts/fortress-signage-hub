@@ -2,33 +2,21 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { StatusBadge } from "@/components/StatusBadge";
+import { Card, CardContent } from "@/components/ui/card";
 import { ImportDataButton } from "@/components/ImportDataButton";
-import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
+import { SignageCard } from "@/components/SignageCard";
+import { DashboardFilters } from "@/components/DashboardFilters";
 import { 
-  LayoutGrid, 
-  LogOut, 
   CheckCircle2, 
   Clock, 
   AlertCircle, 
   Circle,
-  Search,
-  Grid3x3,
-  List,
   Plus,
   Image as ImageIcon,
   User,
   Trash2,
-  Tag,
-  Users,
-  Calendar,
 } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { formatDistanceToNow } from "date-fns";
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -273,88 +261,22 @@ export default function Dashboard() {
         </div>
 
         {/* Filters */}
-        <div className="flex flex-col md:flex-row gap-4 mb-6">
-          <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              placeholder="Search signage locations..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
-            />
-          </div>
-
-          <Select value={selectedVenue} onValueChange={setSelectedVenue}>
-            <SelectTrigger className="w-full md:w-48">
-              <SelectValue placeholder="Select venue" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Venues</SelectItem>
-              {venues.map((venue) => (
-                <SelectItem key={venue.id} value={venue.id}>
-                  {venue.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <Select value={selectedPriority} onValueChange={setSelectedPriority}>
-            <SelectTrigger className="w-full md:w-48">
-              <SelectValue placeholder="Priority" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Priorities</SelectItem>
-              <SelectItem value="high">High</SelectItem>
-              <SelectItem value="medium">Medium</SelectItem>
-              <SelectItem value="low">Low</SelectItem>
-            </SelectContent>
-          </Select>
-
-          <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-            <SelectTrigger className="w-full md:w-48">
-              <SelectValue placeholder="Category" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Categories</SelectItem>
-              <SelectItem value="promotional">Promotional</SelectItem>
-              <SelectItem value="wayfinding">Wayfinding</SelectItem>
-              <SelectItem value="informational">Informational</SelectItem>
-              <SelectItem value="safety">Safety</SelectItem>
-              <SelectItem value="branding">Branding</SelectItem>
-            </SelectContent>
-          </Select>
-
-          <div className="flex gap-2">
-            <div
-              className={`flex items-center justify-center w-10 h-10 rounded-md border cursor-pointer transition-colors ${
-                isMultiSelectMode 
-                  ? "bg-primary text-primary-foreground border-primary" 
-                  : "bg-background border-input hover:bg-accent hover:text-accent-foreground"
-              }`}
-              onClick={() => {
-                setIsMultiSelectMode(!isMultiSelectMode);
-                setSelectedSpots(new Set());
-              }}
-              title="Multi-select mode"
-            >
-              <Checkbox checked={isMultiSelectMode} className="pointer-events-none" />
-            </div>
-            <Button
-              variant={viewMode === "grid" ? "default" : "outline"}
-              size="icon"
-              onClick={() => setViewMode("grid")}
-            >
-              <Grid3x3 className="w-4 h-4" />
-            </Button>
-            <Button
-              variant={viewMode === "list" ? "default" : "outline"}
-              size="icon"
-              onClick={() => setViewMode("list")}
-            >
-              <List className="w-4 h-4" />
-            </Button>
-          </div>
-        </div>
+        <DashboardFilters
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+          selectedVenue={selectedVenue}
+          setSelectedVenue={setSelectedVenue}
+          selectedPriority={selectedPriority}
+          setSelectedPriority={setSelectedPriority}
+          selectedCategory={selectedCategory}
+          setSelectedCategory={setSelectedCategory}
+          venues={venues}
+          viewMode={viewMode}
+          setViewMode={setViewMode}
+          isMultiSelectMode={isMultiSelectMode}
+          setIsMultiSelectMode={setIsMultiSelectMode}
+          setSelectedSpots={setSelectedSpots}
+        />
 
         {/* Bulk Operations Toolbar */}
         {isMultiSelectMode && selectedSpots.size > 0 && (
@@ -413,11 +335,12 @@ export default function Dashboard() {
               const activeCampaign = spot.signage_campaigns?.find((sc: any) => sc.campaigns?.is_active);
               
               return (
-                <Card 
-                  key={spot.id} 
-                  className={`border-0 shadow-md hover:shadow-lg transition-shadow ${
-                    isMultiSelectMode ? "" : "cursor-pointer"
-                  } ${selectedSpots.has(spot.id) ? "ring-2 ring-primary" : ""}`}
+                <SignageCard
+                  key={spot.id}
+                  spot={spot}
+                  isMultiSelectMode={isMultiSelectMode}
+                  isSelected={selectedSpots.has(spot.id)}
+                  onToggleSelection={() => toggleSpotSelection(spot.id)}
                   onClick={() => {
                     if (isMultiSelectMode) {
                       toggleSpotSelection(spot.id);
@@ -425,71 +348,13 @@ export default function Dashboard() {
                       navigate(`/signage/${spot.id}`);
                     }
                   }}
-                >
-                  <CardHeader>
-                    <div className="relative">
-                      {isMultiSelectMode && (
-                        <div className="absolute top-2 left-2 z-10">
-                          <Checkbox
-                            checked={selectedSpots.has(spot.id)}
-                            onCheckedChange={() => toggleSpotSelection(spot.id)}
-                            className="bg-background"
-                          />
-                        </div>
-                      )}
-                      <div className="aspect-video bg-muted rounded-lg mb-3 flex items-center justify-center overflow-hidden">
-                        {spot.current_image_url ? (
-                          <img src={spot.current_image_url} alt={spot.location_name} className="w-full h-full object-cover" />
-                        ) : (
-                          <ImageIcon className="w-12 h-12 text-muted-foreground" />
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex items-start justify-between gap-2 mb-2">
-                      <div className="flex-1">
-                        <CardTitle className="text-lg mb-1">{spot.location_name}</CardTitle>
-                        <CardDescription>{spot.venues?.name}</CardDescription>
-                      </div>
-                      <StatusBadge status={spot.status} />
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      {activeCampaign && (
-                        <Badge variant="secondary" className="text-xs">
-                          <Calendar className="w-3 h-3 mr-1" />
-                          {activeCampaign.campaigns.name}
-                        </Badge>
-                      )}
-                      {spot.priority_level && (
-                        <Badge variant={getPriorityBadgeVariant(spot.priority_level)} className="text-xs">
-                          {spot.priority_level}
-                        </Badge>
-                      )}
-                      {needsUpdate && (
-                        <Badge variant="destructive" className="text-xs">
-                          <AlertCircle className="w-3 h-3 mr-1" />
-                          Update needed
-                        </Badge>
-                      )}
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex items-center justify-between text-sm text-muted-foreground">
-                      <div className="flex flex-col gap-1">
-                        {spot.width_cm && spot.height_cm && (
-                          <span>{spot.width_cm}cm × {spot.height_cm}cm</span>
-                        )}
-                        {daysSinceUpdate !== null && (
-                          <span className={needsUpdate ? "text-destructive font-medium" : ""}>
-                            {daysSinceUpdate === 0 ? "Updated today" : `${daysSinceUpdate} days ago`}
-                          </span>
-                        )}
-                      </div>
-                      {spot.last_update_date && (
-                        <span className="text-xs">{new Date(spot.last_update_date).toLocaleDateString()}</span>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
+                  daysSinceUpdate={daysSinceUpdate}
+                  needsUpdate={needsUpdate}
+                  activeCampaign={activeCampaign}
+                  getPriorityBadgeVariant={getPriorityBadgeVariant}
+                  onQuickUpload={() => navigate(`/signage/${spot.id}?tab=upload`)}
+                  onViewDetails={() => navigate(`/signage/${spot.id}`)}
+                />
               );
             })}
           </div>

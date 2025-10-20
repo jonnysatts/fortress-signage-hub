@@ -1,0 +1,137 @@
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { StatusBadge } from "@/components/StatusBadge";
+import { Calendar, ImageIcon, AlertCircle, Upload, ExternalLink } from "lucide-react";
+
+interface SignageCardProps {
+  spot: any;
+  isMultiSelectMode: boolean;
+  isSelected: boolean;
+  onToggleSelection: () => void;
+  onClick: () => void;
+  daysSinceUpdate: number | null;
+  needsUpdate: boolean;
+  activeCampaign: any;
+  getPriorityBadgeVariant: (priority: string) => "destructive" | "default" | "secondary" | "outline";
+  onQuickUpload?: () => void;
+  onViewDetails?: () => void;
+}
+
+export function SignageCard({
+  spot,
+  isMultiSelectMode,
+  isSelected,
+  onToggleSelection,
+  onClick,
+  daysSinceUpdate,
+  needsUpdate,
+  activeCampaign,
+  getPriorityBadgeVariant,
+  onQuickUpload,
+  onViewDetails,
+}: SignageCardProps) {
+  return (
+    <Card 
+      className={`border-0 shadow-md hover:shadow-lg transition-shadow ${
+        isMultiSelectMode ? "" : "cursor-pointer"
+      } ${isSelected ? "ring-2 ring-primary" : ""}`}
+      onClick={onClick}
+    >
+      <CardHeader>
+        <div className="relative">
+          {isMultiSelectMode && (
+            <div className="absolute top-2 left-2 z-10">
+              <Checkbox
+                checked={isSelected}
+                onCheckedChange={onToggleSelection}
+                className="bg-background"
+              />
+            </div>
+          )}
+          <div className="aspect-video bg-muted rounded-lg mb-3 flex items-center justify-center overflow-hidden">
+            {spot.current_image_url ? (
+              <img src={spot.current_image_url} alt={spot.location_name} className="w-full h-full object-cover" />
+            ) : (
+              <ImageIcon className="w-12 h-12 text-muted-foreground" />
+            )}
+          </div>
+        </div>
+        <div className="flex items-start justify-between gap-2 mb-2">
+          <div className="flex-1">
+            <CardTitle className="text-lg mb-1">{spot.location_name}</CardTitle>
+            <CardDescription>{spot.venues?.name}</CardDescription>
+          </div>
+          <StatusBadge status={spot.status} />
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {activeCampaign && (
+            <Badge variant="secondary" className="text-xs">
+              <Calendar className="w-3 h-3 mr-1" />
+              {activeCampaign.campaigns.name}
+            </Badge>
+          )}
+          {spot.priority_level && (
+            <Badge variant={getPriorityBadgeVariant(spot.priority_level)} className="text-xs">
+              {spot.priority_level}
+            </Badge>
+          )}
+          {needsUpdate && (
+            <Badge variant="destructive" className="text-xs">
+              <AlertCircle className="w-3 h-3 mr-1" />
+              Update needed
+            </Badge>
+          )}
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="flex items-center justify-between text-sm text-muted-foreground mb-3">
+          <div className="flex flex-col gap-1">
+            {spot.width_cm && spot.height_cm && (
+              <span>{spot.width_cm}cm × {spot.height_cm}cm</span>
+            )}
+            {daysSinceUpdate !== null && (
+              <span className={needsUpdate ? "text-destructive font-medium" : ""}>
+                {daysSinceUpdate === 0 ? "Updated today" : `${daysSinceUpdate} days ago`}
+              </span>
+            )}
+          </div>
+          {spot.last_update_date && (
+            <span className="text-xs">{new Date(spot.last_update_date).toLocaleDateString()}</span>
+          )}
+        </div>
+        
+        {/* Quick Action Buttons */}
+        {!isMultiSelectMode && (
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex-1"
+              onClick={(e) => {
+                e.stopPropagation();
+                onQuickUpload?.();
+              }}
+            >
+              <Upload className="w-4 h-4 mr-1" />
+              Upload
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex-1"
+              onClick={(e) => {
+                e.stopPropagation();
+                onViewDetails?.();
+              }}
+            >
+              <ExternalLink className="w-4 h-4 mr-1" />
+              Details
+            </Button>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}

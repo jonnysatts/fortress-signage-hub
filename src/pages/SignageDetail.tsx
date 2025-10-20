@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -26,9 +26,11 @@ import {
 export default function SignageDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [spot, setSpot] = useState<any>(null);
+  const [campaigns, setCampaigns] = useState<any[]>([]);
   const [photoHistory, setPhotoHistory] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isUploading, setIsUploading] = useState(false);
@@ -41,12 +43,20 @@ export default function SignageDetail() {
   const [isSaving, setIsSaving] = useState(false);
   const [users, setUsers] = useState<any[]>([]);
   const [expandedImage, setExpandedImage] = useState<string | null>(null);
+  const [defaultTab, setDefaultTab] = useState("details");
 
   useEffect(() => {
     checkUser();
     fetchSpot();
+    fetchCampaigns();
     fetchPhotoHistory();
     fetchUsers();
+    
+    // Check for tab param in URL
+    const tab = searchParams.get('tab');
+    if (tab === 'upload') {
+      setDefaultTab('upload');
+    }
   }, [id]);
 
   const checkUser = async () => {
@@ -110,6 +120,20 @@ export default function SignageDetail() {
       console.error(error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const fetchCampaigns = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("signage_campaigns")
+        .select("*, campaigns(*)")
+        .eq("signage_spot_id", id);
+
+      if (error) throw error;
+      setCampaigns(data || []);
+    } catch (error: any) {
+      console.error("Failed to load campaigns:", error);
     }
   };
 
@@ -371,7 +395,7 @@ export default function SignageDetail() {
           </div>
         </div>
 
-        <Tabs defaultValue="details" className="space-y-6">
+        <Tabs defaultValue={defaultTab} className="space-y-6">
           <TabsList>
             <TabsTrigger value="details">Details</TabsTrigger>
             <TabsTrigger value="upload">Upload Image</TabsTrigger>
@@ -532,6 +556,29 @@ export default function SignageDetail() {
                       <p>{spot.profiles?.full_name || spot.profiles?.email || "Unassigned"}</p>
                     )}
                   </div>
+
+                  {campaigns.length > 0 && (
+                    <div className="space-y-2">
+                      <Label>Linked Campaigns</Label>
+                      <div className="flex flex-col gap-2">
+                        {campaigns.map((sc) => (
+                          <Button
+                            key={sc.id}
+                            variant="outline"
+                            className="justify-start h-auto py-2"
+                            onClick={() => navigate(`/campaigns`)}
+                          >
+                            <div className="flex flex-col items-start text-left">
+                              <span className="font-medium">{sc.campaigns?.name}</span>
+                              <span className="text-xs text-muted-foreground">
+                                {sc.campaigns?.is_active ? "Active Campaign" : "Inactive Campaign"}
+                              </span>
+                            </div>
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </div>
