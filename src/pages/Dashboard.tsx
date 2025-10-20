@@ -1,10 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { SignageCard } from "@/components/SignageCard";
 import { DashboardFilters } from "@/components/DashboardFilters";
+import { OnboardingTour } from "@/components/OnboardingTour";
+import { useOnboarding } from "@/hooks/useOnboarding";
 import { 
   CheckCircle2, 
   Clock, 
@@ -19,6 +21,7 @@ import { toast } from "sonner";
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  const { showOnboarding, completeOnboarding, skipOnboarding } = useOnboarding();
   const [user, setUser] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
   const [venues, setVenues] = useState<any[]>([]);
@@ -63,7 +66,7 @@ export default function Dashboard() {
     }
   };
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setIsLoading(true);
     try {
       const { data: venuesData } = await supabase
@@ -95,41 +98,43 @@ export default function Dashboard() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [selectedVenue]);
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     navigate("/auth");
   };
 
-  const filteredSpots = signageSpots.filter((spot) => {
-    // Search filter
-    if (!spot.location_name.toLowerCase().includes(searchQuery.toLowerCase())) {
-      return false;
-    }
-    
-    // Status filter
-    if (selectedStatus !== "all" && spot.status !== selectedStatus) {
-      return false;
-    }
-    
-    // Priority filter
-    if (selectedPriority !== "all" && spot.priority_level !== selectedPriority) {
-      return false;
-    }
-    
-    // Category filter
-    if (selectedCategory !== "all" && spot.content_category !== selectedCategory) {
-      return false;
-    }
-    
-    // Assigned to me filter
-    if (showAssignedToMe && spot.assigned_user_id !== user?.id) {
-      return false;
-    }
-    
-    return true;
-  });
+  const filteredSpots = useMemo(() => {
+    return signageSpots.filter((spot) => {
+      // Search filter
+      if (!spot.location_name.toLowerCase().includes(searchQuery.toLowerCase())) {
+        return false;
+      }
+      
+      // Status filter
+      if (selectedStatus !== "all" && spot.status !== selectedStatus) {
+        return false;
+      }
+      
+      // Priority filter
+      if (selectedPriority !== "all" && spot.priority_level !== selectedPriority) {
+        return false;
+      }
+      
+      // Category filter
+      if (selectedCategory !== "all" && spot.content_category !== selectedCategory) {
+        return false;
+      }
+      
+      // Assigned to me filter
+      if (showAssignedToMe && spot.assigned_user_id !== user?.id) {
+        return false;
+      }
+      
+      return true;
+    });
+  }, [signageSpots, searchQuery, selectedStatus, selectedPriority, selectedCategory, showAssignedToMe, user?.id]);
 
   const handleSelectAll = () => {
     if (selectedSpots.size === filteredSpots.length) {
@@ -192,16 +197,22 @@ export default function Dashboard() {
     }
   };
 
-  const stats = {
+  const stats = useMemo(() => ({
     total: signageSpots.length,
     current: signageSpots.filter((s) => s.status === "current").length,
     expiring: signageSpots.filter((s) => s.status === "expiring_soon").length,
     overdue: signageSpots.filter((s) => s.status === "overdue").length,
     empty: signageSpots.filter((s) => s.status === "empty").length,
-  };
+  }), [signageSpots]);
 
   return (
-    <div className="bg-gradient-subtle">
+    <div className="bg-gradient-subtle min-h-screen">
+      {showOnboarding && (
+        <OnboardingTour
+          onComplete={completeOnboarding}
+          onSkip={skipOnboarding}
+        />
+      )}
 
       <main className="container mx-auto px-4 py-8">
         {/* Quick Status Filters */}

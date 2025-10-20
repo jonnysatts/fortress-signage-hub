@@ -34,8 +34,8 @@ export function SignageCard({
 }: SignageCardProps) {
   return (
     <Card 
-      className={`border-0 shadow-md hover:shadow-lg transition-shadow ${
-        isMultiSelectMode ? "" : "cursor-pointer"
+      className={`border-0 shadow-md hover:shadow-lg transition-all animate-fade-in ${
+        isMultiSelectMode ? "" : "cursor-pointer hover:-translate-y-1"
       } ${isSelected ? "ring-2 ring-primary" : ""}`}
       onClick={onClick}
     >
