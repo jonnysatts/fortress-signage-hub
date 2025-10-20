@@ -14,7 +14,492 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      activity_log: {
+        Row: {
+          action_details: Json | null
+          action_type: Database["public"]["Enums"]["action_type"]
+          id: string
+          signage_spot_id: string | null
+          timestamp: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action_details?: Json | null
+          action_type: Database["public"]["Enums"]["action_type"]
+          id?: string
+          signage_spot_id?: string | null
+          timestamp?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action_details?: Json | null
+          action_type?: Database["public"]["Enums"]["action_type"]
+          id?: string
+          signage_spot_id?: string | null
+          timestamp?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activity_log_signage_spot_id_fkey"
+            columns: ["signage_spot_id"]
+            isOneToOne: false
+            referencedRelation: "signage_spots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "activity_log_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      alert_settings: {
+        Row: {
+          alert_triggers: Json | null
+          alert_type: string
+          created_at: string | null
+          email_recipients: string[] | null
+          enabled: boolean | null
+          id: string
+          slack_webhook_url: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          alert_triggers?: Json | null
+          alert_type: string
+          created_at?: string | null
+          email_recipients?: string[] | null
+          enabled?: boolean | null
+          id?: string
+          slack_webhook_url?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          alert_triggers?: Json | null
+          alert_type?: string
+          created_at?: string | null
+          email_recipients?: string[] | null
+          enabled?: boolean | null
+          id?: string
+          slack_webhook_url?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      campaigns: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          end_date: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          start_date: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          start_date?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          start_date?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaigns_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      custom_fields: {
+        Row: {
+          applies_to_categories: string[] | null
+          applies_to_venues: string[] | null
+          created_at: string | null
+          created_by: string | null
+          field_label: string
+          field_name: string
+          field_options: Json | null
+          field_order: number | null
+          field_type: Database["public"]["Enums"]["field_type"]
+          id: string
+          is_required: boolean | null
+          is_visible: boolean | null
+        }
+        Insert: {
+          applies_to_categories?: string[] | null
+          applies_to_venues?: string[] | null
+          created_at?: string | null
+          created_by?: string | null
+          field_label: string
+          field_name: string
+          field_options?: Json | null
+          field_order?: number | null
+          field_type: Database["public"]["Enums"]["field_type"]
+          id?: string
+          is_required?: boolean | null
+          is_visible?: boolean | null
+        }
+        Update: {
+          applies_to_categories?: string[] | null
+          applies_to_venues?: string[] | null
+          created_at?: string | null
+          created_by?: string | null
+          field_label?: string
+          field_name?: string
+          field_options?: Json | null
+          field_order?: number | null
+          field_type?: Database["public"]["Enums"]["field_type"]
+          id?: string
+          is_required?: boolean | null
+          is_visible?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "custom_fields_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      photo_history: {
+        Row: {
+          caption: string | null
+          id: string
+          image_type: Database["public"]["Enums"]["image_type"] | null
+          image_url: string
+          signage_spot_id: string
+          upload_date: string | null
+          uploaded_by: string | null
+        }
+        Insert: {
+          caption?: string | null
+          id?: string
+          image_type?: Database["public"]["Enums"]["image_type"] | null
+          image_url: string
+          signage_spot_id: string
+          upload_date?: string | null
+          uploaded_by?: string | null
+        }
+        Update: {
+          caption?: string | null
+          id?: string
+          image_type?: Database["public"]["Enums"]["image_type"] | null
+          image_url?: string
+          signage_spot_id?: string
+          upload_date?: string | null
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "photo_history_signage_spot_id_fkey"
+            columns: ["signage_spot_id"]
+            isOneToOne: false
+            referencedRelation: "signage_spots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "photo_history_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string | null
+          email: string
+          full_name: string | null
+          id: string
+          is_active: boolean | null
+          role: Database["public"]["Enums"]["app_role"]
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string | null
+          email: string
+          full_name?: string | null
+          id: string
+          is_active?: boolean | null
+          role?: Database["public"]["Enums"]["app_role"]
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string | null
+          email?: string
+          full_name?: string | null
+          id?: string
+          is_active?: boolean | null
+          role?: Database["public"]["Enums"]["app_role"]
+        }
+        Relationships: []
+      }
+      signage_campaigns: {
+        Row: {
+          campaign_id: string
+          created_at: string | null
+          id: string
+          signage_spot_id: string
+        }
+        Insert: {
+          campaign_id: string
+          created_at?: string | null
+          id?: string
+          signage_spot_id: string
+        }
+        Update: {
+          campaign_id?: string
+          created_at?: string | null
+          id?: string
+          signage_spot_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "signage_campaigns_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "signage_campaigns_signage_spot_id_fkey"
+            columns: ["signage_spot_id"]
+            isOneToOne: false
+            referencedRelation: "signage_spots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      signage_custom_values: {
+        Row: {
+          created_at: string | null
+          custom_field_id: string
+          id: string
+          signage_spot_id: string
+          updated_at: string | null
+          value: Json | null
+        }
+        Insert: {
+          created_at?: string | null
+          custom_field_id: string
+          id?: string
+          signage_spot_id: string
+          updated_at?: string | null
+          value?: Json | null
+        }
+        Update: {
+          created_at?: string | null
+          custom_field_id?: string
+          id?: string
+          signage_spot_id?: string
+          updated_at?: string | null
+          value?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "signage_custom_values_custom_field_id_fkey"
+            columns: ["custom_field_id"]
+            isOneToOne: false
+            referencedRelation: "custom_fields"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "signage_custom_values_signage_spot_id_fkey"
+            columns: ["signage_spot_id"]
+            isOneToOne: false
+            referencedRelation: "signage_spots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      signage_spots: {
+        Row: {
+          assigned_user_id: string | null
+          content_category:
+            | Database["public"]["Enums"]["content_category"]
+            | null
+          created_at: string | null
+          created_by: string | null
+          creative_brief: string | null
+          current_image_url: string | null
+          depth_cm: number | null
+          expiry_behavior: string | null
+          expiry_date: string | null
+          height_cm: number | null
+          id: string
+          install_date: string | null
+          is_opportunity: boolean | null
+          last_update_date: string | null
+          legacy_drive_link: string | null
+          location_name: string
+          material_type: string | null
+          mounting_type: string | null
+          notes: string | null
+          orientation: Database["public"]["Enums"]["orientation_type"] | null
+          priority_level: Database["public"]["Enums"]["priority_level"] | null
+          qr_code_data: string | null
+          recommendations: string | null
+          specs_notes: string | null
+          status: Database["public"]["Enums"]["signage_status"] | null
+          supplier_vendor: string | null
+          updated_at: string | null
+          updated_by: string | null
+          venue_id: string
+          width_cm: number | null
+        }
+        Insert: {
+          assigned_user_id?: string | null
+          content_category?:
+            | Database["public"]["Enums"]["content_category"]
+            | null
+          created_at?: string | null
+          created_by?: string | null
+          creative_brief?: string | null
+          current_image_url?: string | null
+          depth_cm?: number | null
+          expiry_behavior?: string | null
+          expiry_date?: string | null
+          height_cm?: number | null
+          id?: string
+          install_date?: string | null
+          is_opportunity?: boolean | null
+          last_update_date?: string | null
+          legacy_drive_link?: string | null
+          location_name: string
+          material_type?: string | null
+          mounting_type?: string | null
+          notes?: string | null
+          orientation?: Database["public"]["Enums"]["orientation_type"] | null
+          priority_level?: Database["public"]["Enums"]["priority_level"] | null
+          qr_code_data?: string | null
+          recommendations?: string | null
+          specs_notes?: string | null
+          status?: Database["public"]["Enums"]["signage_status"] | null
+          supplier_vendor?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+          venue_id: string
+          width_cm?: number | null
+        }
+        Update: {
+          assigned_user_id?: string | null
+          content_category?:
+            | Database["public"]["Enums"]["content_category"]
+            | null
+          created_at?: string | null
+          created_by?: string | null
+          creative_brief?: string | null
+          current_image_url?: string | null
+          depth_cm?: number | null
+          expiry_behavior?: string | null
+          expiry_date?: string | null
+          height_cm?: number | null
+          id?: string
+          install_date?: string | null
+          is_opportunity?: boolean | null
+          last_update_date?: string | null
+          legacy_drive_link?: string | null
+          location_name?: string
+          material_type?: string | null
+          mounting_type?: string | null
+          notes?: string | null
+          orientation?: Database["public"]["Enums"]["orientation_type"] | null
+          priority_level?: Database["public"]["Enums"]["priority_level"] | null
+          qr_code_data?: string | null
+          recommendations?: string | null
+          specs_notes?: string | null
+          status?: Database["public"]["Enums"]["signage_status"] | null
+          supplier_vendor?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+          venue_id?: string
+          width_cm?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "signage_spots_assigned_user_id_fkey"
+            columns: ["assigned_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "signage_spots_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "signage_spots_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "signage_spots_venue_id_fkey"
+            columns: ["venue_id"]
+            isOneToOne: false
+            referencedRelation: "venues"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      venues: {
+        Row: {
+          address: string | null
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          timezone: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          timezone?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          address?: string | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          timezone?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +508,40 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      action_type:
+        | "created"
+        | "updated"
+        | "deleted"
+        | "status_changed"
+        | "image_uploaded"
+        | "assigned"
+      app_role: "admin" | "manager" | "staff"
+      content_category:
+        | "evergreen"
+        | "event_based"
+        | "seasonal"
+        | "partnership"
+        | "theming"
+        | "marketing"
+      field_type:
+        | "text"
+        | "longtext"
+        | "dropdown"
+        | "date"
+        | "url"
+        | "number"
+        | "checkbox"
+        | "multiselect"
+        | "image"
+      image_type: "before" | "after" | "current" | "reference"
+      orientation_type: "portrait" | "landscape" | "square"
+      priority_level: "critical" | "high" | "medium" | "low"
+      signage_status:
+        | "current"
+        | "expiring_soon"
+        | "overdue"
+        | "empty"
+        | "planned"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +668,45 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      action_type: [
+        "created",
+        "updated",
+        "deleted",
+        "status_changed",
+        "image_uploaded",
+        "assigned",
+      ],
+      app_role: ["admin", "manager", "staff"],
+      content_category: [
+        "evergreen",
+        "event_based",
+        "seasonal",
+        "partnership",
+        "theming",
+        "marketing",
+      ],
+      field_type: [
+        "text",
+        "longtext",
+        "dropdown",
+        "date",
+        "url",
+        "number",
+        "checkbox",
+        "multiselect",
+        "image",
+      ],
+      image_type: ["before", "after", "current", "reference"],
+      orientation_type: ["portrait", "landscape", "square"],
+      priority_level: ["critical", "high", "medium", "low"],
+      signage_status: [
+        "current",
+        "expiring_soon",
+        "overdue",
+        "empty",
+        "planned",
+      ],
+    },
   },
 } as const
