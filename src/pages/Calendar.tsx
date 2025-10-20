@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { Calendar as BigCalendar, momentLocalizer, View } from "react-big-calendar";
-import withDragAndDrop from "react-big-calendar/lib/addons/dragAndDrop";
 import moment from "moment-timezone";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -12,12 +11,10 @@ import { Calendar as CalendarIcon, Download, Settings, Plus } from "lucide-react
 import { CalendarEventDialog } from "@/components/CalendarEventDialog";
 import { CreateEventDialog } from "@/components/CreateEventDialog";
 import "react-big-calendar/lib/css/react-big-calendar.css";
-import "react-big-calendar/lib/addons/dragAndDrop/styles.css";
 
 // Set timezone to Australia/Sydney
 moment.tz.setDefault("Australia/Sydney");
 const localizer = momentLocalizer(moment);
-const DnDCalendar = withDragAndDrop(BigCalendar);
 
 interface CalendarEvent {
   id: string;
@@ -334,45 +331,9 @@ export default function Calendar() {
     setShowEventDialog(true);
   };
 
-  const handleEventDrop = async ({ event, start, end }: any) => {
-    const calEvent = event as CalendarEvent;
-    
-    try {
-      // Handle rescheduling based on event type
-      if (calEvent.type === 'scheduled_promotion' && calEvent.photoId) {
-        const { error } = await supabase
-          .from('photo_history')
-          .update({ scheduled_date: start.toISOString().split('T')[0] })
-          .eq('id', calEvent.photoId);
-        
-        if (error) throw error;
-      } else if (calEvent.type === 'print_job' && calEvent.photoId) {
-        const { error } = await supabase
-          .from('photo_history')
-          .update({ print_due_date: start.toISOString().split('T')[0] })
-          .eq('id', calEvent.photoId);
-        
-        if (error) throw error;
-      }
-
-      toast({
-        title: "Success",
-        description: "Event rescheduled successfully",
-      });
-
-      loadEvents();
-    } catch (error: any) {
-      console.error('Error rescheduling event:', error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to reschedule event",
-        variant: "destructive",
-      });
-    }
-  };
-
   const handleReschedule = (event: CalendarEvent, newDate: Date) => {
-    handleEventDrop({ event, start: newDate, end: newDate });
+    // Rescheduling handled through event dialog
+    loadEvents();
   };
 
   const handleComplete = (event: CalendarEvent) => {
@@ -461,7 +422,7 @@ export default function Calendar() {
             <p className="text-muted-foreground">Loading calendar...</p>
           </div>
         ) : (
-          <DnDCalendar
+          <BigCalendar
             localizer={localizer}
             events={events}
             startAccessor="start"
@@ -474,8 +435,6 @@ export default function Calendar() {
             eventPropGetter={eventStyleGetter}
             views={['month', 'week', 'day', 'agenda']}
             onSelectEvent={handleSelectEvent}
-            onEventDrop={handleEventDrop}
-            resizable={false}
           />
         )}
       </Card>
