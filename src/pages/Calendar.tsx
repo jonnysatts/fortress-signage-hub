@@ -104,14 +104,16 @@ export default function Calendar() {
     const updatedSettings = { ...settings, ...newSettings };
     setSettings(updatedSettings);
 
-    const { error } = await supabase
-      .from('calendar_settings')
-      .upsert({
-        user_id: user.id,
-        ...updatedSettings,
-      });
+    try {
+      const { error } = await supabase
+        .from('calendar_settings')
+        .upsert({
+          user_id: user.id,
+          ...updatedSettings,
+        });
 
-    if (error) {
+      if (error) throw error;
+    } catch (error) {
       console.error('Error saving settings:', error);
       toast({
         title: "Error",
@@ -331,9 +333,46 @@ export default function Calendar() {
     setShowEventDialog(true);
   };
 
+  const handleEventDrop = async ({ event, start }: { event: CalendarEvent; start: Date; end: Date }) => {
+    try {
+      if (event.type === 'scheduled_promotion' && event.photoId) {
+        const { error } = await supabase
+          .from('photo_history')
+          .update({ scheduled_date: start.toISOString().split('T')[0] })
+          .eq('id', event.photoId);
+        if (error) throw error;
+      } else if (event.type === 'print_job' && event.photoId) {
+        const { error } = await supabase
+          .from('photo_history')
+          .update({ print_due_date: start.toISOString().split('T')[0] })
+          .eq('id', event.photoId);
+        if (error) throw error;
+      } else if ((event.type === 'campaign_start' || event.type === 'campaign_end') && event.campaignId) {
+        const field = event.type === 'campaign_start' ? 'start_date' : 'end_date';
+        const { error } = await supabase
+          .from('campaigns')
+          .update({ [field]: start.toISOString().split('T')[0] })
+          .eq('id', event.campaignId);
+        if (error) throw error;
+      }
+
+      toast({
+        title: "Success",
+        description: "Event rescheduled successfully",
+      });
+      loadEvents();
+    } catch (error: any) {
+      console.error('Error rescheduling event:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to reschedule event",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleReschedule = (event: CalendarEvent, newDate: Date) => {
-    // Rescheduling handled through event dialog
-    loadEvents();
+    handleEventDrop({ event, start: newDate, end: newDate });
   };
 
   const handleComplete = (event: CalendarEvent) => {
@@ -435,6 +474,8 @@ export default function Calendar() {
             eventPropGetter={eventStyleGetter}
             views={['month', 'week', 'day', 'agenda']}
             onSelectEvent={handleSelectEvent}
+            onEventDrop={handleEventDrop}
+            draggableAccessor={() => true}
           />
         )}
       </Card>
