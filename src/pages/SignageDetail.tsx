@@ -9,8 +9,19 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { StatusBadge } from "@/components/StatusBadge";
-import { ArrowLeft, Upload, Trash2, Image as ImageIcon } from "lucide-react";
+import { ArrowLeft, Trash2, Image as ImageIcon, Edit2, Save, X, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 export default function SignageDetail() {
   const { id } = useParams();
@@ -24,28 +35,61 @@ export default function SignageDetail() {
   const [uploadCaption, setUploadCaption] = useState("");
   const [imageType, setImageType] = useState<"current" | "before" | "after" | "reference">("current");
   const [user, setUser] = useState<any>(null);
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [editedSpot, setEditedSpot] = useState<any>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [users, setUsers] = useState<any[]>([]);
 
   useEffect(() => {
     checkUser();
     fetchSpot();
     fetchPhotoHistory();
+    fetchUsers();
   }, [id]);
 
   const checkUser = async () => {
     const { data: { session } } = await supabase.auth.getSession();
-    setUser(session?.user);
+    if (session?.user) {
+      setUser(session.user);
+      
+      // Get user role from profiles table
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', session.user.id)
+        .single();
+      
+      setUserRole(profile?.role || null);
+    }
+  };
+
+  const fetchUsers = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, full_name, email')
+        .eq('is_active', true)
+        .order('full_name');
+      
+      if (error) throw error;
+      setUsers(data || []);
+    } catch (error: any) {
+      console.error('Failed to load users:', error);
+    }
   };
 
   const fetchSpot = async () => {
     try {
       const { data, error } = await supabase
         .from("signage_spots")
-        .select("*, venues(*)")
+        .select("*, venues(*), profiles!signage_spots_assigned_user_id_fkey(id, full_name, email)")
         .eq("id", id)
         .single();
 
       if (error) throw error;
       setSpot(data);
+      setEditedSpot(data);
     } catch (error: any) {
       toast.error("Failed to load signage spot");
       console.error(error);
@@ -170,6 +214,92 @@ export default function SignageDetail() {
     }
   };
 
+  const handleEditToggle = () => {
+    if (isEditMode) {
+      setEditedSpot(spot);
+    }
+    setIsEditMode(!isEditMode);
+  };
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      const { error } = await supabase
+        .from('signage_spots')
+        .update({
+          location_name: editedSpot.location_name,
+          status: editedSpot.status,
+          priority_level: editedSpot.priority_level,
+          content_category: editedSpot.content_category,
+          width_cm: editedSpot.width_cm,
+          height_cm: editedSpot.height_cm,
+          depth_cm: editedSpot.depth_cm,
+          orientation: editedSpot.orientation,
+          material_type: editedSpot.material_type,
+          mounting_type: editedSpot.mounting_type,
+          supplier_vendor: editedSpot.supplier_vendor,
+          creative_brief: editedSpot.creative_brief,
+          recommendations: editedSpot.recommendations,
+          notes: editedSpot.notes,
+          specs_notes: editedSpot.specs_notes,
+          assigned_user_id: editedSpot.assigned_user_id,
+          expiry_date: editedSpot.expiry_date,
+          expiry_behavior: editedSpot.expiry_behavior,
+          updated_by: user?.id
+        })
+        .eq('id', id);
+
+      if (error) throw error;
+
+      toast.success("Changes saved successfully!");
+      setIsEditMode(false);
+      fetchSpot();
+    } catch (error: any) {
+      toast.error("Failed to save changes: " + error.message);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleMarkAsUpdated = async () => {
+    try {
+      const { error } = await supabase
+        .from('signage_spots')
+        .update({
+          status: 'current',
+          last_update_date: new Date().toISOString().split('T')[0],
+          updated_by: user?.id
+        })
+        .eq('id', id);
+
+      if (error) throw error;
+
+      toast.success("Marked as updated!");
+      fetchSpot();
+    } catch (error: any) {
+      toast.error("Failed to update status: " + error.message);
+    }
+  };
+
+  const handleDelete = async () => {
+    try {
+      const { error } = await supabase
+        .from('signage_spots')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      toast.success("Signage spot deleted");
+      navigate("/dashboard");
+    } catch (error: any) {
+      toast.error("Failed to delete: " + error.message);
+    }
+  };
+
+  const canEdit = userRole === 'admin' || userRole === 'manager' || spot?.assigned_user_id === user?.id;
+  const canDelete = userRole === 'admin';
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -189,14 +319,42 @@ export default function SignageDetail() {
   return (
     <div className="min-h-screen bg-background">
       <div className="container max-w-6xl mx-auto px-4 py-8">
-        <Button
-          variant="ghost"
-          onClick={() => navigate("/dashboard")}
-          className="mb-6"
-        >
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Back to Dashboard
-        </Button>
+        <div className="flex items-center justify-between mb-6">
+          <Button
+            variant="ghost"
+            onClick={() => navigate("/dashboard")}
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back to Dashboard
+          </Button>
+
+          <div className="flex gap-2">
+            {canEdit && !isEditMode && (
+              <>
+                <Button onClick={handleMarkAsUpdated} variant="outline">
+                  <CheckCircle2 className="w-4 h-4 mr-2" />
+                  Mark as Updated
+                </Button>
+                <Button onClick={handleEditToggle}>
+                  <Edit2 className="w-4 h-4 mr-2" />
+                  Edit
+                </Button>
+              </>
+            )}
+            {isEditMode && (
+              <>
+                <Button onClick={handleEditToggle} variant="outline">
+                  <X className="w-4 h-4 mr-2" />
+                  Cancel
+                </Button>
+                <Button onClick={handleSave} disabled={isSaving}>
+                  <Save className="w-4 h-4 mr-2" />
+                  {isSaving ? "Saving..." : "Save Changes"}
+                </Button>
+              </>
+            )}
+          </div>
+        </div>
 
         <Tabs defaultValue="details" className="space-y-6">
           <TabsList>
@@ -230,83 +388,410 @@ export default function SignageDetail() {
                 </CardContent>
               </Card>
 
-              {/* Details */}
+              {/* Basic Information */}
               <Card>
                 <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <CardTitle className="text-2xl mb-2">{spot.location_name}</CardTitle>
-                      <p className="text-muted-foreground">{spot.venues?.name}</p>
-                    </div>
-                    <StatusBadge status={spot.status} />
-                  </div>
+                  <CardTitle>Basic Information</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {spot.width_cm && spot.height_cm && (
-                    <div>
-                      <h4 className="font-semibold text-sm text-muted-foreground mb-1">Dimensions</h4>
-                      <p>{spot.width_cm}cm × {spot.height_cm}cm</p>
-                    </div>
-                  )}
+                  <div className="space-y-2">
+                    <Label htmlFor="location_name">Location Name</Label>
+                    {isEditMode ? (
+                      <Input
+                        id="location_name"
+                        value={editedSpot.location_name}
+                        onChange={(e) => setEditedSpot({ ...editedSpot, location_name: e.target.value })}
+                      />
+                    ) : (
+                      <p className="font-medium">{spot.location_name}</p>
+                    )}
+                  </div>
 
-                  {spot.content_category && (
-                    <div>
-                      <h4 className="font-semibold text-sm text-muted-foreground mb-1">Category</h4>
-                      <p className="capitalize">{spot.content_category}</p>
-                    </div>
-                  )}
+                  <div className="space-y-2">
+                    <Label>Venue</Label>
+                    <p className="text-muted-foreground">{spot.venues?.name}</p>
+                  </div>
 
-                  {spot.priority_level && (
-                    <div>
-                      <h4 className="font-semibold text-sm text-muted-foreground mb-1">Priority</h4>
-                      <p className="capitalize">{spot.priority_level}</p>
-                    </div>
-                  )}
-
-                  {spot.supplier_vendor && (
-                    <div>
-                      <h4 className="font-semibold text-sm text-muted-foreground mb-1">Supplier</h4>
-                      <p>{spot.supplier_vendor}</p>
-                    </div>
-                  )}
-
-                  {spot.creative_brief && (
-                    <div>
-                      <h4 className="font-semibold text-sm text-muted-foreground mb-1">Creative Brief</h4>
-                      <p className="text-sm">{spot.creative_brief}</p>
-                    </div>
-                  )}
-
-                  {spot.recommendations && (
-                    <div>
-                      <h4 className="font-semibold text-sm text-muted-foreground mb-1">Recommendations</h4>
-                      <p className="text-sm">{spot.recommendations}</p>
-                    </div>
-                  )}
-
-                  {spot.notes && (
-                    <div>
-                      <h4 className="font-semibold text-sm text-muted-foreground mb-1">Notes</h4>
-                      <p className="text-sm">{spot.notes}</p>
-                    </div>
-                  )}
-
-                  {spot.legacy_drive_link && (
-                    <div>
-                      <h4 className="font-semibold text-sm text-muted-foreground mb-1">Drive Link</h4>
-                      <a
-                        href={spot.legacy_drive_link}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-sm text-primary hover:underline"
+                  <div className="space-y-2">
+                    <Label htmlFor="status">Status</Label>
+                    {isEditMode ? (
+                      <Select
+                        value={editedSpot.status}
+                        onValueChange={(value) => setEditedSpot({ ...editedSpot, status: value })}
                       >
-                        View in Google Drive
-                      </a>
-                    </div>
-                  )}
+                        <SelectTrigger id="status">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="current">Current</SelectItem>
+                          <SelectItem value="expiring_soon">Expiring Soon</SelectItem>
+                          <SelectItem value="overdue">Overdue</SelectItem>
+                          <SelectItem value="empty">Empty</SelectItem>
+                          <SelectItem value="planned">Planned</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <div>
+                        <StatusBadge status={spot.status} />
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="priority_level">Priority Level</Label>
+                    {isEditMode ? (
+                      <Select
+                        value={editedSpot.priority_level || ""}
+                        onValueChange={(value) => setEditedSpot({ ...editedSpot, priority_level: value })}
+                      >
+                        <SelectTrigger id="priority_level">
+                          <SelectValue placeholder="Select priority" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="low">Low</SelectItem>
+                          <SelectItem value="medium">Medium</SelectItem>
+                          <SelectItem value="high">High</SelectItem>
+                          <SelectItem value="critical">Critical</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <p className="capitalize">{spot.priority_level || "Not set"}</p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="content_category">Content Category</Label>
+                    {isEditMode ? (
+                      <Select
+                        value={editedSpot.content_category || ""}
+                        onValueChange={(value) => setEditedSpot({ ...editedSpot, content_category: value })}
+                      >
+                        <SelectTrigger id="content_category">
+                          <SelectValue placeholder="Select category" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="evergreen">Evergreen</SelectItem>
+                          <SelectItem value="event_based">Event-Based</SelectItem>
+                          <SelectItem value="seasonal">Seasonal</SelectItem>
+                          <SelectItem value="partnership">Partnership</SelectItem>
+                          <SelectItem value="theming">Theming</SelectItem>
+                          <SelectItem value="marketing">Marketing</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <p className="capitalize">{spot.content_category?.replace('_', '-') || "Not set"}</p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="assigned_user">Assigned To</Label>
+                    {isEditMode ? (
+                      <Select
+                        value={editedSpot.assigned_user_id || ""}
+                        onValueChange={(value) => setEditedSpot({ ...editedSpot, assigned_user_id: value || null })}
+                      >
+                        <SelectTrigger id="assigned_user">
+                          <SelectValue placeholder="Select user" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="">Unassigned</SelectItem>
+                          {users.map((u) => (
+                            <SelectItem key={u.id} value={u.id}>
+                              {u.full_name || u.email}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <p>{spot.profiles?.full_name || spot.profiles?.email || "Unassigned"}</p>
+                    )}
+                  </div>
                 </CardContent>
               </Card>
             </div>
+
+            {/* Physical Specifications */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Physical Specifications</CardTitle>
+              </CardHeader>
+              <CardContent className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                <div className="space-y-2">
+                  <Label htmlFor="width">Width (cm)</Label>
+                  {isEditMode ? (
+                    <Input
+                      id="width"
+                      type="number"
+                      value={editedSpot.width_cm || ""}
+                      onChange={(e) => setEditedSpot({ ...editedSpot, width_cm: e.target.value ? parseFloat(e.target.value) : null })}
+                    />
+                  ) : (
+                    <p>{spot.width_cm ? `${spot.width_cm} cm` : "Not set"}</p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="height">Height (cm)</Label>
+                  {isEditMode ? (
+                    <Input
+                      id="height"
+                      type="number"
+                      value={editedSpot.height_cm || ""}
+                      onChange={(e) => setEditedSpot({ ...editedSpot, height_cm: e.target.value ? parseFloat(e.target.value) : null })}
+                    />
+                  ) : (
+                    <p>{spot.height_cm ? `${spot.height_cm} cm` : "Not set"}</p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="depth">Depth (cm)</Label>
+                  {isEditMode ? (
+                    <Input
+                      id="depth"
+                      type="number"
+                      value={editedSpot.depth_cm || ""}
+                      onChange={(e) => setEditedSpot({ ...editedSpot, depth_cm: e.target.value ? parseFloat(e.target.value) : null })}
+                    />
+                  ) : (
+                    <p>{spot.depth_cm ? `${spot.depth_cm} cm` : "Not set"}</p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="orientation">Orientation</Label>
+                  {isEditMode ? (
+                    <Select
+                      value={editedSpot.orientation || ""}
+                      onValueChange={(value) => setEditedSpot({ ...editedSpot, orientation: value })}
+                    >
+                      <SelectTrigger id="orientation">
+                        <SelectValue placeholder="Select orientation" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="portrait">Portrait</SelectItem>
+                        <SelectItem value="landscape">Landscape</SelectItem>
+                        <SelectItem value="square">Square</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <p className="capitalize">{spot.orientation || "Not set"}</p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="material">Material Type</Label>
+                  {isEditMode ? (
+                    <Input
+                      id="material"
+                      value={editedSpot.material_type || ""}
+                      onChange={(e) => setEditedSpot({ ...editedSpot, material_type: e.target.value })}
+                      placeholder="e.g., Vinyl, Fabric, Acrylic"
+                    />
+                  ) : (
+                    <p>{spot.material_type || "Not set"}</p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="mounting">Mounting Type</Label>
+                  {isEditMode ? (
+                    <Input
+                      id="mounting"
+                      value={editedSpot.mounting_type || ""}
+                      onChange={(e) => setEditedSpot({ ...editedSpot, mounting_type: e.target.value })}
+                      placeholder="e.g., Wall-mounted, Hanging"
+                    />
+                  ) : (
+                    <p>{spot.mounting_type || "Not set"}</p>
+                  )}
+                </div>
+
+                <div className="space-y-2 md:col-span-2 lg:col-span-3">
+                  <Label htmlFor="specs_notes">Specifications Notes</Label>
+                  {isEditMode ? (
+                    <Textarea
+                      id="specs_notes"
+                      value={editedSpot.specs_notes || ""}
+                      onChange={(e) => setEditedSpot({ ...editedSpot, specs_notes: e.target.value })}
+                      placeholder="Additional specifications or installation notes"
+                      rows={2}
+                    />
+                  ) : (
+                    <p className="text-sm">{spot.specs_notes || "No additional notes"}</p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Expiry Management */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Expiry Management</CardTitle>
+              </CardHeader>
+              <CardContent className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="expiry_behavior">Expiry Behavior</Label>
+                  {isEditMode ? (
+                    <Select
+                      value={editedSpot.expiry_behavior || "auto_6_months"}
+                      onValueChange={(value) => setEditedSpot({ ...editedSpot, expiry_behavior: value })}
+                    >
+                      <SelectTrigger id="expiry_behavior">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="auto_6_months">Auto 6 months from last update</SelectItem>
+                        <SelectItem value="custom_date">Custom date</SelectItem>
+                        <SelectItem value="event_based">Event-based</SelectItem>
+                        <SelectItem value="never">Never expires</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <p className="capitalize">{spot.expiry_behavior?.replace('_', ' ') || "Auto 6 months"}</p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="expiry_date">Expiry Date</Label>
+                  {isEditMode && editedSpot.expiry_behavior === 'custom_date' ? (
+                    <Input
+                      id="expiry_date"
+                      type="date"
+                      value={editedSpot.expiry_date || ""}
+                      onChange={(e) => setEditedSpot({ ...editedSpot, expiry_date: e.target.value })}
+                    />
+                  ) : (
+                    <p>{spot.expiry_date ? new Date(spot.expiry_date).toLocaleDateString() : "Auto-calculated"}</p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Install Date</Label>
+                  <p>{spot.install_date ? new Date(spot.install_date).toLocaleDateString() : "Not set"}</p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Last Update Date</Label>
+                  <p>{spot.last_update_date ? new Date(spot.last_update_date).toLocaleDateString() : "Not set"}</p>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Content Management */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Content Management</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="supplier">Supplier/Vendor</Label>
+                  {isEditMode ? (
+                    <Input
+                      id="supplier"
+                      value={editedSpot.supplier_vendor || ""}
+                      onChange={(e) => setEditedSpot({ ...editedSpot, supplier_vendor: e.target.value })}
+                      placeholder="Supplier or vendor name"
+                    />
+                  ) : (
+                    <p>{spot.supplier_vendor || "Not set"}</p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="creative_brief">Creative Brief</Label>
+                  {isEditMode ? (
+                    <Textarea
+                      id="creative_brief"
+                      value={editedSpot.creative_brief || ""}
+                      onChange={(e) => setEditedSpot({ ...editedSpot, creative_brief: e.target.value })}
+                      placeholder="Creative direction and ideas"
+                      rows={3}
+                    />
+                  ) : (
+                    <p className="text-sm whitespace-pre-wrap">{spot.creative_brief || "No brief provided"}</p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="recommendations">Recommendations</Label>
+                  {isEditMode ? (
+                    <Textarea
+                      id="recommendations"
+                      value={editedSpot.recommendations || ""}
+                      onChange={(e) => setEditedSpot({ ...editedSpot, recommendations: e.target.value })}
+                      placeholder="Recommendations and suggestions"
+                      rows={3}
+                    />
+                  ) : (
+                    <p className="text-sm whitespace-pre-wrap">{spot.recommendations || "No recommendations"}</p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="notes">General Notes</Label>
+                  {isEditMode ? (
+                    <Textarea
+                      id="notes"
+                      value={editedSpot.notes || ""}
+                      onChange={(e) => setEditedSpot({ ...editedSpot, notes: e.target.value })}
+                      placeholder="Additional notes and comments"
+                      rows={3}
+                    />
+                  ) : (
+                    <p className="text-sm whitespace-pre-wrap">{spot.notes || "No notes"}</p>
+                  )}
+                </div>
+
+                {spot.legacy_drive_link && (
+                  <div className="space-y-2">
+                    <Label>Legacy Drive Link</Label>
+                    <a
+                      href={spot.legacy_drive_link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm text-primary hover:underline block"
+                    >
+                      View in Google Drive
+                    </a>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Delete Button */}
+            {canDelete && (
+              <Card className="border-destructive">
+                <CardHeader>
+                  <CardTitle className="text-destructive">Danger Zone</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="destructive">
+                        <Trash2 className="w-4 h-4 mr-2" />
+                        Delete Signage Spot
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          This action cannot be undone. This will permanently delete this signage spot
+                          and all associated photo history.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                          Delete
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
 
           <TabsContent value="upload">
