@@ -279,6 +279,22 @@ export default function Settings() {
               </p>
             )}
           </TabsContent>
+
+          <TabsContent value="fields">
+            <Card>
+              <CardHeader>
+                <CardTitle>Custom Fields Management</CardTitle>
+                <CardDescription>
+                  Define custom fields that can be added to signage spots
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button onClick={() => navigate('/custom-fields')}>
+                  Manage Custom Fields
+                </Button>
+              </CardContent>
+            </Card>
+          </TabsContent>
         </Tabs>
       </div>
     </div>
