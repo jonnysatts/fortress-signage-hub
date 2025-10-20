@@ -501,14 +501,14 @@ export default function SignageDetail() {
                     <Label htmlFor="assigned_user">Assigned To</Label>
                     {isEditMode ? (
                       <Select
-                        value={editedSpot.assigned_user_id || ""}
-                        onValueChange={(value) => setEditedSpot({ ...editedSpot, assigned_user_id: value || null })}
+                        value={editedSpot.assigned_user_id || "unassigned"}
+                        onValueChange={(value) => setEditedSpot({ ...editedSpot, assigned_user_id: value === "unassigned" ? null : value })}
                       >
                         <SelectTrigger id="assigned_user">
                           <SelectValue placeholder="Select user" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="">Unassigned</SelectItem>
+                          <SelectItem value="unassigned">Unassigned</SelectItem>
                           {users.map((u) => (
                             <SelectItem key={u.id} value={u.id}>
                               {u.full_name || u.email}
