@@ -1,9 +1,10 @@
+import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { StatusBadge } from "@/components/StatusBadge";
-import { Calendar, ImageIcon, AlertCircle, Upload, ExternalLink } from "lucide-react";
+import { Calendar, ImageIcon, AlertCircle, Upload, ExternalLink, MapPin, Image } from "lucide-react";
 
 interface SignageCardProps {
   spot: any;
@@ -32,6 +33,14 @@ export function SignageCard({
   onQuickUpload,
   onViewDetails,
 }: SignageCardProps) {
+  const [showLocation, setShowLocation] = useState(false);
+  
+  const hasLocationPhoto = !!spot.location_photo_url;
+  const hasCurrentImage = !!spot.current_image_url;
+  const canToggle = hasLocationPhoto && hasCurrentImage;
+  
+  const displayImage = showLocation ? spot.location_photo_url : spot.current_image_url;
+  
   return (
     <Card 
       className={`border-0 shadow-md hover:shadow-lg transition-all animate-fade-in ${
@@ -50,9 +59,42 @@ export function SignageCard({
               />
             </div>
           )}
-          <div className="aspect-video bg-muted rounded-lg mb-3 flex items-center justify-center overflow-hidden">
-            {spot.current_image_url ? (
-              <img src={spot.current_image_url} alt={spot.location_name} className="w-full h-full object-cover" />
+          <div className="aspect-video bg-muted rounded-lg mb-3 flex items-center justify-center overflow-hidden relative group">
+            {displayImage ? (
+              <>
+                <img src={displayImage} alt={spot.location_name} className="w-full h-full object-cover" />
+                {canToggle && (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowLocation(!showLocation);
+                    }}
+                  >
+                    {showLocation ? (
+                      <>
+                        <Image className="w-3 h-3 mr-1" />
+                        Content
+                      </>
+                    ) : (
+                      <>
+                        <MapPin className="w-3 h-3 mr-1" />
+                        Location
+                      </>
+                    )}
+                  </Button>
+                )}
+                {canToggle && (
+                  <Badge 
+                    variant="secondary" 
+                    className="absolute top-2 left-2 text-xs"
+                  >
+                    {showLocation ? "Location" : "Content"}
+                  </Badge>
+                )}
+              </>
             ) : (
               <ImageIcon className="w-12 h-12 text-muted-foreground" />
             )}
