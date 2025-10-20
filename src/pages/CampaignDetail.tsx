@@ -16,6 +16,7 @@ import {
   Link as LinkIcon,
   Unlink,
   BarChart3,
+  DollarSign,
 } from "lucide-react";
 import { toast } from "sonner";
 import { format, isPast, isFuture } from "date-fns";
@@ -181,6 +182,14 @@ export default function CampaignDetail() {
     };
   };
 
+  const calculateEstimatedCost = (spots: any[]) => {
+    return spots.reduce((total, spot) => {
+      const production = Number(spot.production_cost) || 0;
+      const installation = Number(spot.installation_cost) || 0;
+      return total + production + installation;
+    }, 0);
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-subtle flex items-center justify-center">
@@ -202,6 +211,7 @@ export default function CampaignDetail() {
 
   const status = getCampaignStatus();
   const health = getHealthMetrics();
+  const estimatedCost = calculateEstimatedCost(linkedSpots);
 
   return (
     <div className="min-h-screen bg-gradient-subtle">
@@ -257,8 +267,8 @@ export default function CampaignDetail() {
           </div>
         </div>
 
-        {/* Health Metrics */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        {/* Metrics Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           <Card>
             <CardHeader className="pb-3">
               <CardDescription>Campaign Health</CardDescription>
@@ -284,7 +294,66 @@ export default function CampaignDetail() {
               <CardTitle className="text-3xl">{availableSpots.length}</CardTitle>
             </CardHeader>
           </Card>
+
+          <Card>
+            <CardHeader className="pb-3">
+              <CardDescription>Estimated Cost</CardDescription>
+              <CardTitle className="text-2xl">${estimatedCost.toFixed(2)}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-xs text-muted-foreground">AUD</p>
+            </CardContent>
+          </Card>
         </div>
+
+        {/* Budget Summary */}
+        {(campaign.budget_allocated || campaign.budget_notes) && (
+          <Card className="mb-8">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <DollarSign className="h-5 w-5" />
+                Budget Summary
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div>
+                  <p className="text-sm text-muted-foreground">Budget Allocated</p>
+                  <p className="text-2xl font-bold">
+                    ${campaign.budget_allocated ? Number(campaign.budget_allocated).toFixed(2) : '0.00'} AUD
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Estimated Spot Costs</p>
+                  <p className="text-xl font-semibold text-primary">
+                    ${estimatedCost.toFixed(2)} AUD
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Based on {linkedSpots.length} linked spot{linkedSpots.length !== 1 ? 's' : ''}
+                  </p>
+                </div>
+                {campaign.budget_allocated && (
+                  <div className="pt-2 border-t">
+                    <p className="text-sm text-muted-foreground">Budget Remaining</p>
+                    <p className={`text-lg font-semibold ${
+                      (Number(campaign.budget_allocated) - estimatedCost) >= 0 
+                        ? 'text-green-600' 
+                        : 'text-red-600'
+                    }`}>
+                      ${(Number(campaign.budget_allocated) - estimatedCost).toFixed(2)} AUD
+                    </p>
+                  </div>
+                )}
+                {campaign.budget_notes && (
+                  <div className="pt-2">
+                    <p className="text-sm text-muted-foreground">Budget Notes</p>
+                    <p className="text-sm">{campaign.budget_notes}</p>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Actions */}
         <div className="flex items-center gap-2 mb-6">

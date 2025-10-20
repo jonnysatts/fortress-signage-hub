@@ -179,6 +179,8 @@ export type Database = {
       }
       campaigns: {
         Row: {
+          budget_allocated: number | null
+          budget_notes: string | null
           created_at: string | null
           created_by: string | null
           description: string | null
@@ -189,6 +191,8 @@ export type Database = {
           start_date: string | null
         }
         Insert: {
+          budget_allocated?: number | null
+          budget_notes?: string | null
           created_at?: string | null
           created_by?: string | null
           description?: string | null
@@ -199,6 +203,8 @@ export type Database = {
           start_date?: string | null
         }
         Update: {
+          budget_allocated?: number | null
+          budget_notes?: string | null
           created_at?: string | null
           created_by?: string | null
           description?: string | null
@@ -503,6 +509,7 @@ export type Database = {
       signage_spots: {
         Row: {
           assigned_user_id: string | null
+          budget_notes: string | null
           content_category:
             | Database["public"]["Enums"]["content_category"]
             | null
@@ -516,6 +523,7 @@ export type Database = {
           height_cm: number | null
           id: string
           install_date: string | null
+          installation_cost: number | null
           is_opportunity: boolean | null
           last_update_date: string | null
           legacy_drive_link: string | null
@@ -525,6 +533,7 @@ export type Database = {
           notes: string | null
           orientation: Database["public"]["Enums"]["orientation_type"] | null
           priority_level: Database["public"]["Enums"]["priority_level"] | null
+          production_cost: number | null
           qr_code_data: string | null
           recommendations: string | null
           specs_notes: string | null
@@ -538,6 +547,7 @@ export type Database = {
         }
         Insert: {
           assigned_user_id?: string | null
+          budget_notes?: string | null
           content_category?:
             | Database["public"]["Enums"]["content_category"]
             | null
@@ -551,6 +561,7 @@ export type Database = {
           height_cm?: number | null
           id?: string
           install_date?: string | null
+          installation_cost?: number | null
           is_opportunity?: boolean | null
           last_update_date?: string | null
           legacy_drive_link?: string | null
@@ -560,6 +571,7 @@ export type Database = {
           notes?: string | null
           orientation?: Database["public"]["Enums"]["orientation_type"] | null
           priority_level?: Database["public"]["Enums"]["priority_level"] | null
+          production_cost?: number | null
           qr_code_data?: string | null
           recommendations?: string | null
           specs_notes?: string | null
@@ -573,6 +585,7 @@ export type Database = {
         }
         Update: {
           assigned_user_id?: string | null
+          budget_notes?: string | null
           content_category?:
             | Database["public"]["Enums"]["content_category"]
             | null
@@ -586,6 +599,7 @@ export type Database = {
           height_cm?: number | null
           id?: string
           install_date?: string | null
+          installation_cost?: number | null
           is_opportunity?: boolean | null
           last_update_date?: string | null
           legacy_drive_link?: string | null
@@ -595,6 +609,7 @@ export type Database = {
           notes?: string | null
           orientation?: Database["public"]["Enums"]["orientation_type"] | null
           priority_level?: Database["public"]["Enums"]["priority_level"] | null
+          production_cost?: number | null
           qr_code_data?: string | null
           recommendations?: string | null
           specs_notes?: string | null
@@ -693,6 +708,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      calculate_campaign_budget: {
+        Args: { campaign_id: string }
+        Returns: number
+      }
       calculate_expiry_date: {
         Args: {
           p_campaign_end_date: string

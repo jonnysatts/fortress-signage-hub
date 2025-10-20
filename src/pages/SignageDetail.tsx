@@ -12,7 +12,7 @@ import { StatusBadge } from "@/components/StatusBadge";
 import { TagSelector } from "@/components/TagSelector";
 import { GroupSelector } from "@/components/GroupSelector";
 import { CampaignLinker } from "@/components/CampaignLinker";
-import { ArrowLeft, Trash2, Image as ImageIcon, Edit2, Save, X, CheckCircle2, Maximize2, QrCode, Download } from "lucide-react";
+import { ArrowLeft, Trash2, Image as ImageIcon, Edit2, Save, X, CheckCircle2, Maximize2, QrCode, Download, DollarSign } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { toast } from "sonner";
 import {
@@ -305,6 +305,9 @@ export default function SignageDetail() {
           expiry_date: editedSpot.expiry_date,
           expiry_behavior: editedSpot.expiry_behavior,
           tags: editedSpot.tags || [],
+          production_cost: editedSpot.production_cost,
+          installation_cost: editedSpot.installation_cost,
+          budget_notes: editedSpot.budget_notes,
           updated_by: user?.id
         })
         .eq('id', id);
@@ -729,6 +732,85 @@ export default function SignageDetail() {
                     <p className="text-sm">{spot.specs_notes || "No additional notes"}</p>
                   )}
                 </div>
+              </CardContent>
+            </Card>
+
+            {/* Budget Information */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <DollarSign className="h-5 w-5" />
+                  Budget
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {isEditMode ? (
+                  <>
+                    <div className="space-y-2">
+                      <Label htmlFor="production_cost">Production Cost (AUD)</Label>
+                      <Input
+                        id="production_cost"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={editedSpot.production_cost || ''}
+                        onChange={(e) => setEditedSpot({...editedSpot, production_cost: e.target.value})}
+                        placeholder="0.00"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="installation_cost">Installation Cost (AUD)</Label>
+                      <Input
+                        id="installation_cost"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={editedSpot.installation_cost || ''}
+                        onChange={(e) => setEditedSpot({...editedSpot, installation_cost: e.target.value})}
+                        placeholder="0.00"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="budget_notes">Budget Notes</Label>
+                      <Textarea
+                        id="budget_notes"
+                        value={editedSpot.budget_notes || ''}
+                        onChange={(e) => setEditedSpot({...editedSpot, budget_notes: e.target.value})}
+                        placeholder="Optional notes about costs..."
+                        rows={2}
+                      />
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-sm text-muted-foreground">Production Cost</p>
+                        <p className="text-lg font-semibold">
+                          ${spot.production_cost ? Number(spot.production_cost).toFixed(2) : '0.00'} AUD
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-muted-foreground">Installation Cost</p>
+                        <p className="text-lg font-semibold">
+                          ${spot.installation_cost ? Number(spot.installation_cost).toFixed(2) : '0.00'} AUD
+                        </p>
+                      </div>
+                    </div>
+                    <div className="pt-2 border-t">
+                      <p className="text-sm text-muted-foreground">Total Cost per Update</p>
+                      <p className="text-xl font-bold text-primary">
+                        ${((Number(spot.production_cost) || 0) + (Number(spot.installation_cost) || 0)).toFixed(2)} AUD
+                      </p>
+                    </div>
+                    {spot.budget_notes && (
+                      <div className="pt-2">
+                        <p className="text-sm text-muted-foreground">Notes</p>
+                        <p className="text-sm">{spot.budget_notes}</p>
+                      </div>
+                    )}
+                  </>
+                )}
               </CardContent>
             </Card>
 

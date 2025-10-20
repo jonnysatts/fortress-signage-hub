@@ -29,6 +29,8 @@ export function CampaignDialog({ campaign, onSuccess, trigger }: CampaignDialogP
     campaign?.end_date ? new Date(campaign.end_date) : undefined
   );
   const [isActive, setIsActive] = useState(campaign?.is_active ?? true);
+  const [budgetAllocated, setBudgetAllocated] = useState(campaign?.budget_allocated || "");
+  const [budgetNotes, setBudgetNotes] = useState(campaign?.budget_notes || "");
   const [isSaving, setIsSaving] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -44,6 +46,8 @@ export function CampaignDialog({ campaign, onSuccess, trigger }: CampaignDialogP
         start_date: startDate ? format(startDate, "yyyy-MM-dd") : null,
         end_date: endDate ? format(endDate, "yyyy-MM-dd") : null,
         is_active: isActive,
+        budget_allocated: budgetAllocated ? Number(budgetAllocated) : null,
+        budget_notes: budgetNotes || null,
         created_by: user?.id,
       };
 
@@ -160,6 +164,30 @@ export function CampaignDialog({ campaign, onSuccess, trigger }: CampaignDialogP
                 </PopoverContent>
               </Popover>
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="budget">Budget Allocated (AUD) - Optional</Label>
+            <Input
+              id="budget"
+              type="number"
+              step="0.01"
+              min="0"
+              value={budgetAllocated}
+              onChange={(e) => setBudgetAllocated(e.target.value)}
+              placeholder="0.00"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="budgetNotes">Budget Notes - Optional</Label>
+            <Textarea
+              id="budgetNotes"
+              value={budgetNotes}
+              onChange={(e) => setBudgetNotes(e.target.value)}
+              placeholder="Optional notes about budget breakdown..."
+              rows={2}
+            />
           </div>
 
           <div className="flex items-center justify-between pt-4">
