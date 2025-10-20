@@ -237,56 +237,6 @@ export default function Dashboard() {
       </header>
 
       <main className="container mx-auto px-4 py-8">
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
-          <Card className="border-0 shadow-md">
-            <CardHeader className="pb-3">
-              <CardDescription>Total Spots</CardDescription>
-              <CardTitle className="text-3xl">{stats.total}</CardTitle>
-            </CardHeader>
-          </Card>
-
-          <Card className="border-0 shadow-md bg-status-current/5">
-            <CardHeader className="pb-3">
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-status-current" />
-                <CardDescription>Current</CardDescription>
-              </div>
-              <CardTitle className="text-3xl text-status-current">{stats.current}</CardTitle>
-            </CardHeader>
-          </Card>
-
-          <Card className="border-0 shadow-md bg-status-expiring/5">
-            <CardHeader className="pb-3">
-              <div className="flex items-center gap-2">
-                <Clock className="w-4 h-4 text-status-expiring" />
-                <CardDescription>Expiring Soon</CardDescription>
-              </div>
-              <CardTitle className="text-3xl text-status-expiring">{stats.expiring}</CardTitle>
-            </CardHeader>
-          </Card>
-
-          <Card className="border-0 shadow-md bg-status-overdue/5">
-            <CardHeader className="pb-3">
-              <div className="flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 text-status-overdue" />
-                <CardDescription>Overdue</CardDescription>
-              </div>
-              <CardTitle className="text-3xl text-status-overdue">{stats.overdue}</CardTitle>
-            </CardHeader>
-          </Card>
-
-          <Card className="border-0 shadow-md bg-status-empty/5">
-            <CardHeader className="pb-3">
-              <div className="flex items-center gap-2">
-                <Circle className="w-4 h-4 text-status-empty" />
-                <CardDescription>Empty / Opportunity</CardDescription>
-              </div>
-              <CardTitle className="text-3xl text-status-empty">{stats.empty}</CardTitle>
-            </CardHeader>
-          </Card>
-        </div>
-
         {/* Quick Status Filters */}
         <div className="flex flex-wrap gap-2 mb-6">
           <Button
@@ -395,9 +345,12 @@ export default function Dashboard() {
           </Select>
 
           <div className="flex gap-2">
-            <Button
-              variant={isMultiSelectMode ? "default" : "outline"}
-              size="icon"
+            <div
+              className={`flex items-center justify-center w-10 h-10 rounded-md border cursor-pointer transition-colors ${
+                isMultiSelectMode 
+                  ? "bg-primary text-primary-foreground border-primary" 
+                  : "bg-background border-input hover:bg-accent hover:text-accent-foreground"
+              }`}
               onClick={() => {
                 setIsMultiSelectMode(!isMultiSelectMode);
                 setSelectedSpots(new Set());
@@ -405,7 +358,7 @@ export default function Dashboard() {
               title="Multi-select mode"
             >
               <Checkbox checked={isMultiSelectMode} className="pointer-events-none" />
-            </Button>
+            </div>
             <Button
               variant={viewMode === "grid" ? "default" : "outline"}
               size="icon"
