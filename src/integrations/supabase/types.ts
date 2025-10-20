@@ -432,6 +432,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "signage_campaigns_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns_public"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "signage_campaigns_signage_spot_id_fkey"
             columns: ["signage_spot_id"]
             isOneToOne: false
@@ -765,7 +772,59 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      campaigns_public: {
+        Row: {
+          budget_allocated: number | null
+          budget_notes: string | null
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          end_date: string | null
+          groups: string[] | null
+          id: string | null
+          is_active: boolean | null
+          name: string | null
+          start_date: string | null
+          tags: string[] | null
+        }
+        Insert: {
+          budget_allocated?: never
+          budget_notes?: never
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          end_date?: string | null
+          groups?: string[] | null
+          id?: string | null
+          is_active?: boolean | null
+          name?: string | null
+          start_date?: string | null
+          tags?: string[] | null
+        }
+        Update: {
+          budget_allocated?: never
+          budget_notes?: never
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          end_date?: string | null
+          groups?: string[] | null
+          id?: string | null
+          is_active?: boolean | null
+          name?: string | null
+          start_date?: string | null
+          tags?: string[] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaigns_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       bulk_promote_planned_images: {
