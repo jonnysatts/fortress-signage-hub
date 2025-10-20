@@ -4,6 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CampaignDialog } from "@/components/CampaignDialog";
 import { ImportDataButton } from "@/components/ImportDataButton";
 import { 
@@ -12,6 +14,7 @@ import {
   Edit2, 
   Trash2,
   BarChart3,
+  Search,
 } from "lucide-react";
 import { toast } from "sonner";
 import { format, isPast, isFuture } from "date-fns";
@@ -31,6 +34,8 @@ export default function Campaigns() {
   const [campaigns, setCampaigns] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
 
   useEffect(() => {
     checkAuth();
@@ -106,6 +111,23 @@ export default function Campaigns() {
     return <Badge variant={variant}>{label}</Badge>;
   };
 
+  const filteredCampaigns = campaigns.filter((campaign) => {
+    // Search filter
+    if (searchQuery && !campaign.name.toLowerCase().includes(searchQuery.toLowerCase())) {
+      return false;
+    }
+    
+    // Status filter
+    if (statusFilter !== "all") {
+      const status = getCampaignStatus(campaign);
+      if (status !== statusFilter) {
+        return false;
+      }
+    }
+    
+    return true;
+  });
+
   return (
     <div className="min-h-screen bg-gradient-subtle">
       <div className="container mx-auto px-4 py-8">
@@ -131,23 +153,56 @@ export default function Campaigns() {
           </div>
         </div>
 
+        {/* Filters */}
+        <div className="flex flex-col md:flex-row gap-4 mb-8">
+          <div className="flex-1 relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              placeholder="Search campaigns..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-full md:w-48">
+              <SelectValue placeholder="Filter by status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Status</SelectItem>
+              <SelectItem value="active">Active</SelectItem>
+              <SelectItem value="upcoming">Upcoming</SelectItem>
+              <SelectItem value="ended">Ended</SelectItem>
+              <SelectItem value="draft">Draft</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
         {/* Campaigns Grid */}
         {isLoading ? (
           <div className="text-center py-12 text-muted-foreground">Loading campaigns...</div>
-        ) : campaigns.length === 0 ? (
+        ) : filteredCampaigns.length === 0 ? (
           <Card className="border-0 shadow-md">
             <CardContent className="py-12 text-center">
               <div className="w-16 h-16 rounded-full bg-muted mx-auto mb-4 flex items-center justify-center">
                 <CalendarIcon className="w-8 h-8 text-muted-foreground" />
               </div>
-              <h3 className="text-lg font-semibold mb-2">No campaigns yet</h3>
-              <p className="text-muted-foreground mb-4">Get started by creating your first campaign</p>
-              <CampaignDialog onSuccess={fetchCampaigns} />
+              <h3 className="text-lg font-semibold mb-2">
+                {campaigns.length === 0 ? "No campaigns yet" : "No campaigns found"}
+              </h3>
+              <p className="text-muted-foreground mb-4">
+                {campaigns.length === 0 
+                  ? "Get started by creating your first campaign"
+                  : "Try adjusting your search or filters"
+                }
+              </p>
+              {campaigns.length === 0 && <CampaignDialog onSuccess={fetchCampaigns} />}
             </CardContent>
           </Card>
         ) : (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {campaigns.map((campaign) => {
+            {filteredCampaigns.map((campaign) => {
               const status = getCampaignStatus(campaign);
               const signageCount = campaign.signage_campaigns?.[0]?.count || 0;
 

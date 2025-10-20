@@ -87,7 +87,14 @@ export default function Dashboard() {
 
       let query = supabase
         .from("signage_spots" as any)
-        .select("*, venues(*)")
+        .select(`
+          *,
+          venues(*),
+          signage_campaigns(
+            campaign_id,
+            campaigns(name, is_active)
+          )
+        `)
         .order("created_at", { ascending: false });
 
       if (selectedVenue !== "all") {
@@ -403,6 +410,7 @@ export default function Dashboard() {
             {filteredSpots.map((spot) => {
               const daysSinceUpdate = getDaysSinceUpdate(spot.last_update_date);
               const needsUpdate = daysSinceUpdate !== null && daysSinceUpdate > 180;
+              const activeCampaign = spot.signage_campaigns?.find((sc: any) => sc.campaigns?.is_active);
               
               return (
                 <Card 
@@ -445,6 +453,12 @@ export default function Dashboard() {
                       <StatusBadge status={spot.status} />
                     </div>
                     <div className="flex flex-wrap gap-2">
+                      {activeCampaign && (
+                        <Badge variant="secondary" className="text-xs">
+                          <Calendar className="w-3 h-3 mr-1" />
+                          {activeCampaign.campaigns.name}
+                        </Badge>
+                      )}
                       {spot.priority_level && (
                         <Badge variant={getPriorityBadgeVariant(spot.priority_level)} className="text-xs">
                           {spot.priority_level}
