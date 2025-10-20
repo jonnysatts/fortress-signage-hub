@@ -2,3 +2,6 @@ project_id = "urqfyhaqtjgsngbjqpcc"
 
 [functions.update-campaign-status]
 verify_jwt = false
+
+[functions.update-signage-status]
+verify_jwt = false
