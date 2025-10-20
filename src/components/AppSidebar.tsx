@@ -19,6 +19,7 @@ import fortressLogo from "@/assets/fortress-logo.png";
 const navItems = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutGrid },
   { title: "Campaigns", url: "/campaigns", icon: Calendar },
+  { title: "Calendar", url: "/calendar", icon: Calendar },
   { title: "Analytics", url: "/analytics", icon: BarChart3 },
   { title: "Settings", url: "/settings", icon: Settings },
 ];

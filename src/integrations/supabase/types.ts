@@ -144,6 +144,51 @@ export type Database = {
           },
         ]
       }
+      calendar_settings: {
+        Row: {
+          created_at: string | null
+          default_view: string | null
+          email_reminders_enabled: boolean | null
+          id: string
+          show_campaigns: boolean | null
+          show_expiry_dates: boolean | null
+          show_print_jobs: boolean | null
+          show_recurring_events: boolean | null
+          show_scheduled_promotions: boolean | null
+          show_stale_warnings: boolean | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          default_view?: string | null
+          email_reminders_enabled?: boolean | null
+          id?: string
+          show_campaigns?: boolean | null
+          show_expiry_dates?: boolean | null
+          show_print_jobs?: boolean | null
+          show_recurring_events?: boolean | null
+          show_scheduled_promotions?: boolean | null
+          show_stale_warnings?: boolean | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          default_view?: string | null
+          email_reminders_enabled?: boolean | null
+          id?: string
+          show_campaigns?: boolean | null
+          show_expiry_dates?: boolean | null
+          show_print_jobs?: boolean | null
+          show_recurring_events?: boolean | null
+          show_scheduled_promotions?: boolean | null
+          show_stale_warnings?: boolean | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       campaign_templates: {
         Row: {
           created_at: string | null
@@ -283,6 +328,42 @@ export type Database = {
           },
         ]
       }
+      email_reminder_settings: {
+        Row: {
+          created_at: string | null
+          days_before: number | null
+          id: string
+          remind_campaigns: boolean | null
+          remind_expiry_dates: boolean | null
+          remind_print_jobs: boolean | null
+          remind_scheduled_promotions: boolean | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          days_before?: number | null
+          id?: string
+          remind_campaigns?: boolean | null
+          remind_expiry_dates?: boolean | null
+          remind_print_jobs?: boolean | null
+          remind_scheduled_promotions?: boolean | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          days_before?: number | null
+          id?: string
+          remind_campaigns?: boolean | null
+          remind_expiry_dates?: boolean | null
+          remind_print_jobs?: boolean | null
+          remind_scheduled_promotions?: boolean | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       photo_history: {
         Row: {
           actual_cost: number | null
@@ -401,6 +482,48 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           role?: Database["public"]["Enums"]["app_role"]
+        }
+        Relationships: []
+      }
+      recurring_events: {
+        Row: {
+          all_day: boolean | null
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          end_time: string | null
+          event_type: string
+          id: string
+          recurrence_rule: Json
+          start_time: string | null
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          all_day?: boolean | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          end_time?: string | null
+          event_type: string
+          id?: string
+          recurrence_rule: Json
+          start_time?: string | null
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          all_day?: boolean | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          end_time?: string | null
+          event_type?: string
+          id?: string
+          recurrence_rule?: Json
+          start_time?: string | null
+          title?: string
+          updated_at?: string | null
         }
         Relationships: []
       }
