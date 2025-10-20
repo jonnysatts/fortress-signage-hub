@@ -1,5 +1,5 @@
 import { LayoutGrid, Calendar, LogOut } from "lucide-react";
-import { NavLink, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Sidebar,
@@ -11,6 +11,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   useSidebar,
+  SidebarFooter,
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 
@@ -22,6 +23,7 @@ const navItems = [
 export function AppSidebar() {
   const { open } = useSidebar();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -41,40 +43,33 @@ export function AppSidebar() {
             </div>
           </SidebarGroupLabel>
           
-          <SidebarGroupContent className="mt-4">
+          <SidebarGroupContent className="mt-2">
             <SidebarMenu>
               {navItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
-                    <NavLink
-                      to={item.url}
-                      className={({ isActive }) =>
-                        isActive
-                          ? "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground"
-                          : ""
-                      }
-                    >
-                      <item.icon />
-                      <span>{item.title}</span>
-                    </NavLink>
+                  <SidebarMenuButton
+                    isActive={location.pathname === item.url}
+                    onClick={() => navigate(item.url)}
+                  >
+                    <item.icon className="mr-2" />
+                    <span>{item.title}</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+        <SidebarFooter className="mt-auto">
+          <Button
+            variant="ghost"
+            className="w-full justify-start"
+            onClick={handleSignOut}
+          >
+            <LogOut className="mr-2" />
+            {open && <span>Sign Out</span>}
+          </Button>
+        </SidebarFooter>
       </SidebarContent>
-
-      <div className="mt-auto border-t p-4">
-        <Button
-          variant="ghost"
-          className="w-full justify-start"
-          onClick={handleSignOut}
-        >
-          <LogOut className="mr-2" />
-          {open && <span>Sign Out</span>}
-        </Button>
-      </div>
     </Sidebar>
   );
 }
