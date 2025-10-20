@@ -5,3 +5,7 @@ verify_jwt = false
 
 [functions.update-signage-status]
 verify_jwt = false
+
+[functions.send-alerts]
+verify_jwt = false
+
