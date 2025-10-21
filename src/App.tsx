@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
+import ProtectedRoute from "@/components/ProtectedRoute";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
@@ -33,166 +34,191 @@ const App = () => (
           <Route
             path="/dashboard"
             element={
-              <SidebarProvider>
-                <div className="flex min-h-screen w-full">
-                  <AppSidebar />
-                  <div className="flex-1">
-                    <header className="sticky top-0 z-10 border-b bg-card/50 backdrop-blur-sm">
-                      <div className="flex items-center gap-4 p-4">
-                        <SidebarTrigger />
-                      </div>
-                    </header>
-                    <Dashboard />
+              <ProtectedRoute>
+                <SidebarProvider>
+                  <div className="flex min-h-screen w-full">
+                    <AppSidebar />
+                    <div className="flex-1">
+                      <header className="sticky top-0 z-10 border-b bg-card/50 backdrop-blur-sm">
+                        <div className="flex items-center gap-4 p-4">
+                          <SidebarTrigger />
+                        </div>
+                      </header>
+                      <Dashboard />
+                    </div>
                   </div>
-                </div>
-              </SidebarProvider>
+                </SidebarProvider>
+              </ProtectedRoute>
             }
           />
           <Route
             path="/campaigns"
             element={
-              <SidebarProvider>
-                <div className="flex min-h-screen w-full">
-                  <AppSidebar />
-                  <div className="flex-1">
-                    <header className="sticky top-0 z-10 border-b bg-card/50 backdrop-blur-sm">
-                      <div className="flex items-center gap-4 p-4">
-                        <SidebarTrigger />
-                      </div>
-                    </header>
-                    <Campaigns />
+              <ProtectedRoute>
+                <SidebarProvider>
+                  <div className="flex min-h-screen w-full">
+                    <AppSidebar />
+                    <div className="flex-1">
+                      <header className="sticky top-0 z-10 border-b bg-card/50 backdrop-blur-sm">
+                        <div className="flex items-center gap-4 p-4">
+                          <SidebarTrigger />
+                        </div>
+                      </header>
+                      <Campaigns />
+                    </div>
                   </div>
-                </div>
-              </SidebarProvider>
+                </SidebarProvider>
+              </ProtectedRoute>
             }
           />
           <Route
             path="/campaigns/:id"
             element={
-              <SidebarProvider>
-                <div className="flex min-h-screen w-full">
-                  <AppSidebar />
-                  <div className="flex-1">
-                    <header className="sticky top-0 z-10 border-b bg-card/50 backdrop-blur-sm">
-                      <div className="flex items-center gap-4 p-4">
-                        <SidebarTrigger />
-                      </div>
-                    </header>
-                    <CampaignDetail />
+              <ProtectedRoute>
+                <SidebarProvider>
+                  <div className="flex min-h-screen w-full">
+                    <AppSidebar />
+                    <div className="flex-1">
+                      <header className="sticky top-0 z-10 border-b bg-card/50 backdrop-blur-sm">
+                        <div className="flex items-center gap-4 p-4">
+                          <SidebarTrigger />
+                        </div>
+                      </header>
+                      <CampaignDetail />
+                    </div>
                   </div>
-                </div>
-              </SidebarProvider>
+                </SidebarProvider>
+              </ProtectedRoute>
             }
           />
           <Route
             path="/settings"
             element={
-              <SidebarProvider>
-                <div className="flex min-h-screen w-full">
-                  <AppSidebar />
-                  <div className="flex-1">
-                    <header className="sticky top-0 z-10 border-b bg-card/50 backdrop-blur-sm">
-                      <div className="flex items-center gap-4 p-4">
-                        <SidebarTrigger />
-                      </div>
-                    </header>
-                    <Settings />
+              <ProtectedRoute>
+                <SidebarProvider>
+                  <div className="flex min-h-screen w-full">
+                    <AppSidebar />
+                    <div className="flex-1">
+                      <header className="sticky top-0 z-10 border-b bg-card/50 backdrop-blur-sm">
+                        <div className="flex items-center gap-4 p-4">
+                          <SidebarTrigger />
+                        </div>
+                      </header>
+                      <Settings />
+                    </div>
                   </div>
-                </div>
-              </SidebarProvider>
+                </SidebarProvider>
+              </ProtectedRoute>
             }
           />
           <Route
             path="/custom-fields"
             element={
-              <SidebarProvider>
-                <div className="flex min-h-screen w-full">
-                  <AppSidebar />
-                  <div className="flex-1">
-                    <header className="sticky top-0 z-10 border-b bg-card/50 backdrop-blur-sm">
-                      <div className="flex items-center gap-4 p-4">
-                        <SidebarTrigger />
-                      </div>
-                    </header>
-                    <CustomFields />
+              <ProtectedRoute>
+                <SidebarProvider>
+                  <div className="flex min-h-screen w-full">
+                    <AppSidebar />
+                    <div className="flex-1">
+                      <header className="sticky top-0 z-10 border-b bg-card/50 backdrop-blur-sm">
+                        <div className="flex items-center gap-4 p-4">
+                          <SidebarTrigger />
+                        </div>
+                      </header>
+                      <CustomFields />
+                    </div>
                   </div>
-                </div>
-              </SidebarProvider>
+                </SidebarProvider>
+              </ProtectedRoute>
             }
           />
           <Route
             path="/analytics"
             element={
-              <SidebarProvider>
-                <div className="flex min-h-screen w-full">
-                  <AppSidebar />
-                  <div className="flex-1">
-                    <header className="sticky top-0 z-10 border-b bg-card/50 backdrop-blur-sm">
-                      <div className="flex items-center gap-4 p-4">
-                        <SidebarTrigger />
-                      </div>
-                    </header>
-                    <Analytics />
+              <ProtectedRoute>
+                <SidebarProvider>
+                  <div className="flex min-h-screen w-full">
+                    <AppSidebar />
+                    <div className="flex-1">
+                      <header className="sticky top-0 z-10 border-b bg-card/50 backdrop-blur-sm">
+                        <div className="flex items-center gap-4 p-4">
+                          <SidebarTrigger />
+                        </div>
+                      </header>
+                      <Analytics />
+                    </div>
                   </div>
-                </div>
-              </SidebarProvider>
+                </SidebarProvider>
+              </ProtectedRoute>
             }
           />
           <Route
             path="/calendar"
             element={
-              <SidebarProvider>
-                <div className="flex min-h-screen w-full">
-                  <AppSidebar />
-                  <div className="flex-1">
-                    <header className="sticky top-0 z-10 border-b bg-card/50 backdrop-blur-sm">
-                      <div className="flex items-center gap-4 p-4">
-                        <SidebarTrigger />
-                      </div>
-                    </header>
-                    <Calendar />
+              <ProtectedRoute>
+                <SidebarProvider>
+                  <div className="flex min-h-screen w-full">
+                    <AppSidebar />
+                    <div className="flex-1">
+                      <header className="sticky top-0 z-10 border-b bg-card/50 backdrop-blur-sm">
+                        <div className="flex items-center gap-4 p-4">
+                          <SidebarTrigger />
+                        </div>
+                      </header>
+                      <Calendar />
+                    </div>
                   </div>
-                </div>
-              </SidebarProvider>
+                </SidebarProvider>
+              </ProtectedRoute>
             }
           />
           <Route
             path="/upcoming-updates"
             element={
-              <SidebarProvider>
-                <div className="flex min-h-screen w-full">
-                  <AppSidebar />
-                  <div className="flex-1">
-                    <header className="sticky top-0 z-10 border-b bg-card/50 backdrop-blur-sm">
-                      <div className="flex items-center gap-4 p-4">
-                        <SidebarTrigger />
-                      </div>
-                    </header>
-                    <UpcomingUpdates />
+              <ProtectedRoute>
+                <SidebarProvider>
+                  <div className="flex min-h-screen w-full">
+                    <AppSidebar />
+                    <div className="flex-1">
+                      <header className="sticky top-0 z-10 border-b bg-card/50 backdrop-blur-sm">
+                        <div className="flex items-center gap-4 p-4">
+                          <SidebarTrigger />
+                        </div>
+                      </header>
+                      <UpcomingUpdates />
+                    </div>
                   </div>
-                </div>
-              </SidebarProvider>
+                </SidebarProvider>
+              </ProtectedRoute>
             }
           />
           <Route
             path="/stale-content"
             element={
-              <SidebarProvider>
-                <div className="flex min-h-screen w-full">
-                  <AppSidebar />
-                  <div className="flex-1">
-                    <header className="sticky top-0 z-10 border-b bg-card/50 backdrop-blur-sm">
-                      <div className="flex items-center gap-4 p-4">
-                        <SidebarTrigger />
-                      </div>
-                    </header>
-                    <StaleContentWarnings />
+              <ProtectedRoute>
+                <SidebarProvider>
+                  <div className="flex min-h-screen w-full">
+                    <AppSidebar />
+                    <div className="flex-1">
+                      <header className="sticky top-0 z-10 border-b bg-card/50 backdrop-blur-sm">
+                        <div className="flex items-center gap-4 p-4">
+                          <SidebarTrigger />
+                        </div>
+                      </header>
+                      <StaleContentWarnings />
+                    </div>
                   </div>
-                </div>
-              </SidebarProvider>
+                </SidebarProvider>
+              </ProtectedRoute>
             }
           />
-          <Route path="/signage/:id" element={<SignageDetail />} />
+          <Route 
+            path="/signage/:id" 
+            element={
+              <ProtectedRoute>
+                <SignageDetail />
+              </ProtectedRoute>
+            } 
+          />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
