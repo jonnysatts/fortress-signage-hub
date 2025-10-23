@@ -171,8 +171,8 @@ export default function FloorPlanEditor() {
 
   // Line placement helpers (percent-based coordinates)
   const getPercentFromEvent = (e: React.MouseEvent) => {
-    if (!containerRef.current) return { x: 0, y: 0 };
-    const rect = containerRef.current.getBoundingClientRect();
+    if (!imageRef.current) return { x: 0, y: 0 };
+    const rect = imageRef.current.getBoundingClientRect();
     const x = ((e.clientX - rect.left) / rect.width) * 100;
     const y = ((e.clientY - rect.top) / rect.height) * 100;
     return { x: Math.max(0, Math.min(100, x)), y: Math.max(0, Math.min(100, y)) };
@@ -199,10 +199,11 @@ export default function FloorPlanEditor() {
   };
 
   const confirmDraftPlacement = async () => {
-    if (!draftStart || !draftEnd || !selectedSpotToAdd) return;
-    // Convert percent delta to pixel length and angle using container size
-    const dxPx = (draftEnd.x - draftStart.x) / 100 * containerSize.width;
-    const dyPx = (draftEnd.y - draftStart.y) / 100 * containerSize.height;
+    if (!draftStart || !draftEnd || !selectedSpotToAdd || !imageRef.current) return;
+    // Convert percent delta to pixel length and angle using image size
+    const rect = imageRef.current.getBoundingClientRect();
+    const dxPx = (draftEnd.x - draftStart.x) / 100 * rect.width;
+    const dyPx = (draftEnd.y - draftStart.y) / 100 * rect.height;
     const length = Math.max(5, Math.round(Math.hypot(dxPx, dyPx)));
     const angle = Math.round((Math.atan2(dyPx, dxPx) * 180) / Math.PI);
 
@@ -247,9 +248,9 @@ export default function FloorPlanEditor() {
   const handleImageClick = async (e: React.MouseEvent<HTMLDivElement>) => {
     // For line placement we use drag + submit flow, so ignore simple clicks
     if (placementMode && markerType === 'line') return;
-    if (!selectedSpotToAdd || !containerRef.current) return;
+    if (!selectedSpotToAdd || !imageRef.current) return;
 
-    const rect = containerRef.current.getBoundingClientRect();
+    const rect = imageRef.current.getBoundingClientRect();
     const x = ((e.clientX - rect.left) / rect.width) * 100;
     const y = ((e.clientY - rect.top) / rect.height) * 100;
 
@@ -298,9 +299,9 @@ export default function FloorPlanEditor() {
 
   const handleMarkerDrag = async (e: React.MouseEvent) => {
     const draggingMarker = markers.find(m => m.isDragging);
-    if (!draggingMarker || !containerRef.current) return;
+    if (!draggingMarker || !imageRef.current) return;
 
-    const rect = containerRef.current.getBoundingClientRect();
+    const rect = imageRef.current.getBoundingClientRect();
     const x = Math.max(0, Math.min(100, ((e.clientX - rect.left) / rect.width) * 100));
     const y = Math.max(0, Math.min(100, ((e.clientY - rect.top) / rect.height) * 100));
 
