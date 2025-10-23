@@ -584,11 +584,11 @@ export default function FloorPlanEditor() {
                       <p className="text-sm font-medium">
                         Click and drag on the floor plan to draw the line. Release to preview, then adjust by dragging again. When happy, click Submit.
                       </p>
-                      <div className="flex gap-2">
-                        <Button size="sm" onClick={confirmDraftPlacement} disabled={!draftStart || !draftEnd}>
+                      <div className="flex items-center gap-2">
+                        <Button size="sm" onClick={confirmDraftPlacement} disabled={!draftStart || !draftEnd} className="flex-1">
                           Submit Placement
                         </Button>
-                        <Button size="sm" variant="outline" onClick={cancelDraftPlacement} disabled={!draftStart && !draftEnd}>
+                        <Button size="sm" variant="outline" onClick={cancelDraftPlacement} disabled={!draftStart && !draftEnd} className="flex-1">
                           Reset
                         </Button>
                       </div>
