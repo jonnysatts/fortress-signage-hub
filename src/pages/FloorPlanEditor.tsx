@@ -49,7 +49,6 @@ export default function FloorPlanEditor() {
   const [showGrid, setShowGrid] = useState(false);
   const [history, setHistory] = useState<any[]>([]);
   const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
-  const [imageBox, setImageBox] = useState({ left: 0, top: 0, width: 0, height: 0 });
   const [placementMode, setPlacementMode] = useState(false);
   const [spotToPlaceName, setSpotToPlaceName] = useState<string>("");
 
@@ -71,16 +70,11 @@ export default function FloorPlanEditor() {
 
   useEffect(() => {
     const updateSize = () => {
-      if (containerRef.current && imageRef.current) {
-        const imgRect = imageRef.current.getBoundingClientRect();
-        const contRect = containerRef.current.getBoundingClientRect();
-        setImageBox({
-          left: imgRect.left - contRect.left,
-          top: imgRect.top - contRect.top,
-          width: imgRect.width,
-          height: imgRect.height,
+      if (containerRef.current) {
+        setContainerSize({
+          width: containerRef.current.offsetWidth,
+          height: containerRef.current.offsetHeight
         });
-        setContainerSize({ width: imgRect.width, height: imgRect.height });
       }
     };
 
@@ -177,10 +171,10 @@ export default function FloorPlanEditor() {
 
   // Line placement helpers (percent-based coordinates)
   const getPercentFromEvent = (e: React.MouseEvent) => {
-    if (!imageRef.current || !containerRef.current) return { x: 0, y: 0 };
-    const imgRect = imageRef.current.getBoundingClientRect();
-    const x = ((e.clientX - imgRect.left) / imgRect.width) * 100;
-    const y = ((e.clientY - imgRect.top) / imgRect.height) * 100;
+    if (!containerRef.current) return { x: 0, y: 0 };
+    const rect = containerRef.current.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width) * 100;
+    const y = ((e.clientY - rect.top) / rect.height) * 100;
     return { x: Math.max(0, Math.min(100, x)), y: Math.max(0, Math.min(100, y)) };
   };
 
@@ -253,9 +247,9 @@ export default function FloorPlanEditor() {
   const handleImageClick = async (e: React.MouseEvent<HTMLDivElement>) => {
     // For line placement we use drag + submit flow, so ignore simple clicks
     if (placementMode && markerType === 'line') return;
-    if (!selectedSpotToAdd || !imageRef.current) return;
+    if (!selectedSpotToAdd || !containerRef.current) return;
 
-    const rect = imageRef.current.getBoundingClientRect();
+    const rect = containerRef.current.getBoundingClientRect();
     const x = ((e.clientX - rect.left) / rect.width) * 100;
     const y = ((e.clientY - rect.top) / rect.height) * 100;
 
@@ -304,9 +298,9 @@ export default function FloorPlanEditor() {
 
   const handleMarkerDrag = async (e: React.MouseEvent) => {
     const draggingMarker = markers.find(m => m.isDragging);
-    if (!draggingMarker || !imageRef.current) return;
+    if (!draggingMarker || !containerRef.current) return;
 
-    const rect = imageRef.current.getBoundingClientRect();
+    const rect = containerRef.current.getBoundingClientRect();
     const x = Math.max(0, Math.min(100, ((e.clientX - rect.left) / rect.width) * 100));
     const y = Math.max(0, Math.min(100, ((e.clientY - rect.top) / rect.height) * 100));
 
@@ -405,13 +399,9 @@ export default function FloorPlanEditor() {
   };
 
   const renderMarker = (marker: Marker) => {
-    if (imageBox.width === 0 || imageBox.height === 0) return null;
     const color = getMarkerColor(marker);
     const isSelected = selectedMarker === marker.id;
     const scale = isSelected ? 1.1 : 1;
-
-    const sizePctX = (marker.marker_size / imageBox.width) * 100;
-    const sizePctY = (marker.marker_size / imageBox.height) * 100;
 
     const commonProps = {
       onClick: (e: React.MouseEvent) => {
@@ -425,18 +415,16 @@ export default function FloorPlanEditor() {
         transform: `scale(${scale})`
       },
       stroke: isSelected ? 'hsl(var(--primary))' : 'white',
-      strokeWidth: isSelected ? 2 : 1,
-      vectorEffect: 'non-scaling-stroke' as any,
+      strokeWidth: isSelected ? 4 : 2
     };
 
     if (marker.marker_type === 'circle') {
-      const r = Math.min(sizePctX, sizePctY) / 2;
       return (
         <circle
           key={marker.id}
           cx={`${marker.marker_x}%`}
           cy={`${marker.marker_y}%`}
-          r={r}
+          r={marker.marker_size / 2}
           fill={color}
           {...commonProps}
         />
@@ -447,10 +435,10 @@ export default function FloorPlanEditor() {
       return (
         <rect
           key={marker.id}
-          x={`${marker.marker_x - sizePctX / 2}%`}
-          y={`${marker.marker_y - sizePctY / 2}%`}
-          width={`${sizePctX}%`}
-          height={`${sizePctY}%`}
+          x={`calc(${marker.marker_x}% - ${marker.marker_size / 2}px)`}
+          y={`calc(${marker.marker_y}% - ${marker.marker_size / 2}px)`}
+          width={marker.marker_size}
+          height={marker.marker_size}
           fill={color}
           transform={`rotate(${marker.marker_rotation} ${marker.marker_x}% ${marker.marker_y}%)`}
           {...commonProps}
@@ -459,19 +447,17 @@ export default function FloorPlanEditor() {
     }
 
     if (marker.marker_type === 'line') {
-      const rad = (marker.marker_rotation * Math.PI) / 180;
-      const x2 = marker.marker_x + sizePctX * Math.cos(rad);
-      const y2 = marker.marker_y + sizePctY * Math.sin(rad);
       return (
         <line
           key={marker.id}
           x1={`${marker.marker_x}%`}
           y1={`${marker.marker_y}%`}
-          x2={`${x2}%`}
-          y2={`${y2}%`}
+          x2={`${marker.marker_x}%`}
+          y2={`calc(${marker.marker_y}% + ${marker.marker_size}px)`}
           stroke={color}
-          strokeWidth={6}
+          strokeWidth="8"
           strokeLinecap="round"
+          transform={`rotate(${marker.marker_rotation} ${marker.marker_x}% ${marker.marker_y}%)`}
           {...commonProps}
         />
       );
