@@ -181,28 +181,37 @@ export function DayDetailView({ date, open, onClose, onRefresh }: DayDetailViewP
           id,
           name,
           start_date,
-          end_date,
-          signage_campaigns (count)
+          end_date
         `)
         .eq('is_active', true)
         .lte('start_date', dateStr)
         .gte('end_date', dateStr);
 
       if (campaigns) {
-        setActiveCampaigns(campaigns.map(c => {
-          const startDate = new Date(c.start_date);
-          const endDate = new Date(c.end_date);
-          const totalDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
-          const dayNumber = Math.ceil((date.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-          
-          return {
-            id: c.id,
-            name: c.name,
-            day_number: dayNumber,
-            total_days: totalDays,
-            spot_count: c.signage_campaigns?.[0]?.count || 0,
-          };
-        }));
+        // Get spot counts for each campaign
+        const campaignsWithCounts = await Promise.all(
+          campaigns.map(async (c) => {
+            const { count } = await supabase
+              .from('signage_campaigns')
+              .select('*', { count: 'exact', head: true })
+              .eq('campaign_id', c.id);
+
+            const startDate = new Date(c.start_date);
+            const endDate = new Date(c.end_date);
+            const totalDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+            const dayNumber = Math.ceil((date.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+            
+            return {
+              id: c.id,
+              name: c.name,
+              day_number: dayNumber,
+              total_days: totalDays,
+              spot_count: count || 0,
+            };
+          })
+        );
+
+        setActiveCampaigns(campaignsWithCounts);
       }
 
     } catch (error) {
