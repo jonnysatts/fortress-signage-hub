@@ -14,7 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { MapPin, ZoomIn, ZoomOut, RotateCcw, Edit } from "lucide-react";
 import { toast } from "sonner";
-import FloorPlanViewer from "@/components/floor-plans/FloorPlanViewer";
+import FloorPlanViewer from "@/components/FloorPlanViewer";
 
 interface FloorPlan {
   id: string;
