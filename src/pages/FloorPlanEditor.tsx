@@ -89,11 +89,10 @@ export default function FloorPlanEditor() {
 
   useEffect(() => {
     const updateSize = () => {
-      if (containerRef.current) {
-        setContainerSize({
-          width: containerRef.current.offsetWidth,
-          height: containerRef.current.offsetHeight
-        });
+      const img = imageRef.current;
+      if (img) {
+        const rect = img.getBoundingClientRect();
+        setContainerSize({ width: rect.width, height: rect.height });
       }
     };
 
@@ -419,9 +418,17 @@ export default function FloorPlanEditor() {
   };
 
   const renderMarker = (marker: Marker) => {
+    const rect = imageRef.current?.getBoundingClientRect();
+    if (!rect) return null;
+
     const color = getMarkerColor(marker);
     const isSelected = selectedMarker === marker.id;
     const scale = isSelected ? 1.1 : 1;
+
+    // Convert stored percentage coordinates to pixel positions based on the actual rendered image size
+    const clamp = (v: number) => Math.max(0, Math.min(100, v));
+    const pxX = ((clamp(marker.marker_x ?? 0)) / 100) * rect.width;
+    const pxY = ((clamp(marker.marker_y ?? 0)) / 100) * rect.height;
 
     const eventProps = {
       onClick: (e: React.MouseEvent) => {
@@ -440,8 +447,8 @@ export default function FloorPlanEditor() {
       return (
         <circle
           key={marker.id}
-          cx={`${marker.marker_x}%`}
-          cy={`${marker.marker_y}%`}
+          cx={pxX}
+          cy={pxY}
           r={marker.marker_size / 2}
           fill={color}
           stroke={isSelected ? 'hsl(var(--primary))' : 'white'}
@@ -455,7 +462,7 @@ export default function FloorPlanEditor() {
       return (
         <g
           key={marker.id}
-          transform={`translate(${marker.marker_x}%, ${marker.marker_y}%) rotate(${marker.marker_rotation})`}
+          transform={`translate(${pxX}, ${pxY}) rotate(${marker.marker_rotation})`}
           {...eventProps}
         >
           <rect
@@ -475,7 +482,7 @@ export default function FloorPlanEditor() {
       return (
         <g
           key={marker.id}
-          transform={`translate(${marker.marker_x}%, ${marker.marker_y}%) rotate(${marker.marker_rotation})`}
+          transform={`translate(${pxX}, ${pxY}) rotate(${marker.marker_rotation})`}
           {...eventProps}
         >
           <line
@@ -730,7 +737,7 @@ export default function FloorPlanEditor() {
                 >
                   <div
                     ref={containerRef}
-                    className="relative w-full h-full"
+                    className="relative w-full"
                     style={{ cursor: selectedSpotToAdd ? 'crosshair' : 'default' }}
                     onClick={handleImageClick}
                     onMouseDown={(e) => {
