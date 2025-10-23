@@ -7,9 +7,11 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Calendar as CalendarIcon, Download, Settings, Plus } from "lucide-react";
+import { Calendar as CalendarIcon, Download, Settings, Plus, AlertTriangle } from "lucide-react";
 import { CalendarEventDialog } from "@/components/CalendarEventDialog";
 import { CreateEventDialog } from "@/components/CreateEventDialog";
+import { DayDetailView } from "@/components/DayDetailView";
+import { useNavigate } from "react-router-dom";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 
 // Set timezone to Australia/Sydney
@@ -40,6 +42,7 @@ interface CalendarSettings {
 
 export default function Calendar() {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [view, setView] = useState<View>('month');
   const [date, setDate] = useState(new Date());
@@ -47,6 +50,9 @@ export default function Calendar() {
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [showEventDialog, setShowEventDialog] = useState(false);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [showDayDetail, setShowDayDetail] = useState(false);
+  const [emptySpotCount, setEmptySpotCount] = useState(0);
   
   const [settings, setSettings] = useState<CalendarSettings>({
     show_scheduled_promotions: true,
@@ -61,12 +67,22 @@ export default function Calendar() {
   // Load user settings
   useEffect(() => {
     loadSettings();
+    loadEmptySpotCount();
   }, []);
 
   // Load events when settings change
   useEffect(() => {
     loadEvents();
   }, [settings]);
+
+  const loadEmptySpotCount = async () => {
+    const { count } = await supabase
+      .from('signage_spots')
+      .select('*', { count: 'exact', head: true })
+      .eq('status', 'empty');
+    
+    setEmptySpotCount(count || 0);
+  };
 
   const loadSettings = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -413,6 +429,16 @@ export default function Calendar() {
     loadEvents();
   };
 
+  const handleSelectSlot = ({ start }: { start: Date; end: Date }) => {
+    setSelectedDate(start);
+    setShowDayDetail(true);
+  };
+
+  const handleDayClick = (date: Date) => {
+    setSelectedDate(date);
+    setShowDayDetail(true);
+  };
+
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
@@ -431,6 +457,27 @@ export default function Calendar() {
           </Button>
         </div>
       </div>
+
+      {/* Quick Action Banner */}
+      {emptySpotCount > 0 && (
+        <Card className="p-4 border-destructive/50 bg-destructive/5">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <AlertTriangle className="w-5 h-5 text-destructive" />
+              <div>
+                <p className="font-semibold">{emptySpotCount} Empty Spots Need Content</p>
+                <p className="text-sm text-muted-foreground">Click to fill empty signage spots</p>
+              </div>
+            </div>
+            <Button 
+              variant="destructive"
+              onClick={() => navigate('/dashboard?filter=empty')}
+            >
+              Fill Empty Spots Now
+            </Button>
+          </div>
+        </Card>
+      )}
 
       <Card className="p-4">
         <div className="flex items-center gap-2 mb-4">
@@ -507,6 +554,8 @@ export default function Calendar() {
             onNavigate={setDate}
             eventPropGetter={eventStyleGetter}
             views={['month', 'week', 'day', 'agenda']}
+            selectable
+            onSelectSlot={handleSelectSlot}
             onSelectEvent={handleSelectEvent}
             onEventDrop={handleEventDrop}
             onEventResize={handleEventResize}
@@ -529,6 +578,16 @@ export default function Calendar() {
         open={showCreateDialog}
         onClose={() => setShowCreateDialog(false)}
         onEventCreated={loadEvents}
+      />
+
+      <DayDetailView
+        date={selectedDate}
+        open={showDayDetail}
+        onClose={() => setShowDayDetail(false)}
+        onRefresh={() => {
+          loadEvents();
+          loadEmptySpotCount();
+        }}
       />
     </div>
   );
