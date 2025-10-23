@@ -18,6 +18,8 @@ import Analytics from "./pages/Analytics";
 import Calendar from "./pages/Calendar";
 import UpcomingUpdates from "./pages/UpcomingUpdates";
 import StaleContentWarnings from "./pages/StaleContentWarnings";
+import FloorPlans from "./pages/FloorPlans";
+import FloorPlanManager from "./pages/FloorPlanManager";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -218,6 +220,46 @@ const App = () => (
                 <SignageDetail />
               </ProtectedRoute>
             } 
+          />
+          <Route
+            path="/floor-plans"
+            element={
+              <ProtectedRoute>
+                <SidebarProvider>
+                  <div className="flex min-h-screen w-full">
+                    <AppSidebar />
+                    <div className="flex-1">
+                      <header className="sticky top-0 z-10 border-b bg-card/50 backdrop-blur-sm">
+                        <div className="flex items-center gap-4 p-4">
+                          <SidebarTrigger />
+                        </div>
+                      </header>
+                      <FloorPlans />
+                    </div>
+                  </div>
+                </SidebarProvider>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/floor-plans/manage"
+            element={
+              <ProtectedRoute>
+                <SidebarProvider>
+                  <div className="flex min-h-screen w-full">
+                    <AppSidebar />
+                    <div className="flex-1">
+                      <header className="sticky top-0 z-10 border-b bg-card/50 backdrop-blur-sm">
+                        <div className="flex items-center gap-4 p-4">
+                          <SidebarTrigger />
+                        </div>
+                      </header>
+                      <FloorPlanManager />
+                    </div>
+                  </div>
+                </SidebarProvider>
+              </ProtectedRoute>
+            }
           />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />

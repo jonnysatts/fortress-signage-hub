@@ -364,6 +364,39 @@ export type Database = {
         }
         Relationships: []
       }
+      floor_plans: {
+        Row: {
+          created_at: string | null
+          display_name: string
+          display_order: number | null
+          id: string
+          image_url: string
+          level: string
+          updated_at: string | null
+          venue: string
+        }
+        Insert: {
+          created_at?: string | null
+          display_name: string
+          display_order?: number | null
+          id?: string
+          image_url: string
+          level: string
+          updated_at?: string | null
+          venue: string
+        }
+        Update: {
+          created_at?: string | null
+          display_name?: string
+          display_order?: number | null
+          id?: string
+          image_url?: string
+          level?: string
+          updated_at?: string | null
+          venue?: string
+        }
+        Relationships: []
+      }
       photo_history: {
         Row: {
           actual_cost: number | null
@@ -688,6 +721,7 @@ export type Database = {
           depth_cm: number | null
           expiry_behavior: string | null
           expiry_date: string | null
+          floor_plan_id: string | null
           height_cm: number | null
           id: string
           install_date: string | null
@@ -697,6 +731,11 @@ export type Database = {
           legacy_drive_link: string | null
           location_name: string
           location_photo_url: string | null
+          marker_rotation: number | null
+          marker_size: number | null
+          marker_type: string | null
+          marker_x: number | null
+          marker_y: number | null
           material_type: string | null
           mounting_type: string | null
           next_planned_date: string | null
@@ -709,6 +748,7 @@ export type Database = {
           production_cost: number | null
           qr_code_data: string | null
           recommendations: string | null
+          show_on_map: boolean | null
           specs_notes: string | null
           status: Database["public"]["Enums"]["signage_status"] | null
           supplier_vendor: string | null
@@ -731,6 +771,7 @@ export type Database = {
           depth_cm?: number | null
           expiry_behavior?: string | null
           expiry_date?: string | null
+          floor_plan_id?: string | null
           height_cm?: number | null
           id?: string
           install_date?: string | null
@@ -740,6 +781,11 @@ export type Database = {
           legacy_drive_link?: string | null
           location_name: string
           location_photo_url?: string | null
+          marker_rotation?: number | null
+          marker_size?: number | null
+          marker_type?: string | null
+          marker_x?: number | null
+          marker_y?: number | null
           material_type?: string | null
           mounting_type?: string | null
           next_planned_date?: string | null
@@ -752,6 +798,7 @@ export type Database = {
           production_cost?: number | null
           qr_code_data?: string | null
           recommendations?: string | null
+          show_on_map?: boolean | null
           specs_notes?: string | null
           status?: Database["public"]["Enums"]["signage_status"] | null
           supplier_vendor?: string | null
@@ -774,6 +821,7 @@ export type Database = {
           depth_cm?: number | null
           expiry_behavior?: string | null
           expiry_date?: string | null
+          floor_plan_id?: string | null
           height_cm?: number | null
           id?: string
           install_date?: string | null
@@ -783,6 +831,11 @@ export type Database = {
           legacy_drive_link?: string | null
           location_name?: string
           location_photo_url?: string | null
+          marker_rotation?: number | null
+          marker_size?: number | null
+          marker_type?: string | null
+          marker_x?: number | null
+          marker_y?: number | null
           material_type?: string | null
           mounting_type?: string | null
           next_planned_date?: string | null
@@ -795,6 +848,7 @@ export type Database = {
           production_cost?: number | null
           qr_code_data?: string | null
           recommendations?: string | null
+          show_on_map?: boolean | null
           specs_notes?: string | null
           status?: Database["public"]["Enums"]["signage_status"] | null
           supplier_vendor?: string | null
@@ -817,6 +871,13 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "signage_spots_floor_plan_id_fkey"
+            columns: ["floor_plan_id"]
+            isOneToOne: false
+            referencedRelation: "floor_plans"
             referencedColumns: ["id"]
           },
           {
@@ -922,7 +983,7 @@ export type Database = {
         }[]
       }
       get_stale_spots_without_replacements: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           assigned_user_id: string
           days_since_update: number

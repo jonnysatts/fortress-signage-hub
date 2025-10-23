@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Bell, Save, Settings2, Users, Tags } from "lucide-react";
+import { ArrowLeft, Bell, Save, Settings2, Users, Tags, MapPin } from "lucide-react";
 import { toast } from "sonner";
 
 export default function Settings() {
@@ -189,7 +189,7 @@ export default function Settings() {
         </div>
 
         <Tabs defaultValue="alerts" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="alerts">
               <Bell className="w-4 h-4 mr-2" />
               Alerts
@@ -197,6 +197,10 @@ export default function Settings() {
             <TabsTrigger value="fields">
               <Settings2 className="w-4 h-4 mr-2" />
               Custom Fields
+            </TabsTrigger>
+            <TabsTrigger value="floor-plans">
+              <MapPin className="w-4 h-4 mr-2" />
+              Floor Plans
             </TabsTrigger>
             <TabsTrigger value="users">
               <Users className="w-4 h-4 mr-2" />
@@ -300,6 +304,32 @@ export default function Settings() {
                 <Button onClick={() => navigate('/custom-fields')}>
                   Manage Custom Fields
                 </Button>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="floor-plans">
+            <Card>
+              <CardHeader>
+                <CardTitle>Floor Plan Management</CardTitle>
+                <CardDescription>
+                  Upload and manage venue floor plans with signage location markers
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-sm text-muted-foreground">
+                  Floor plans allow you to visualize where signage is located in your venues. Upload floor plan images and place markers to show each signage spot's physical location.
+                </p>
+                {userRole === 'admin' ? (
+                  <Button onClick={() => navigate('/floor-plans/manage')}>
+                    <MapPin className="w-4 h-4 mr-2" />
+                    Manage Floor Plans
+                  </Button>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    Only admins can upload and manage floor plans. <Button variant="link" className="p-0 h-auto" onClick={() => navigate('/floor-plans')}>View floor plans</Button>
+                  </p>
+                )}
               </CardContent>
             </Card>
           </TabsContent>

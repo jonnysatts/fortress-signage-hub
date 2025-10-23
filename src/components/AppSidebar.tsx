@@ -1,4 +1,4 @@
-import { LayoutGrid, Calendar, Settings, BarChart3, LogOut } from "lucide-react";
+import { LayoutGrid, Calendar, Settings, BarChart3, LogOut, MapPin } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -20,6 +20,7 @@ const navItems = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutGrid },
   { title: "Campaigns", url: "/campaigns", icon: Calendar },
   { title: "Calendar", url: "/calendar", icon: Calendar },
+  { title: "Floor Plans", url: "/floor-plans", icon: MapPin },
   { title: "Analytics", url: "/analytics", icon: BarChart3 },
   { title: "Settings", url: "/settings", icon: Settings },
 ];
