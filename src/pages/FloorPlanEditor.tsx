@@ -141,11 +141,10 @@ export default function FloorPlanEditor() {
     if (!floorPlan) return;
 
     try {
-      // Get all spots for this venue that don't have markers on this floor plan
+      // Get all spots that either don't have markers or have markers on different floor plans
       const { data, error } = await supabase
         .from('signage_spots')
         .select('id, location_name, marker_x, marker_y, marker_type, marker_size, marker_rotation, status, expiry_date, next_planned_date, floor_plan_id')
-        .eq('venues.name', floorPlan.venue)
         .or(`floor_plan_id.is.null,floor_plan_id.neq.${id},and(floor_plan_id.eq.${id},marker_x.is.null)`);
 
       if (error) throw error;
