@@ -49,6 +49,8 @@ export default function FloorPlanEditor() {
   const [showGrid, setShowGrid] = useState(false);
   const [history, setHistory] = useState<any[]>([]);
   const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
+  const [placementMode, setPlacementMode] = useState(false);
+  const [spotToPlaceName, setSpotToPlaceName] = useState<string>("");
 
   useEffect(() => {
     loadFloorPlan();
@@ -71,8 +73,32 @@ export default function FloorPlanEditor() {
     return () => window.removeEventListener('resize', updateSize);
   }, []);
 
-  // Highlight specific spot if in URL
+  // Handle spot placement mode from URL
   useEffect(() => {
+    const spotToPlaceId = searchParams.get('spotToPlace');
+    const markerTypeParam = searchParams.get('markerType');
+    
+    if (spotToPlaceId) {
+      setSelectedSpotToAdd(spotToPlaceId);
+      setPlacementMode(true);
+      if (markerTypeParam) {
+        setMarkerType(markerTypeParam);
+      }
+      
+      // Get spot name
+      supabase
+        .from('signage_spots')
+        .select('location_name')
+        .eq('id', spotToPlaceId)
+        .single()
+        .then(({ data }) => {
+          if (data) {
+            setSpotToPlaceName(data.location_name);
+          }
+        });
+    }
+    
+    // Highlight specific spot if in URL
     const spotId = searchParams.get('spot');
     if (spotId) {
       setSelectedMarker(spotId);
@@ -160,8 +186,15 @@ export default function FloorPlanEditor() {
 
       toast.success('Marker placed successfully!');
       setSelectedSpotToAdd("");
+      setPlacementMode(false);
+      setSpotToPlaceName("");
       loadMarkers();
       loadAvailableSpots();
+      
+      // If came from placement mode, redirect to signage detail
+      if (searchParams.get('spotToPlace')) {
+        navigate(`/signage/${selectedSpotToAdd}`);
+      }
     } catch (error: any) {
       toast.error('Failed to place marker: ' + error.message);
     }
@@ -360,77 +393,132 @@ export default function FloorPlanEditor() {
           <div>
             <Button
               variant="ghost"
-              onClick={() => navigate('/floor-plans')}
+              onClick={() => {
+                if (placementMode) {
+                  navigate(`/signage/${selectedSpotToAdd}`);
+                } else {
+                  navigate('/floor-plans');
+                }
+              }}
               className="mb-2"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Floor Plans
+              {placementMode ? 'Back to Signage Detail' : 'Back to Floor Plans'}
             </Button>
             <h1 className="text-3xl font-bold">
-              {floorPlan.display_name} - Edit Mode
+              {floorPlan.display_name} - {placementMode ? 'Place Marker' : 'Edit Mode'}
             </h1>
-            <p className="text-muted-foreground">
-              Click to place markers, drag to move them
-            </p>
+            {placementMode ? (
+              <p className="text-muted-foreground">
+                Click on the floor plan to place "{spotToPlaceName}"
+              </p>
+            ) : (
+              <p className="text-muted-foreground">
+                Click to place markers, drag to move them
+              </p>
+            )}
           </div>
-          <Button onClick={() => navigate('/floor-plans')}>
-            <Eye className="w-4 h-4 mr-2" />
-            View Mode
-          </Button>
+          {!placementMode && (
+            <Button onClick={() => navigate('/floor-plans')}>
+              <Eye className="w-4 h-4 mr-2" />
+              View Mode
+            </Button>
+          )}
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           <Card className="p-4 lg:col-span-1">
-            <h3 className="font-semibold mb-4">Add New Marker</h3>
-            
-            <div className="space-y-4">
-              <div>
-                <Label>Search Signage Spot</Label>
-                <Select value={selectedSpotToAdd} onValueChange={setSelectedSpotToAdd}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select spot..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {availableSpots.map(spot => (
-                      <SelectItem key={spot.id} value={spot.id}>
-                        {spot.location_name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+            {placementMode ? (
+              <>
+                <h3 className="font-semibold mb-4">Placing: {spotToPlaceName}</h3>
+                
+                <div className="space-y-4">
+                  <div>
+                    <Label>Marker Style</Label>
+                    <Select value={markerType} onValueChange={setMarkerType}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="circle">● Circle</SelectItem>
+                        <SelectItem value="rectangle">■ Rectangle</SelectItem>
+                        <SelectItem value="line">─ Line</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-              <div>
-                <Label>Marker Style</Label>
-                <Select value={markerType} onValueChange={setMarkerType}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="circle">● Circle</SelectItem>
-                    <SelectItem value="rectangle">■ Rectangle</SelectItem>
-                    <SelectItem value="line">─ Line</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+                  <div>
+                    <Label>Marker Size: {markerSize}px</Label>
+                    <Slider
+                      value={[markerSize]}
+                      onValueChange={(val) => setMarkerSize(val[0])}
+                      min={10}
+                      max={80}
+                      step={5}
+                    />
+                  </div>
 
-              <div>
-                <Label>Marker Size: {markerSize}px</Label>
-                <Slider
-                  value={[markerSize]}
-                  onValueChange={(val) => setMarkerSize(val[0])}
-                  min={10}
-                  max={80}
-                  step={5}
-                />
-              </div>
+                  <div className="p-3 bg-primary/10 rounded-lg border border-primary/20">
+                    <p className="text-sm font-medium">
+                      👆 Click anywhere on the floor plan to place this marker
+                    </p>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <>
+                <h3 className="font-semibold mb-4">Add New Marker</h3>
+                
+                <div className="space-y-4">
+                  <div>
+                    <Label>Search Signage Spot</Label>
+                    <Select value={selectedSpotToAdd} onValueChange={setSelectedSpotToAdd}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select spot..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {availableSpots.map(spot => (
+                          <SelectItem key={spot.id} value={spot.id}>
+                            {spot.location_name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-              {selectedSpotToAdd && (
-                <p className="text-sm text-muted-foreground">
-                  → Click on the floor plan to place this marker
-                </p>
-              )}
-            </div>
+                  <div>
+                    <Label>Marker Style</Label>
+                    <Select value={markerType} onValueChange={setMarkerType}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="circle">● Circle</SelectItem>
+                        <SelectItem value="rectangle">■ Rectangle</SelectItem>
+                        <SelectItem value="line">─ Line</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <Label>Marker Size: {markerSize}px</Label>
+                    <Slider
+                      value={[markerSize]}
+                      onValueChange={(val) => setMarkerSize(val[0])}
+                      min={10}
+                      max={80}
+                      step={5}
+                    />
+                  </div>
+
+                  {selectedSpotToAdd && (
+                    <p className="text-sm text-muted-foreground">
+                      → Click on the floor plan to place this marker
+                    </p>
+                  )}
+                </div>
+              </>
+            )}
 
             <Separator className="my-4" />
 

@@ -6,6 +6,7 @@ import { MapPin, Edit2 } from "lucide-react";
 import { getMarkerColor, getMarkerStatus } from "@/utils/markerUtils";
 import { percentToPixel } from "@/utils/coordinateUtils";
 import { useNavigate } from "react-router-dom";
+import AddToFloorPlanDialog from "./AddToFloorPlanDialog";
 
 interface FloorPlanMiniWidgetProps {
   spotId: string;
@@ -72,14 +73,16 @@ export default function FloorPlanMiniWidget({ spotId, spotData }: FloorPlanMiniW
           <p className="text-sm text-muted-foreground mb-4">
             This spot is not placed on a floor plan yet.
           </p>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => navigate('/floor-plans/manage')}
+          <AddToFloorPlanDialog
+            spotId={spotId}
+            spotName={spotData.location_name}
+            venueId={spotData.venue_id}
           >
-            <MapPin className="w-4 h-4 mr-2" />
-            Add to Floor Plan
-          </Button>
+            <Button variant="outline" size="sm">
+              <MapPin className="w-4 h-4 mr-2" />
+              Add to Floor Plan
+            </Button>
+          </AddToFloorPlanDialog>
         </CardContent>
       </Card>
     );
