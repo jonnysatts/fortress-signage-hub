@@ -491,15 +491,28 @@ export default function SignageDetail() {
   return (
     <div className="min-h-screen bg-background">
       <div className="container max-w-6xl mx-auto px-4 py-8">
-        <div className="flex items-center justify-between mb-6">
+        <div className="mb-6">
           <Button
             variant="ghost"
             onClick={() => navigate("/dashboard")}
+            className="mb-4"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Dashboard
           </Button>
+          
+          <h1 className="text-3xl font-bold tracking-tight mb-2">{spot?.location_name}</h1>
+          <div className="flex items-center gap-3 flex-wrap">
+            <StatusBadge status={spot?.status} />
+            {spot?.venue && (
+              <Badge variant="outline" className="text-sm">
+                {spot.venue.name}
+              </Badge>
+            )}
+          </div>
+        </div>
 
+        <div className="flex items-center justify-end mb-6">
           <div className="flex gap-2">
             {canEdit && !isEditMode && (
               <>
