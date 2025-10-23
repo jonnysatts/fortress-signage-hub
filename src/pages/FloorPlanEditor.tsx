@@ -589,16 +589,16 @@ export default function FloorPlanEditor() {
                           size="sm" 
                           onClick={confirmDraftPlacement} 
                           disabled={!draftStart || !draftEnd}
-                          className="w-full"
+                          className="w-full whitespace-nowrap"
                         >
-                          Submit Placement
+                          Submit
                         </Button>
                         <Button 
                           size="sm" 
                           variant="outline" 
                           onClick={cancelDraftPlacement} 
                           disabled={!draftStart && !draftEnd}
-                          className="w-full"
+                          className="w-full whitespace-nowrap"
                         >
                           Reset
                         </Button>
