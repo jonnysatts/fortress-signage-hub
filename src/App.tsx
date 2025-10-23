@@ -20,6 +20,7 @@ import UpcomingUpdates from "./pages/UpcomingUpdates";
 import StaleContentWarnings from "./pages/StaleContentWarnings";
 import FloorPlans from "./pages/FloorPlans";
 import FloorPlanManager from "./pages/FloorPlanManager";
+import FloorPlanEditor from "./pages/FloorPlanEditor";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -258,6 +259,14 @@ const App = () => (
                     </div>
                   </div>
                 </SidebarProvider>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/floor-plans/:id/edit"
+            element={
+              <ProtectedRoute>
+                <FloorPlanEditor />
               </ProtectedRoute>
             }
           />

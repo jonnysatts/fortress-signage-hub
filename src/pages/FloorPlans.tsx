@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -14,7 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { MapPin, ZoomIn, ZoomOut, RotateCcw, Edit } from "lucide-react";
 import { toast } from "sonner";
-import FloorPlanViewer from "@/components/FloorPlanViewer";
+import FloorPlanViewerHighlight from "@/components/FloorPlanViewerHighlight";
 
 interface FloorPlan {
   id: string;
@@ -26,6 +26,7 @@ interface FloorPlan {
 
 export default function FloorPlans() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [floorPlans, setFloorPlans] = useState<FloorPlan[]>([]);
   const [selectedPlanId, setSelectedPlanId] = useState<string>("");
   const [filterStatus, setFilterStatus] = useState<string>("all");
@@ -38,6 +39,16 @@ export default function FloorPlans() {
     loadFloorPlans();
     checkAdminRole();
   }, []);
+
+  useEffect(() => {
+    // Check for plan and spot params in URL
+    const planId = searchParams.get('plan');
+    const spotId = searchParams.get('spot');
+    
+    if (planId && floorPlans.length > 0) {
+      setSelectedPlanId(planId);
+    }
+  }, [searchParams, floorPlans]);
 
   const checkAdminRole = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -197,12 +208,14 @@ export default function FloorPlans() {
         </div>
 
         {selectedPlan && (
-          <FloorPlanViewer
+          <FloorPlanViewerHighlight
             floorPlanId={selectedPlan.id}
             imageUrl={selectedPlan.image_url}
             filterStatus={filterStatus}
             zoom={zoom}
             showLegend={showLegend}
+            onEditClick={handleEditMode}
+            isAdmin={isAdmin}
           />
         )}
       </Card>

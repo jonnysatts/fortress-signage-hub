@@ -18,6 +18,7 @@ import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { ApprovalWorkflow } from "@/components/ApprovalWorkflow";
+import FloorPlanMiniWidget from "@/components/FloorPlanMiniWidget";
 import { format } from "date-fns";
 import { QRCodeSVG } from "qrcode.react";
 import { toast } from "sonner";
@@ -662,6 +663,9 @@ export default function SignageDetail() {
                 </CardContent>
               </Card>
             </div>
+
+            {/* Floor Plan Location */}
+            <FloorPlanMiniWidget spotId={id!} spotData={spot} />
 
             {/* Content Timeline */}
             <div className="grid gap-6">
