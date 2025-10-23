@@ -52,6 +52,11 @@ export default function FloorPlanEditor() {
   const [placementMode, setPlacementMode] = useState(false);
   const [spotToPlaceName, setSpotToPlaceName] = useState<string>("");
 
+  // Draft placement state for intuitive line placement
+  const [draftStart, setDraftStart] = useState<{ x: number; y: number } | null>(null);
+  const [draftEnd, setDraftEnd] = useState<{ x: number; y: number } | null>(null);
+  const [isDrawingDraft, setIsDrawingDraft] = useState(false);
+
   useEffect(() => {
     loadFloorPlan();
     loadMarkers();
@@ -164,7 +169,84 @@ export default function FloorPlanEditor() {
     }
   };
 
+  // Line placement helpers (percent-based coordinates)
+  const getPercentFromEvent = (e: React.MouseEvent) => {
+    if (!containerRef.current) return { x: 0, y: 0 };
+    const rect = containerRef.current.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width) * 100;
+    const y = ((e.clientY - rect.top) / rect.height) * 100;
+    return { x: Math.max(0, Math.min(100, x)), y: Math.max(0, Math.min(100, y)) };
+  };
+
+  const handleLineMouseDown = (e: React.MouseEvent) => {
+    if (!placementMode || markerType !== 'line' || !selectedSpotToAdd) return;
+    e.preventDefault();
+    const p = getPercentFromEvent(e);
+    setDraftStart(p);
+    setDraftEnd(p);
+    setIsDrawingDraft(true);
+  };
+
+  const handleLineMouseMove = (e: React.MouseEvent) => {
+    if (!isDrawingDraft) return;
+    const p = getPercentFromEvent(e);
+    setDraftEnd(p);
+  };
+
+  const handleLineMouseUp = () => {
+    if (!isDrawingDraft) return;
+    setIsDrawingDraft(false);
+  };
+
+  const confirmDraftPlacement = async () => {
+    if (!draftStart || !draftEnd || !selectedSpotToAdd) return;
+    // Convert percent delta to pixel length and angle using container size
+    const dxPx = (draftEnd.x - draftStart.x) / 100 * containerSize.width;
+    const dyPx = (draftEnd.y - draftStart.y) / 100 * containerSize.height;
+    const length = Math.max(5, Math.round(Math.hypot(dxPx, dyPx)));
+    const angle = Math.round((Math.atan2(dyPx, dxPx) * 180) / Math.PI);
+
+    try {
+      const { error } = await supabase
+        .from('signage_spots')
+        .update({
+          floor_plan_id: id,
+          marker_x: draftStart.x,
+          marker_y: draftStart.y,
+          marker_type: 'line',
+          marker_size: length,
+          marker_rotation: angle,
+          show_on_map: true,
+        })
+        .eq('id', selectedSpotToAdd);
+
+      if (error) throw error;
+
+      toast.success('Line placed successfully!');
+      setDraftStart(null);
+      setDraftEnd(null);
+      setSelectedSpotToAdd("");
+      setPlacementMode(false);
+      setSpotToPlaceName("");
+      await loadMarkers();
+      await loadAvailableSpots();
+      if (searchParams.get('spotToPlace')) {
+        navigate(`/signage/${selectedSpotToAdd}`);
+      }
+    } catch (error: any) {
+      toast.error('Failed to place line: ' + error.message);
+    }
+  };
+
+  const cancelDraftPlacement = () => {
+    setDraftStart(null);
+    setDraftEnd(null);
+    setIsDrawingDraft(false);
+  };
+
   const handleImageClick = async (e: React.MouseEvent<HTMLDivElement>) => {
+    // For line placement we use drag + submit flow, so ignore simple clicks
+    if (placementMode && markerType === 'line') return;
     if (!selectedSpotToAdd || !containerRef.current) return;
 
     const rect = containerRef.current.getBoundingClientRect();
@@ -462,11 +544,27 @@ export default function FloorPlanEditor() {
                     />
                   </div>
 
-                  <div className="p-3 bg-primary/10 rounded-lg border border-primary/20">
-                    <p className="text-sm font-medium">
-                      👆 Click anywhere on the floor plan to place this marker
-                    </p>
-                  </div>
+                  {markerType === 'line' ? (
+                    <div className="p-3 bg-primary/10 rounded-lg border border-primary/20 space-y-3">
+                      <p className="text-sm font-medium">
+                        Click and drag on the floor plan to draw the line. Release to preview, then adjust by dragging again. When happy, click Submit.
+                      </p>
+                      <div className="flex gap-2">
+                        <Button size="sm" onClick={confirmDraftPlacement} disabled={!draftStart || !draftEnd}>
+                          Submit Placement
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={cancelDraftPlacement} disabled={!draftStart && !draftEnd}>
+                          Reset
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="p-3 bg-primary/10 rounded-lg border border-primary/20">
+                      <p className="text-sm font-medium">
+                        👆 Click anywhere on the floor plan to place this marker
+                      </p>
+                    </div>
+                  )}
                 </div>
               </>
             ) : (
@@ -589,9 +687,21 @@ export default function FloorPlanEditor() {
               className="relative border rounded-lg overflow-hidden bg-muted"
               style={{ minHeight: '600px', cursor: selectedSpotToAdd ? 'crosshair' : 'default' }}
               onClick={handleImageClick}
-              onMouseMove={handleMarkerDrag}
-              onMouseUp={handleMarkerDragEnd}
-              onMouseLeave={handleMarkerDragEnd}
+              onMouseDown={(e) => {
+                if (placementMode && markerType === 'line' && selectedSpotToAdd) handleLineMouseDown(e);
+              }}
+              onMouseMove={(e) => {
+                handleMarkerDrag(e);
+                if (placementMode && markerType === 'line') handleLineMouseMove(e);
+              }}
+              onMouseUp={() => {
+                handleMarkerDragEnd();
+                if (placementMode && markerType === 'line') handleLineMouseUp();
+              }}
+              onMouseLeave={() => {
+                handleMarkerDragEnd();
+                if (isDrawingDraft) handleLineMouseUp();
+              }}
             >
               <img
                 ref={imageRef}
@@ -638,6 +748,23 @@ export default function FloorPlanEditor() {
               <svg className="absolute top-0 left-0 w-full h-full">
                 {markers.map(renderMarker)}
               </svg>
+
+              {draftStart && draftEnd && (
+                <svg className="absolute top-0 left-0 w-full h-full pointer-events-none">
+                  <line
+                    x1={`${draftStart.x}%`}
+                    y1={`${draftStart.y}%`}
+                    x2={`${draftEnd.x}%`}
+                    y2={`${draftEnd.y}%`}
+                    stroke="hsl(var(--primary))"
+                    strokeWidth="6"
+                    strokeLinecap="round"
+                    opacity="0.9"
+                  />
+                  <circle cx={`${draftStart.x}%`} cy={`${draftStart.y}%`} r="6" fill="hsl(var(--primary))" />
+                  <circle cx={`${draftEnd.x}%`} cy={`${draftEnd.y}%`} r="6" fill="hsl(var(--primary))" />
+                </svg>
+              )}
             </div>
           </Card>
         </div>
