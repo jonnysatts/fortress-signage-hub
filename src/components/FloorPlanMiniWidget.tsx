@@ -122,46 +122,51 @@ export default function FloorPlanMiniWidget({ spotId, spotData }: FloorPlanMiniW
             <img 
               src={floorPlan.image_url} 
               alt={floorPlan.display_name}
-              className="w-full h-full object-cover"
+              className="w-full h-full object-contain"
             />
             <svg
               className="absolute top-0 left-0 w-full h-full pointer-events-none"
+              viewBox="0 0 100 100"
+              preserveAspectRatio="none"
             >
               {spotData.marker_type === 'circle' && (
                 <circle
-                  cx={`${spotData.marker_x}%`}
-                  cy={`${spotData.marker_y}%`}
-                  r={spotData.marker_size / 2}
+                  cx={spotData.marker_x}
+                  cy={spotData.marker_y}
+                  r={spotData.marker_size / 20}
                   fill={markerColor}
                   stroke="white"
-                  strokeWidth="3"
+                  strokeWidth="0.5"
                   className={markerStatus === 'overdue' ? 'animate-pulse' : ''}
+                  vectorEffect="non-scaling-stroke"
                 />
               )}
               {spotData.marker_type === 'rectangle' && (
                 <rect
-                  x={`calc(${spotData.marker_x}% - ${spotData.marker_size / 2}px)`}
-                  y={`calc(${spotData.marker_y}% - ${spotData.marker_size / 2}px)`}
-                  width={spotData.marker_size}
-                  height={spotData.marker_size}
+                  x={spotData.marker_x - (spotData.marker_size / 20) / 2}
+                  y={spotData.marker_y - (spotData.marker_size / 20) / 2}
+                  width={spotData.marker_size / 20}
+                  height={spotData.marker_size / 20}
                   fill={markerColor}
                   stroke="white"
-                  strokeWidth="3"
-                  transform={`rotate(${spotData.marker_rotation} ${spotData.marker_x}% ${spotData.marker_y}%)`}
+                  strokeWidth="0.5"
+                  transform={`rotate(${spotData.marker_rotation} ${spotData.marker_x} ${spotData.marker_y})`}
                   className={markerStatus === 'overdue' ? 'animate-pulse' : ''}
+                  vectorEffect="non-scaling-stroke"
                 />
               )}
               {spotData.marker_type === 'line' && (
                 <line
-                  x1={`${spotData.marker_x}%`}
-                  y1={`${spotData.marker_y}%`}
-                  x2={`${spotData.marker_x}%`}
-                  y2={`calc(${spotData.marker_y}% + ${spotData.marker_size}px)`}
+                  x1={spotData.marker_x}
+                  y1={spotData.marker_y}
+                  x2={spotData.marker_x}
+                  y2={spotData.marker_y + (spotData.marker_size / 10)}
                   stroke={markerColor}
-                  strokeWidth="8"
+                  strokeWidth="1.5"
                   strokeLinecap="round"
-                  transform={`rotate(${spotData.marker_rotation} ${spotData.marker_x}% ${spotData.marker_y}%)`}
+                  transform={`rotate(${spotData.marker_rotation} ${spotData.marker_x} ${spotData.marker_y})`}
                   className={markerStatus === 'overdue' ? 'animate-pulse' : ''}
+                  vectorEffect="non-scaling-stroke"
                 />
               )}
             </svg>

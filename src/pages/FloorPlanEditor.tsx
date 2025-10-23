@@ -55,8 +55,13 @@ export default function FloorPlanEditor() {
   useEffect(() => {
     loadFloorPlan();
     loadMarkers();
-    loadAvailableSpots();
   }, [id]);
+
+  useEffect(() => {
+    if (floorPlan) {
+      loadAvailableSpots();
+    }
+  }, [floorPlan, id]);
 
   useEffect(() => {
     const updateSize = () => {
