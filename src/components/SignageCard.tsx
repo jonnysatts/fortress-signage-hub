@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { StatusBadge } from "@/components/StatusBadge";
-import { Calendar, ImageIcon, AlertCircle, Upload, ExternalLink, MapPin, Image } from "lucide-react";
+import { Calendar, ImageIcon, AlertCircle, Upload, ExternalLink, MapPin, Image, ChevronLeft, ChevronRight } from "lucide-react";
 
 interface SignageCardProps {
   spot: any;
@@ -62,37 +62,77 @@ export function SignageCard({
           <div className="aspect-video bg-muted rounded-lg mb-3 flex items-center justify-center overflow-hidden relative group">
             {displayImage ? (
               <>
-                <img src={displayImage} alt={spot.location_name} className="w-full h-full object-cover" />
+                <img src={displayImage} alt={spot.location_name} className="w-full h-full object-cover transition-opacity duration-300" />
+                
                 {canToggle && (
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setShowLocation(!showLocation);
-                    }}
-                  >
-                    {showLocation ? (
-                      <>
-                        <Image className="w-3 h-3 mr-1" />
-                        Content
-                      </>
-                    ) : (
-                      <>
-                        <MapPin className="w-3 h-3 mr-1" />
-                        Location
-                      </>
-                    )}
-                  </Button>
-                )}
-                {canToggle && (
-                  <Badge 
-                    variant="secondary" 
-                    className="absolute top-2 left-2 text-xs"
-                  >
-                    {showLocation ? "Location" : "Content"}
-                  </Badge>
+                  <>
+                    {/* Navigation buttons */}
+                    <Button
+                      variant="secondary"
+                      size="icon"
+                      className="absolute left-2 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowLocation(!showLocation);
+                      }}
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                    </Button>
+                    
+                    <Button
+                      variant="secondary"
+                      size="icon"
+                      className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowLocation(!showLocation);
+                      }}
+                    >
+                      <ChevronRight className="w-4 h-4" />
+                    </Button>
+                    
+                    {/* Label badge */}
+                    <Badge 
+                      variant="secondary" 
+                      className="absolute top-2 left-2 text-xs flex items-center gap-1"
+                    >
+                      {showLocation ? (
+                        <>
+                          <MapPin className="w-3 h-3" />
+                          Location Photo
+                        </>
+                      ) : (
+                        <>
+                          <Image className="w-3 h-3" />
+                          Current Image
+                        </>
+                      )}
+                    </Badge>
+                    
+                    {/* Carousel dots */}
+                    <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5">
+                      <button
+                        className={`h-2 w-2 rounded-full transition-all ${
+                          !showLocation ? "bg-primary w-4" : "bg-white/60 hover:bg-white/80"
+                        }`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setShowLocation(false);
+                        }}
+                        aria-label="Show current image"
+                      />
+                      <button
+                        className={`h-2 w-2 rounded-full transition-all ${
+                          showLocation ? "bg-primary w-4" : "bg-white/60 hover:bg-white/80"
+                        }`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setShowLocation(true);
+                        }}
+                        aria-label="Show location photo"
+                      />
+                    </div>
+                  </>
                 )}
               </>
             ) : (
