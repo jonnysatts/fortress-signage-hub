@@ -189,8 +189,8 @@ export default function FloorPlanEditor() {
 
   // Line placement helpers (percent-based coordinates)
   const getPercentFromEvent = (e: React.MouseEvent) => {
-    if (!imageRef.current) return { x: 0, y: 0 };
-    const rect = imageRef.current.getBoundingClientRect();
+    if (!containerRef.current) return { x: 0, y: 0 };
+    const rect = containerRef.current.getBoundingClientRect();
     const x = ((e.clientX - rect.left) / rect.width) * 100;
     const y = ((e.clientY - rect.top) / rect.height) * 100;
     return { x: Math.max(0, Math.min(100, x)), y: Math.max(0, Math.min(100, y)) };
@@ -217,11 +217,11 @@ export default function FloorPlanEditor() {
   };
 
   const confirmDraftPlacement = async () => {
-    if (!draftStart || !draftEnd || !selectedSpotToAdd || !imageRef.current) return;
-    // Convert percent delta to pixel length and angle using image size
-    const rect = imageRef.current.getBoundingClientRect();
-    const dxPx = (draftEnd.x - draftStart.x) / 100 * rect.width;
-    const dyPx = (draftEnd.y - draftStart.y) / 100 * rect.height;
+    if (!draftStart || !draftEnd || !selectedSpotToAdd || !containerRef.current) return;
+    // Convert percent delta to pixel length and angle using drawn container size
+    const rect = containerRef.current.getBoundingClientRect();
+    const dxPx = ((draftEnd.x - draftStart.x) / 100) * rect.width;
+    const dyPx = ((draftEnd.y - draftStart.y) / 100) * rect.height;
     const length = Math.max(5, Math.round(Math.hypot(dxPx, dyPx)));
     const angle = Math.round((Math.atan2(dyPx, dxPx) * 180) / Math.PI);
 
@@ -266,9 +266,9 @@ export default function FloorPlanEditor() {
   const handleImageClick = async (e: React.MouseEvent<HTMLDivElement>) => {
     // For line placement we use drag + submit flow, so ignore simple clicks
     if (placementMode && markerType === 'line') return;
-    if (!selectedSpotToAdd || !imageRef.current) return;
+    if (!selectedSpotToAdd || !containerRef.current) return;
 
-    const rect = imageRef.current.getBoundingClientRect();
+    const rect = containerRef.current.getBoundingClientRect();
     const x = ((e.clientX - rect.left) / rect.width) * 100;
     const y = ((e.clientY - rect.top) / rect.height) * 100;
 
@@ -317,9 +317,9 @@ export default function FloorPlanEditor() {
 
   const handleMarkerDrag = async (e: React.MouseEvent) => {
     const draggingMarker = markers.find(m => m.isDragging);
-    if (!draggingMarker || !imageRef.current) return;
+    if (!draggingMarker || !containerRef.current) return;
 
-    const rect = imageRef.current.getBoundingClientRect();
+    const rect = containerRef.current.getBoundingClientRect();
     const x = Math.max(0, Math.min(100, ((e.clientX - rect.left) / rect.width) * 100));
     const y = Math.max(0, Math.min(100, ((e.clientY - rect.top) / rect.height) * 100));
 
@@ -418,14 +418,14 @@ export default function FloorPlanEditor() {
   };
 
   const renderMarker = (marker: Marker) => {
-    const rect = imageRef.current?.getBoundingClientRect();
+    const rect = containerRef.current?.getBoundingClientRect();
     if (!rect) return null;
 
     const color = getMarkerColor(marker);
     const isSelected = selectedMarker === marker.id;
     const scale = isSelected ? 1.1 : 1;
 
-    // Convert stored percentage coordinates to pixel positions based on the actual rendered image size
+    // Convert stored percentage coordinates to pixel positions based on the actual drawn container size
     const clamp = (v: number) => Math.max(0, Math.min(100, v));
     const pxX = ((clamp(marker.marker_x ?? 0)) / 100) * rect.width;
     const pxY = ((clamp(marker.marker_y ?? 0)) / 100) * rect.height;
@@ -771,7 +771,7 @@ export default function FloorPlanEditor() {
                       ref={imageRef}
                       src={floorPlan.image_url}
                       alt={floorPlan.display_name}
-                      className="w-full h-auto"
+                      className="block w-full h-auto"
                       onLoad={() => {
                         if (containerRef.current) {
                           setContainerSize({
