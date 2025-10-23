@@ -438,7 +438,7 @@ export default function FloorPlanEditor() {
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent className="bg-popover z-50">
                         <SelectItem value="circle">● Circle</SelectItem>
                         <SelectItem value="rectangle">■ Rectangle</SelectItem>
                         <SelectItem value="line">─ Line</SelectItem>
@@ -475,12 +475,16 @@ export default function FloorPlanEditor() {
                       <SelectTrigger>
                         <SelectValue placeholder="Select spot..." />
                       </SelectTrigger>
-                      <SelectContent>
-                        {availableSpots.map(spot => (
-                          <SelectItem key={spot.id} value={spot.id}>
-                            {spot.location_name}
-                          </SelectItem>
-                        ))}
+                      <SelectContent className="bg-popover z-50 max-h-[300px] overflow-y-auto">
+                        {availableSpots.length === 0 ? (
+                          <div className="p-2 text-sm text-muted-foreground">No available spots</div>
+                        ) : (
+                          availableSpots.map(spot => (
+                            <SelectItem key={spot.id} value={spot.id}>
+                              {spot.location_name}
+                            </SelectItem>
+                          ))
+                        )}
                       </SelectContent>
                     </Select>
                   </div>
@@ -491,7 +495,7 @@ export default function FloorPlanEditor() {
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent className="bg-popover z-50">
                         <SelectItem value="circle">● Circle</SelectItem>
                         <SelectItem value="rectangle">■ Rectangle</SelectItem>
                         <SelectItem value="line">─ Line</SelectItem>
