@@ -8,10 +8,11 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, Save, Eye, Grid3x3, Undo } from "lucide-react";
+import { ArrowLeft, Save, Eye, Grid3x3, Undo, ZoomIn, ZoomOut, Maximize } from "lucide-react";
 import { toast } from "sonner";
 import { getMarkerColor, getMarkerStatus } from "@/utils/markerUtils";
 import { pixelToPercent } from "@/utils/coordinateUtils";
+import { TransformWrapper, TransformComponent, useControls } from "react-zoom-pan-pinch";
 
 interface SignageSpot {
   id: string;
@@ -56,6 +57,24 @@ export default function FloorPlanEditor() {
   const [draftStart, setDraftStart] = useState<{ x: number; y: number } | null>(null);
   const [draftEnd, setDraftEnd] = useState<{ x: number; y: number } | null>(null);
   const [isDrawingDraft, setIsDrawingDraft] = useState(false);
+
+  // Zoom controls component
+  const ZoomControls = () => {
+    const { zoomIn, zoomOut, resetTransform } = useControls();
+    return (
+      <div className="absolute top-4 right-4 z-10 flex gap-2 bg-background/90 backdrop-blur-sm p-2 rounded-lg border shadow-lg">
+        <Button size="sm" variant="outline" onClick={() => zoomIn()}>
+          <ZoomIn className="w-4 h-4" />
+        </Button>
+        <Button size="sm" variant="outline" onClick={() => zoomOut()}>
+          <ZoomOut className="w-4 h-4" />
+        </Button>
+        <Button size="sm" variant="outline" onClick={() => resetTransform()}>
+          <Maximize className="w-4 h-4" />
+        </Button>
+      </div>
+    );
+  };
 
   useEffect(() => {
     loadFloorPlan();
@@ -681,91 +700,112 @@ export default function FloorPlanEditor() {
                 <Grid3x3 className="w-4 h-4 mr-2" />
                 {showGrid ? 'Hide' : 'Show'} Grid
               </Button>
+              <span className="text-sm text-muted-foreground ml-2">
+                💡 Use mouse wheel to zoom, drag to pan
+              </span>
             </div>
 
-            <div
-              ref={containerRef}
-              className="relative border rounded-lg overflow-hidden bg-muted"
-              style={{ minHeight: '600px', cursor: selectedSpotToAdd ? 'crosshair' : 'default' }}
-              onClick={handleImageClick}
-              onMouseDown={(e) => {
-                if (placementMode && markerType === 'line' && selectedSpotToAdd) handleLineMouseDown(e);
-              }}
-              onMouseMove={(e) => {
-                handleMarkerDrag(e);
-                if (placementMode && markerType === 'line') handleLineMouseMove(e);
-              }}
-              onMouseUp={() => {
-                handleMarkerDragEnd();
-                if (placementMode && markerType === 'line') handleLineMouseUp();
-              }}
-              onMouseLeave={() => {
-                handleMarkerDragEnd();
-                if (isDrawingDraft) handleLineMouseUp();
-              }}
-            >
-              <img
-                ref={imageRef}
-                src={floorPlan.image_url}
-                alt={floorPlan.display_name}
-                className="w-full h-auto"
-                onLoad={() => {
-                  if (containerRef.current) {
-                    setContainerSize({
-                      width: containerRef.current.offsetWidth,
-                      height: containerRef.current.offsetHeight
-                    });
-                  }
-                }}
-              />
-              
-              {showGrid && (
-                <svg className="absolute top-0 left-0 w-full h-full pointer-events-none">
-                  {[...Array(11)].map((_, i) => (
-                    <g key={i}>
-                      <line
-                        x1={`${i * 10}%`}
-                        y1="0"
-                        x2={`${i * 10}%`}
-                        y2="100%"
-                        stroke="hsl(var(--primary))"
-                        strokeWidth="1"
-                        opacity="0.2"
-                      />
-                      <line
-                        x1="0"
-                        y1={`${i * 10}%`}
-                        x2="100%"
-                        y2={`${i * 10}%`}
-                        stroke="hsl(var(--primary))"
-                        strokeWidth="1"
-                        opacity="0.2"
-                      />
-                    </g>
-                  ))}
-                </svg>
-              )}
+            <div className="relative border rounded-lg overflow-hidden bg-muted" style={{ minHeight: '600px' }}>
+              <TransformWrapper
+                initialScale={1}
+                minScale={0.5}
+                maxScale={5}
+                centerOnInit={true}
+                wheel={{ step: 0.1 }}
+                panning={{ disabled: false }}
+                doubleClick={{ disabled: false }}
+              >
+                <ZoomControls />
+                <TransformComponent
+                  wrapperStyle={{ width: '100%', height: '600px' }}
+                  contentStyle={{ width: '100%', height: '100%' }}
+                >
+                  <div
+                    ref={containerRef}
+                    className="relative w-full h-full"
+                    style={{ cursor: selectedSpotToAdd ? 'crosshair' : 'default' }}
+                    onClick={handleImageClick}
+                    onMouseDown={(e) => {
+                      if (placementMode && markerType === 'line' && selectedSpotToAdd) handleLineMouseDown(e);
+                    }}
+                    onMouseMove={(e) => {
+                      handleMarkerDrag(e);
+                      if (placementMode && markerType === 'line') handleLineMouseMove(e);
+                    }}
+                    onMouseUp={() => {
+                      handleMarkerDragEnd();
+                      if (placementMode && markerType === 'line') handleLineMouseUp();
+                    }}
+                    onMouseLeave={() => {
+                      handleMarkerDragEnd();
+                      if (isDrawingDraft) handleLineMouseUp();
+                    }}
+                  >
+                    <img
+                      ref={imageRef}
+                      src={floorPlan.image_url}
+                      alt={floorPlan.display_name}
+                      className="w-full h-auto"
+                      onLoad={() => {
+                        if (containerRef.current) {
+                          setContainerSize({
+                            width: containerRef.current.offsetWidth,
+                            height: containerRef.current.offsetHeight
+                          });
+                        }
+                      }}
+                    />
+                    
+                    {showGrid && (
+                      <svg className="absolute top-0 left-0 w-full h-full pointer-events-none">
+                        {[...Array(11)].map((_, i) => (
+                          <g key={i}>
+                            <line
+                              x1={`${i * 10}%`}
+                              y1="0"
+                              x2={`${i * 10}%`}
+                              y2="100%"
+                              stroke="hsl(var(--primary))"
+                              strokeWidth="1"
+                              opacity="0.2"
+                            />
+                            <line
+                              x1="0"
+                              y1={`${i * 10}%`}
+                              x2="100%"
+                              y2={`${i * 10}%`}
+                              stroke="hsl(var(--primary))"
+                              strokeWidth="1"
+                              opacity="0.2"
+                            />
+                          </g>
+                        ))}
+                      </svg>
+                    )}
 
-              <svg className="absolute top-0 left-0 w-full h-full">
-                {markers.map(renderMarker)}
-              </svg>
+                    <svg className="absolute top-0 left-0 w-full h-full">
+                      {markers.map(renderMarker)}
+                    </svg>
 
-              {draftStart && draftEnd && (
-                <svg className="absolute top-0 left-0 w-full h-full pointer-events-none">
-                  <line
-                    x1={`${draftStart.x}%`}
-                    y1={`${draftStart.y}%`}
-                    x2={`${draftEnd.x}%`}
-                    y2={`${draftEnd.y}%`}
-                    stroke="hsl(var(--primary))"
-                    strokeWidth="6"
-                    strokeLinecap="round"
-                    opacity="0.9"
-                  />
-                  <circle cx={`${draftStart.x}%`} cy={`${draftStart.y}%`} r="6" fill="hsl(var(--primary))" />
-                  <circle cx={`${draftEnd.x}%`} cy={`${draftEnd.y}%`} r="6" fill="hsl(var(--primary))" />
-                </svg>
-              )}
+                    {draftStart && draftEnd && (
+                      <svg className="absolute top-0 left-0 w-full h-full pointer-events-none">
+                        <line
+                          x1={`${draftStart.x}%`}
+                          y1={`${draftStart.y}%`}
+                          x2={`${draftEnd.x}%`}
+                          y2={`${draftEnd.y}%`}
+                          stroke="hsl(var(--primary))"
+                          strokeWidth="6"
+                          strokeLinecap="round"
+                          opacity="0.9"
+                        />
+                        <circle cx={`${draftStart.x}%`} cy={`${draftStart.y}%`} r="6" fill="hsl(var(--primary))" />
+                        <circle cx={`${draftEnd.x}%`} cy={`${draftEnd.y}%`} r="6" fill="hsl(var(--primary))" />
+                      </svg>
+                    )}
+                  </div>
+                </TransformComponent>
+              </TransformWrapper>
             </div>
           </Card>
         </div>
