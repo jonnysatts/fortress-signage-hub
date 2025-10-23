@@ -423,7 +423,7 @@ export default function FloorPlanEditor() {
     const isSelected = selectedMarker === marker.id;
     const scale = isSelected ? 1.1 : 1;
 
-    const commonProps = {
+    const eventProps = {
       onClick: (e: React.MouseEvent) => {
         e.stopPropagation();
         setSelectedMarker(marker.id);
@@ -432,11 +432,9 @@ export default function FloorPlanEditor() {
       style: {
         cursor: 'move',
         transition: 'transform 0.2s',
-        transform: `scale(${scale})`
+        transform: `scale(${scale})`,
       },
-      stroke: isSelected ? 'hsl(var(--primary))' : 'white',
-      strokeWidth: isSelected ? 4 : 2
-    };
+    } as const;
 
     if (marker.marker_type === 'circle') {
       return (
@@ -446,40 +444,50 @@ export default function FloorPlanEditor() {
           cy={`${marker.marker_y}%`}
           r={marker.marker_size / 2}
           fill={color}
-          {...commonProps}
+          stroke={isSelected ? 'hsl(var(--primary))' : 'white'}
+          strokeWidth={isSelected ? 4 : 2}
+          {...eventProps}
         />
       );
     }
 
     if (marker.marker_type === 'rectangle') {
       return (
-        <rect
+        <g
           key={marker.id}
-          x={`calc(${marker.marker_x}% - ${marker.marker_size / 2}px)`}
-          y={`calc(${marker.marker_y}% - ${marker.marker_size / 2}px)`}
-          width={marker.marker_size}
-          height={marker.marker_size}
-          fill={color}
-          transform={`rotate(${marker.marker_rotation} ${marker.marker_x}% ${marker.marker_y}%)`}
-          {...commonProps}
-        />
+          transform={`translate(${marker.marker_x}%, ${marker.marker_y}%) rotate(${marker.marker_rotation})`}
+          {...eventProps}
+        >
+          <rect
+            x={-marker.marker_size / 2}
+            y={-marker.marker_size / 2}
+            width={marker.marker_size}
+            height={marker.marker_size}
+            fill={color}
+            stroke={isSelected ? 'hsl(var(--primary))' : 'white'}
+            strokeWidth={isSelected ? 4 : 2}
+          />
+        </g>
       );
     }
 
     if (marker.marker_type === 'line') {
       return (
-        <line
+        <g
           key={marker.id}
-          x1={`${marker.marker_x}%`}
-          y1={`${marker.marker_y}%`}
-          x2={`${marker.marker_x}%`}
-          y2={`calc(${marker.marker_y}% + ${marker.marker_size}px)`}
-          stroke={color}
-          strokeWidth="8"
-          strokeLinecap="round"
-          transform={`rotate(${marker.marker_rotation} ${marker.marker_x}% ${marker.marker_y}%)`}
-          {...commonProps}
-        />
+          transform={`translate(${marker.marker_x}%, ${marker.marker_y}%) rotate(${marker.marker_rotation})`}
+          {...eventProps}
+        >
+          <line
+            x1={0}
+            y1={0}
+            x2={0}
+            y2={marker.marker_size}
+            stroke={color}
+            strokeWidth={8}
+            strokeLinecap="round"
+          />
+        </g>
       );
     }
 
@@ -712,7 +720,7 @@ export default function FloorPlanEditor() {
                 maxScale={5}
                 centerOnInit={true}
                 wheel={{ step: 0.1 }}
-                panning={{ disabled: false }}
+                panning={{ disabled: placementMode && markerType === 'line' }}
                 doubleClick={{ disabled: false }}
               >
                 <ZoomControls />
