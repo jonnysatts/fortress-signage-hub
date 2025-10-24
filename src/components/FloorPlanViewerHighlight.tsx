@@ -141,11 +141,13 @@ export default function FloorPlanViewerHighlight({
     const isHovered = hoveredMarker === marker.id;
     const isHighlighted = highlightSpotId === marker.id;
     
+    const rect = containerRef.current?.getBoundingClientRect();
+    if (!rect) return null;
     const pixelPos = percentToPixel(
       marker.marker_x,
       marker.marker_y,
-      containerSize.width,
-      containerSize.height
+      rect.width,
+      rect.height
     );
 
     const scale = isHovered || isHighlighted ? 1.3 : 1;
@@ -237,16 +239,17 @@ export default function FloorPlanViewerHighlight({
         className="relative border rounded-lg overflow-hidden bg-muted"
         style={{ minHeight: '600px' }}
       >
-        <div style={{ transform: `scale(${zoom})`, transformOrigin: 'top left' }}>
+        <div className="relative" style={{ transform: `scale(${zoom})`, transformOrigin: 'top left' }}>
           <img 
             src={imageUrl} 
             alt="Floor plan" 
-            className="w-full h-auto"
+            className="block w-full h-auto"
             onLoad={() => {
-              if (containerRef.current) {
+              const rect = containerRef.current?.getBoundingClientRect();
+              if (rect) {
                 setContainerSize({
-                  width: containerRef.current.offsetWidth,
-                  height: containerRef.current.offsetHeight
+                  width: rect.width,
+                  height: rect.height
                 });
               }
             }}
