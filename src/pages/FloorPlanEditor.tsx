@@ -638,6 +638,15 @@ export default function FloorPlanEditor() {
               <>
                 <h3 className="font-semibold mb-4">Add New Marker</h3>
                 
+                {!selectedSpotToAdd && (
+                  <div className="mb-4 p-3 bg-primary/10 rounded-lg border border-primary/20">
+                    <p className="text-sm font-semibold mb-1">👇 Start here:</p>
+                    <p className="text-xs text-muted-foreground">
+                      Select a signage spot below to begin placing markers on the floor plan
+                    </p>
+                  </div>
+                )}
+                
                 <div className="space-y-4">
                   <div>
                     <Label>Search Signage Spot</Label>
@@ -684,10 +693,23 @@ export default function FloorPlanEditor() {
                     />
                   </div>
 
-                  {selectedSpotToAdd && (
-                    <p className="text-sm text-muted-foreground">
-                      → Click on the floor plan to place this marker
-                    </p>
+                  {selectedSpotToAdd && markerType === 'line' && (
+                    <div className="p-3 bg-primary/10 rounded-lg border border-primary/20">
+                      <p className="text-sm font-medium mb-2">
+                        📐 Line Placement Mode:
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Click and drag on the floor plan to draw your line. The Submit button will appear below once you've drawn a line.
+                      </p>
+                    </div>
+                  )}
+
+                  {selectedSpotToAdd && markerType !== 'line' && (
+                    <div className="p-3 bg-primary/10 rounded-lg border border-primary/20">
+                      <p className="text-sm font-medium">
+                        👆 Click anywhere on the floor plan to place this marker
+                      </p>
+                    </div>
                   )}
                 </div>
               </>
