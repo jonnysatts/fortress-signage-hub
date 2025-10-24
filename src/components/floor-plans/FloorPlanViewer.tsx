@@ -42,6 +42,7 @@ export default function FloorPlanViewer({
   const [hoveredMarker, setHoveredMarker] = useState<string | null>(null);
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
+  const imageRef = useRef<HTMLImageElement>(null);
   const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
 
   useEffect(() => {
@@ -71,10 +72,11 @@ export default function FloorPlanViewer({
 
   useEffect(() => {
     const updateSize = () => {
-      if (containerRef.current) {
+      if (imageRef.current) {
+        const rect = imageRef.current.getBoundingClientRect();
         setContainerSize({
-          width: containerRef.current.offsetWidth,
-          height: containerRef.current.offsetHeight
+          width: rect.width,
+          height: rect.height
         });
       }
     };
@@ -135,9 +137,11 @@ export default function FloorPlanViewer({
     const markerStatus = getMarkerStatus(marker);
     const isOverdue = markerStatus === 'overdue';
     const isHovered = hoveredMarker === marker.id;
-    
-    const rect = containerRef.current?.getBoundingClientRect();
-    if (!rect) return null;
+
+    // Use imageRef instead of containerRef to account for zoom transform
+    const rect = imageRef.current?.getBoundingClientRect();
+    // Ensure image is loaded before rendering (check for valid dimensions)
+    if (!rect || rect.width === 0 || rect.height === 0) return null;
     const pixelPos = percentToPixel(
       marker.marker_x,
       marker.marker_y,
@@ -225,12 +229,13 @@ export default function FloorPlanViewer({
         style={{ minHeight: '600px' }}
       >
         <div className="relative" style={{ transform: `scale(${zoom})`, transformOrigin: 'top left' }}>
-          <img 
-            src={imageUrl} 
-            alt="Floor plan" 
+          <img
+            ref={imageRef}
+            src={imageUrl}
+            alt="Floor plan"
             className="block w-full h-auto"
             onLoad={() => {
-              const rect = containerRef.current?.getBoundingClientRect();
+              const rect = imageRef.current?.getBoundingClientRect();
               if (rect) {
                 setContainerSize({
                   width: rect.width,
