@@ -90,7 +90,12 @@ export default function FloorPlans() {
   const handleResetView = () => setZoom(1);
 
   const handleEditMode = () => {
-    navigate(`/floor-plans/${selectedPlanId}/edit`);
+    const spotId = searchParams.get('spot');
+    if (spotId) {
+      navigate(`/floor-plans/${selectedPlanId}/edit?spot=${spotId}`);
+    } else {
+      navigate(`/floor-plans/${selectedPlanId}/edit`);
+    }
   };
 
   if (loading) {
@@ -138,11 +143,12 @@ export default function FloorPlans() {
 
       {isAdmin && (
         <div className="p-4 bg-muted/50 rounded-lg border border-muted">
-          <h3 className="text-sm font-semibold mb-2">Editing Floor Plan Markers</h3>
+          <h3 className="text-sm font-semibold mb-2">How to Edit Floor Plan Markers</h3>
           <ul className="text-sm text-muted-foreground space-y-1">
-            <li>• Click <strong>"Enter Edit Mode"</strong> below to place or move multiple markers at once</li>
-            <li>• Or go to any signage detail page and click <strong>"Add to Floor Plan"</strong> to place individual markers</li>
-            <li>• Click on any marker in view mode to jump to that signage's detail page</li>
+            <li>• From any signage detail page, click the pencil icon on the floor plan widget to jump directly to edit mode for that spot</li>
+            <li>• Or click <strong>"Enter Edit Mode"</strong> below to place or reposition multiple markers</li>
+            <li>• In edit mode, you can move existing markers or add new ones from the dropdown</li>
+            <li>• Click on markers in view mode to navigate to that signage's detail page</li>
           </ul>
         </div>
       )}

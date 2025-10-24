@@ -237,15 +237,12 @@ export default function FloorPlanViewerHighlight({
 
   return (
     <div className="space-y-4">
-      {highlightSpotId && isAdmin && (
-        <div className="flex items-center justify-between p-3 bg-primary/10 rounded-lg border border-primary/20">
+      {highlightSpotId && (
+        <div className="p-3 bg-primary/10 rounded-lg border border-primary/20">
           <p className="text-sm">
-            <span className="font-semibold">Viewing:</span> {markers.find(m => m.id === highlightSpotId)?.location_name || 'Selected spot'}
+            <span className="font-semibold">📍 Viewing:</span> {markers.find(m => m.id === highlightSpotId)?.location_name || 'Selected spot'}
+            {isAdmin && <span className="ml-2 text-xs text-muted-foreground">(Click "Enter Edit Mode" above to reposition this marker)</span>}
           </p>
-          <Button size="sm" onClick={onEditClick}>
-            <Edit className="w-4 h-4 mr-2" />
-            Edit Position
-          </Button>
         </div>
       )}
       

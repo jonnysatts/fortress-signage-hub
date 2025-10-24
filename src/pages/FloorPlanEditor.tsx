@@ -25,6 +25,7 @@ interface SignageSpot {
   status: string;
   expiry_date: string | null;
   next_planned_date: string | null;
+  floor_plan_id: string | null;
 }
 
 interface Marker extends SignageSpot {
@@ -87,6 +88,17 @@ export default function FloorPlanEditor() {
       loadAvailableSpots();
     }
   }, [floorPlan, id]);
+
+  // Auto-select spot from URL parameter
+  useEffect(() => {
+    const spotId = searchParams.get('spot');
+    if (spotId && availableSpots.length > 0) {
+      const spotExists = availableSpots.find(s => s.id === spotId);
+      if (spotExists) {
+        setSelectedSpotToAdd(spotId);
+      }
+    }
+  }, [searchParams, availableSpots]);
 
   useEffect(() => {
     const updateSize = () => {
@@ -154,7 +166,7 @@ export default function FloorPlanEditor() {
     try {
       const { data, error } = await supabase
         .from('signage_spots')
-        .select('id, location_name, marker_x, marker_y, marker_type, marker_size, marker_rotation, status, expiry_date, next_planned_date, show_on_map')
+        .select('id, location_name, marker_x, marker_y, marker_type, marker_size, marker_rotation, status, expiry_date, next_planned_date, show_on_map, floor_plan_id')
         .eq('floor_plan_id', id)
         .eq('show_on_map', true)
         .not('marker_x', 'is', null);
@@ -170,19 +182,17 @@ export default function FloorPlanEditor() {
     if (!floorPlan) return;
 
     try {
-      // Get all spots that either don't have markers or have markers on different floor plans
+      // Get ALL spots from ANY venue to allow repositioning/moving between plans
       const { data, error } = await supabase
         .from('signage_spots')
         .select('id, location_name, marker_x, marker_y, marker_type, marker_size, marker_rotation, status, expiry_date, next_planned_date, floor_plan_id')
-        .or(`floor_plan_id.is.null,floor_plan_id.neq.${id},and(floor_plan_id.eq.${id},marker_x.is.null)`);
+        .order('location_name');
 
       if (error) throw error;
       
-      const filtered = (data || []).filter(spot => 
-        !spot.floor_plan_id || spot.floor_plan_id !== id || !spot.marker_x
-      );
-      
-      setAvailableSpots(filtered);
+      // Include all spots - this allows repositioning existing markers
+      // and moving spots between floor plans
+      setAvailableSpots(data || []);
     } catch (error) {
       console.error('Error loading available spots:', error);
     }
@@ -568,6 +578,17 @@ export default function FloorPlanEditor() {
           )}
         </div>
 
+        {!placementMode && searchParams.get('spot') && selectedSpotToAdd && (
+          <div className="p-4 bg-primary/10 rounded-lg border border-primary/20">
+            <p className="text-sm">
+              <span className="font-semibold">✏️ Editing Position:</span> {availableSpots.find(s => s.id === selectedSpotToAdd)?.location_name}
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">
+              This spot is selected for repositioning. {availableSpots.find(s => s.id === selectedSpotToAdd)?.floor_plan_id === id ? 'Drag the existing marker to move it, or click elsewhere to place it in a new position.' : 'Click on the floor plan to place this marker.'}
+            </p>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           <Card className="p-4 lg:col-span-1">
             {placementMode ? (
@@ -658,11 +679,15 @@ export default function FloorPlanEditor() {
                         {availableSpots.length === 0 ? (
                           <div className="p-2 text-sm text-muted-foreground">No available spots</div>
                         ) : (
-                          availableSpots.map(spot => (
-                            <SelectItem key={spot.id} value={spot.id}>
-                              {spot.location_name}
-                            </SelectItem>
-                          ))
+                          availableSpots.map(spot => {
+                            const isOnThisPlan = spot.floor_plan_id === id && spot.marker_x !== null;
+                            return (
+                              <SelectItem key={spot.id} value={spot.id}>
+                                {spot.location_name}
+                                {isOnThisPlan && <span className="ml-2 text-xs text-primary">(Already on this plan)</span>}
+                              </SelectItem>
+                            );
+                          })
                         )}
                       </SelectContent>
                     </Select>
