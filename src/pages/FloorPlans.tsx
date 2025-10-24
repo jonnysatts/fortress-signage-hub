@@ -136,6 +136,17 @@ export default function FloorPlans() {
         </div>
       </div>
 
+      {isAdmin && (
+        <div className="p-4 bg-muted/50 rounded-lg border border-muted">
+          <h3 className="text-sm font-semibold mb-2">Editing Floor Plan Markers</h3>
+          <ul className="text-sm text-muted-foreground space-y-1">
+            <li>• Click <strong>"Enter Edit Mode"</strong> below to place or move multiple markers at once</li>
+            <li>• Or go to any signage detail page and click <strong>"Add to Floor Plan"</strong> to place individual markers</li>
+            <li>• Click on any marker in view mode to jump to that signage's detail page</li>
+          </ul>
+        </div>
+      )}
+
       <Card className="p-4">
         <div className="flex flex-wrap items-center gap-4 mb-4">
           <div className="flex-1 min-w-[200px]">
@@ -183,25 +194,34 @@ export default function FloorPlans() {
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 mb-4">
-          <Button variant="outline" size="sm" onClick={handleZoomIn}>
-            <ZoomIn className="w-4 h-4 mr-2" />
-            Zoom In
-          </Button>
-          <Button variant="outline" size="sm" onClick={handleZoomOut}>
-            <ZoomOut className="w-4 h-4 mr-2" />
-            Zoom Out
-          </Button>
-          <Button variant="outline" size="sm" onClick={handleResetView}>
-            <RotateCcw className="w-4 h-4 mr-2" />
-            Reset View
-          </Button>
-          {isAdmin && (
-            <Button variant="default" size="sm" onClick={handleEditMode}>
-              <Edit className="w-4 h-4 mr-2" />
-              Edit Mode
+        <div className="flex flex-wrap items-center gap-4 mb-4">
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={handleZoomIn}>
+              <ZoomIn className="w-4 h-4 mr-2" />
+              Zoom In
             </Button>
+            <Button variant="outline" size="sm" onClick={handleZoomOut}>
+              <ZoomOut className="w-4 h-4 mr-2" />
+              Zoom Out
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleResetView}>
+              <RotateCcw className="w-4 h-4 mr-2" />
+              Reset View
+            </Button>
+          </div>
+
+          {isAdmin && (
+            <div className="flex items-center gap-2 px-3 py-1 bg-primary/10 rounded-lg border border-primary/20">
+              <Button variant="default" size="sm" onClick={handleEditMode} className="font-semibold">
+                <Edit className="w-4 h-4 mr-2" />
+                Enter Edit Mode
+              </Button>
+              <span className="text-xs text-muted-foreground hidden sm:block">
+                Place and adjust markers
+              </span>
+            </div>
           )}
+
           <Badge variant="outline" className="ml-auto">
             Zoom: {Math.round(zoom * 100)}%
           </Badge>

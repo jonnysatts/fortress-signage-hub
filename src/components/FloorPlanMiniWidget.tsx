@@ -91,6 +91,30 @@ export default function FloorPlanMiniWidget({ spotId, spotData }: FloorPlanMiniW
   const markerColor = getMarkerColor(spotData);
   const markerStatus = getMarkerStatus(spotData);
 
+  // Calculate zoomed viewBox around the marker
+  const calculateViewBox = () => {
+    const centerX = spotData.marker_x;
+    const centerY = spotData.marker_y;
+
+    // Zoom level: smaller = more zoomed in (show 20% of the full plan)
+    const zoomWidth = 20;
+    const zoomHeight = 20;
+
+    // Calculate viewBox boundaries, clamped to 0-100
+    const minX = Math.max(0, centerX - zoomWidth / 2);
+    const minY = Math.max(0, centerY - zoomHeight / 2);
+    const maxX = Math.min(100, minX + zoomWidth);
+    const maxY = Math.min(100, minY + zoomHeight);
+
+    // Adjust if we hit the edge
+    const finalMinX = maxX === 100 ? 100 - zoomWidth : minX;
+    const finalMinY = maxY === 100 ? 100 - zoomHeight : minY;
+
+    return `${finalMinX} ${finalMinY} ${zoomWidth} ${zoomHeight}`;
+  };
+
+  const viewBox = calculateViewBox();
+
   return (
     <Card>
       <CardHeader>
@@ -114,21 +138,50 @@ export default function FloorPlanMiniWidget({ spotId, spotData }: FloorPlanMiniW
             <span className="font-medium">Floor Plan:</span> {floorPlan.display_name}
           </div>
           
-          <div 
+          <div
             className="relative border rounded-lg overflow-hidden bg-muted cursor-pointer hover:opacity-80 transition-opacity"
             style={{ height: '200px' }}
             onClick={() => navigate(`/floor-plans?plan=${floorPlan.id}&spot=${spotId}`)}
           >
-            <img 
-              src={floorPlan.image_url} 
-              alt={floorPlan.display_name}
-              className="w-full h-full object-contain"
-            />
             <svg
-              className="absolute top-0 left-0 w-full h-full pointer-events-none"
-              viewBox="0 0 100 100"
-              preserveAspectRatio="none"
+              className="w-full h-full"
+              viewBox={viewBox}
+              preserveAspectRatio="xMidYMid meet"
             >
+              {/* Floor plan image as SVG background */}
+              <image
+                href={floorPlan.image_url}
+                x="0"
+                y="0"
+                width="100"
+                height="100"
+                preserveAspectRatio="xMidYMid slice"
+              />
+
+              {/* Highlight circle around marker for better visibility */}
+              <circle
+                cx={spotData.marker_x}
+                cy={spotData.marker_y}
+                r={3}
+                fill="none"
+                stroke="hsl(var(--primary))"
+                strokeWidth="0.3"
+                className="animate-pulse"
+                opacity="0.6"
+              />
+              <circle
+                cx={spotData.marker_x}
+                cy={spotData.marker_y}
+                r={2}
+                fill="none"
+                stroke="hsl(var(--primary))"
+                strokeWidth="0.2"
+                className="animate-pulse"
+                opacity="0.4"
+                style={{ animationDelay: '0.5s' }}
+              />
+
+              {/* Actual marker */}
               {spotData.marker_type === 'circle' && (
                 <circle
                   cx={spotData.marker_x}
@@ -136,9 +189,8 @@ export default function FloorPlanMiniWidget({ spotId, spotData }: FloorPlanMiniW
                   r={spotData.marker_size / 20}
                   fill={markerColor}
                   stroke="white"
-                  strokeWidth="0.5"
+                  strokeWidth="0.3"
                   className={markerStatus === 'overdue' ? 'animate-pulse' : ''}
-                  vectorEffect="non-scaling-stroke"
                 />
               )}
               {spotData.marker_type === 'rectangle' && (
@@ -149,10 +201,9 @@ export default function FloorPlanMiniWidget({ spotId, spotData }: FloorPlanMiniW
                   height={spotData.marker_size / 20}
                   fill={markerColor}
                   stroke="white"
-                  strokeWidth="0.5"
+                  strokeWidth="0.3"
                   transform={`rotate(${spotData.marker_rotation} ${spotData.marker_x} ${spotData.marker_y})`}
                   className={markerStatus === 'overdue' ? 'animate-pulse' : ''}
-                  vectorEffect="non-scaling-stroke"
                 />
               )}
               {spotData.marker_type === 'line' && (
@@ -162,11 +213,10 @@ export default function FloorPlanMiniWidget({ spotId, spotData }: FloorPlanMiniW
                   x2={spotData.marker_x}
                   y2={spotData.marker_y + (spotData.marker_size / 10)}
                   stroke={markerColor}
-                  strokeWidth="1.5"
+                  strokeWidth="1"
                   strokeLinecap="round"
                   transform={`rotate(${spotData.marker_rotation} ${spotData.marker_x} ${spotData.marker_y})`}
                   className={markerStatus === 'overdue' ? 'animate-pulse' : ''}
-                  vectorEffect="non-scaling-stroke"
                 />
               )}
             </svg>

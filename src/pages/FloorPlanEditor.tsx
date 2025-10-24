@@ -48,6 +48,7 @@ export default function FloorPlanEditor() {
   const [markerType, setMarkerType] = useState<string>("circle");
   const [markerSize, setMarkerSize] = useState<number>(30);
   const [showGrid, setShowGrid] = useState(false);
+  const [showDebug, setShowDebug] = useState(false);
   const [history, setHistory] = useState<any[]>([]);
   const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
   const [placementMode, setPlacementMode] = useState(false);
@@ -224,6 +225,14 @@ export default function FloorPlanEditor() {
     const dyPx = ((draftEnd.y - draftStart.y) / 100) * rect.height;
     const length = Math.max(5, Math.round(Math.hypot(dxPx, dyPx)));
     const angle = Math.round((Math.atan2(dyPx, dxPx) * 180) / Math.PI);
+
+    console.log('[EDITOR] Saving line placement:', {
+      startPercent: draftStart,
+      endPercent: draftEnd,
+      containerRect: { width: rect.width, height: rect.height },
+      calculatedLength: length,
+      calculatedAngle: angle
+    });
 
     try {
       const { error } = await supabase
@@ -419,7 +428,8 @@ export default function FloorPlanEditor() {
 
   const renderMarker = (marker: Marker) => {
     const rect = containerRef.current?.getBoundingClientRect();
-    if (!rect) return null;
+    // Ensure container is loaded before rendering (check for valid dimensions)
+    if (!rect || rect.width === 0 || rect.height === 0) return null;
 
     const color = getMarkerColor(marker);
     const isSelected = selectedMarker === marker.id;
@@ -429,6 +439,17 @@ export default function FloorPlanEditor() {
     const clamp = (v: number) => Math.max(0, Math.min(100, v));
     const pxX = ((clamp(marker.marker_x ?? 0)) / 100) * rect.width;
     const pxY = ((clamp(marker.marker_y ?? 0)) / 100) * rect.height;
+
+    if (marker.marker_type === 'line') {
+      console.log('[EDITOR] Rendering line:', {
+        markerId: marker.id,
+        storedPercent: { x: marker.marker_x, y: marker.marker_y },
+        containerRect: { width: rect.width, height: rect.height },
+        calculatedPixel: { x: pxX, y: pxY },
+        size: marker.marker_size,
+        rotation: marker.marker_rotation
+      });
+    }
 
     const eventProps = {
       onClick: (e: React.MouseEvent) => {
@@ -726,6 +747,13 @@ export default function FloorPlanEditor() {
                 <Grid3x3 className="w-4 h-4 mr-2" />
                 {showGrid ? 'Hide' : 'Show'} Grid
               </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowDebug(!showDebug)}
+              >
+                {showDebug ? 'Hide' : 'Show'} Debug Info
+              </Button>
               <span className="text-sm text-muted-foreground ml-2">
                 💡 Use mouse wheel to zoom, drag to pan
               </span>
@@ -807,6 +835,29 @@ export default function FloorPlanEditor() {
                           </g>
                         ))}
                       </svg>
+                    )}
+
+                    {showDebug && containerRef.current && (
+                      <div className="absolute top-2 left-2 bg-black/80 text-white text-xs p-2 rounded font-mono pointer-events-none z-20">
+                        <div>Container: {Math.round(containerRef.current.getBoundingClientRect().width)}x{Math.round(containerRef.current.getBoundingClientRect().height)}px</div>
+                        <div>Markers: {markers.length}</div>
+                        {draftStart && draftEnd && (
+                          <>
+                            <div className="mt-1 border-t border-white/20 pt-1">Draft Line:</div>
+                            <div>Start: ({draftStart.x.toFixed(1)}%, {draftStart.y.toFixed(1)}%)</div>
+                            <div>End: ({draftEnd.x.toFixed(1)}%, {draftEnd.y.toFixed(1)}%)</div>
+                          </>
+                        )}
+                        {selectedMarker && markers.find(m => m.id === selectedMarker) && (
+                          <>
+                            <div className="mt-1 border-t border-white/20 pt-1">Selected:</div>
+                            <div>{markers.find(m => m.id === selectedMarker)?.location_name}</div>
+                            <div>Pos: ({markers.find(m => m.id === selectedMarker)?.marker_x?.toFixed(1)}%, {markers.find(m => m.id === selectedMarker)?.marker_y?.toFixed(1)}%)</div>
+                            <div>Size: {markers.find(m => m.id === selectedMarker)?.marker_size}px</div>
+                            <div>Rotation: {markers.find(m => m.id === selectedMarker)?.marker_rotation}°</div>
+                          </>
+                        )}
+                      </div>
                     )}
 
                     <svg className="absolute top-0 left-0 w-full h-full">

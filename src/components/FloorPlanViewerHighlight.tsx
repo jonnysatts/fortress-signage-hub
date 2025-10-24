@@ -48,6 +48,7 @@ export default function FloorPlanViewerHighlight({
   const [hoveredMarker, setHoveredMarker] = useState<string | null>(null);
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
+  const imageRef = useRef<HTMLImageElement>(null);
   const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
   const highlightSpotId = searchParams.get('spot');
 
@@ -77,10 +78,11 @@ export default function FloorPlanViewerHighlight({
 
   useEffect(() => {
     const updateSize = () => {
-      if (containerRef.current) {
+      if (imageRef.current) {
+        const rect = imageRef.current.getBoundingClientRect();
         setContainerSize({
-          width: containerRef.current.offsetWidth,
-          height: containerRef.current.offsetHeight
+          width: rect.width,
+          height: rect.height
         });
       }
     };
@@ -140,15 +142,28 @@ export default function FloorPlanViewerHighlight({
     const isOverdue = markerStatus === 'overdue';
     const isHovered = hoveredMarker === marker.id;
     const isHighlighted = highlightSpotId === marker.id;
-    
-    const rect = containerRef.current?.getBoundingClientRect();
-    if (!rect) return null;
+
+    // Use imageRef instead of containerRef to account for zoom transform
+    const rect = imageRef.current?.getBoundingClientRect();
+    // Ensure image is loaded before rendering (check for valid dimensions)
+    if (!rect || rect.width === 0 || rect.height === 0) return null;
     const pixelPos = percentToPixel(
       marker.marker_x,
       marker.marker_y,
       rect.width,
       rect.height
     );
+
+    if (marker.marker_type === 'line') {
+      console.log('[VIEWER-HIGHLIGHT] Rendering line:', {
+        markerId: marker.id,
+        storedPercent: { x: marker.marker_x, y: marker.marker_y },
+        imageRect: { width: rect.width, height: rect.height },
+        calculatedPixel: pixelPos,
+        size: marker.marker_size,
+        rotation: marker.marker_rotation
+      });
+    }
 
     const scale = isHovered || isHighlighted ? 1.3 : 1;
     const opacity = isHighlighted ? 1 : isHovered ? 1 : 0.8;
@@ -240,12 +255,13 @@ export default function FloorPlanViewerHighlight({
         style={{ minHeight: '600px' }}
       >
         <div className="relative" style={{ transform: `scale(${zoom})`, transformOrigin: 'top left' }}>
-          <img 
-            src={imageUrl} 
-            alt="Floor plan" 
+          <img
+            ref={imageRef}
+            src={imageUrl}
+            alt="Floor plan"
             className="block w-full h-auto"
             onLoad={() => {
-              const rect = containerRef.current?.getBoundingClientRect();
+              const rect = imageRef.current?.getBoundingClientRect();
               if (rect) {
                 setContainerSize({
                   width: rect.width,
