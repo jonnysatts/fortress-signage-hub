@@ -246,14 +246,19 @@ export default function SignageDetail() {
 
         if (updateError) throw updateError;
       } else if (imageType === "planned" && scheduledDate) {
-        // Update next planned image if this is earlier than existing or no existing
+        // Update next planned image if this is earlier than existing, no existing, or existing is in the past
         const { data: currentSpot } = await supabase
           .from('signage_spots')
           .select('next_planned_date')
           .eq('id', id)
           .single();
 
-        if (!currentSpot?.next_planned_date || scheduledDate < currentSpot.next_planned_date) {
+        const today = new Date().toISOString().split('T')[0];
+        const shouldUpdate = !currentSpot?.next_planned_date || 
+                            currentSpot.next_planned_date < today ||
+                            scheduledDate < currentSpot.next_planned_date;
+
+        if (shouldUpdate) {
           const { error: updateError } = await supabase
             .from('signage_spots')
             .update({ 
