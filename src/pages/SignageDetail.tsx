@@ -234,7 +234,7 @@ export default function SignageDetail() {
 
       if (historyError) throw historyError;
 
-      // If image type is "current", update the signage_spot
+      // Update signage_spot based on image type
       if (imageType === "current") {
         const { error: updateError } = await supabase
           .from('signage_spots')
@@ -245,6 +245,25 @@ export default function SignageDetail() {
           .eq('id', id);
 
         if (updateError) throw updateError;
+      } else if (imageType === "planned" && scheduledDate) {
+        // Update next planned image if this is earlier than existing or no existing
+        const { data: currentSpot } = await supabase
+          .from('signage_spots')
+          .select('next_planned_date')
+          .eq('id', id)
+          .single();
+
+        if (!currentSpot?.next_planned_date || scheduledDate < currentSpot.next_planned_date) {
+          const { error: updateError } = await supabase
+            .from('signage_spots')
+            .update({ 
+              next_planned_image_url: publicUrl,
+              next_planned_date: scheduledDate
+            })
+            .eq('id', id);
+
+          if (updateError) throw updateError;
+        }
       }
 
       toast.success("Image uploaded successfully!");
