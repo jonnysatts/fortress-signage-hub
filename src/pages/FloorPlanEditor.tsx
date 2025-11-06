@@ -8,11 +8,12 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, Save, Eye, Grid3x3, Undo, ZoomIn, ZoomOut, Maximize } from "lucide-react";
+import { ArrowLeft, Save, Eye, Grid3x3, Undo, ZoomIn, ZoomOut, Maximize, Crosshair } from "lucide-react";
 import { toast } from "sonner";
 import { getMarkerColor, getMarkerStatus } from "@/utils/markerUtils";
 import { pixelToPercent } from "@/utils/coordinateUtils";
 import { TransformWrapper, TransformComponent, useControls } from "react-zoom-pan-pinch";
+import CalibrationOverlay from "@/components/CalibrationOverlay";
 
 interface SignageSpot {
   id: string;
@@ -50,6 +51,7 @@ export default function FloorPlanEditor() {
   const [markerSize, setMarkerSize] = useState<number>(30);
   const [showGrid, setShowGrid] = useState(false);
   const [showDebug, setShowDebug] = useState(false);
+  const [showCalibration, setShowCalibration] = useState(false);
   const [history, setHistory] = useState<any[]>([]);
   const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
   const [placementMode, setPlacementMode] = useState(false);
@@ -73,6 +75,15 @@ export default function FloorPlanEditor() {
         </Button>
         <Button size="sm" variant="outline" onClick={() => resetTransform()}>
           <Maximize className="w-4 h-4" />
+        </Button>
+        <Separator orientation="vertical" className="h-6" />
+        <Button 
+          size="sm" 
+          variant={showCalibration ? "default" : "outline"}
+          onClick={() => setShowCalibration(!showCalibration)}
+          title="Toggle calibration overlay"
+        >
+          <Crosshair className="w-4 h-4" />
         </Button>
       </div>
     );
@@ -905,6 +916,10 @@ export default function FloorPlanEditor() {
                           </>
                         )}
                       </div>
+                    )}
+
+                    {showCalibration && (
+                      <CalibrationOverlay containerRef={containerRef} />
                     )}
 
                     <svg className="absolute top-0 left-0 w-full h-full">
