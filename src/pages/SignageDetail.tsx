@@ -54,7 +54,7 @@ export default function SignageDetail() {
   const [isUploading, setIsUploading] = useState(false);
   const [isUploadingLocationPhoto, setIsUploadingLocationPhoto] = useState(false);
   const [uploadCaption, setUploadCaption] = useState("");
-  const [imageType, setImageType] = useState<"current" | "before" | "after" | "reference" | "planned">("current");
+  const [imageType, setImageType] = useState<"current" | "before" | "after" | "reference" | "planned" | "location">("current");
   const [scheduledDate, setScheduledDate] = useState<string>("");
   const [autoPromote, setAutoPromote] = useState<boolean>(true);
   const [printRequired, setPrintRequired] = useState<boolean>(false);
@@ -215,59 +215,71 @@ export default function SignageDetail() {
         .from('signage')
         .getPublicUrl(fileName);
 
-      // Save to photo_history
-      const { error: historyError } = await supabase
-        .from('photo_history')
-        .insert({
-          signage_spot_id: id,
-          image_url: publicUrl,
-          image_type: imageType,
-          caption: uploadCaption || null,
-          uploaded_by: user.id,
-          scheduled_date: imageType === 'planned' ? scheduledDate || null : null,
-          auto_promote: imageType === 'planned' ? autoPromote : false,
-          print_status: printRequired ? 'pending' : 'not_required',
-          print_vendor: printRequired ? printVendor : null,
-          print_due_date: printRequired ? printDueDate : null,
-          print_notes: printRequired ? printNotes : null,
-        });
-
-      if (historyError) throw historyError;
-
-      // Update signage_spot based on image type
-      if (imageType === "current") {
+      // Handle location photos separately (don't save to photo_history)
+      if (imageType === "location") {
         const { error: updateError } = await supabase
           .from('signage_spots')
           .update({ 
-            current_image_url: publicUrl,
-            last_update_date: new Date().toISOString().split('T')[0]
+            location_photo_url: publicUrl
           })
           .eq('id', id);
 
         if (updateError) throw updateError;
-      } else if (imageType === "planned" && scheduledDate) {
-        // Update next planned image if this is earlier than existing, no existing, or existing is in the past
-        const { data: currentSpot } = await supabase
-          .from('signage_spots')
-          .select('next_planned_date')
-          .eq('id', id)
-          .single();
+      } else {
+        // Save to photo_history for content images
+        const { error: historyError } = await supabase
+          .from('photo_history')
+          .insert({
+            signage_spot_id: id,
+            image_url: publicUrl,
+            image_type: imageType,
+            caption: uploadCaption || null,
+            uploaded_by: user.id,
+            scheduled_date: imageType === 'planned' ? scheduledDate || null : null,
+            auto_promote: imageType === 'planned' ? autoPromote : false,
+            print_status: printRequired ? 'pending' : 'not_required',
+            print_vendor: printRequired ? printVendor : null,
+            print_due_date: printRequired ? printDueDate : null,
+            print_notes: printRequired ? printNotes : null,
+          });
 
-        const today = new Date().toISOString().split('T')[0];
-        const shouldUpdate = !currentSpot?.next_planned_date || 
-                            currentSpot.next_planned_date < today ||
-                            scheduledDate < currentSpot.next_planned_date;
+        if (historyError) throw historyError;
 
-        if (shouldUpdate) {
+        // Update signage_spot based on image type
+        if (imageType === "current") {
           const { error: updateError } = await supabase
             .from('signage_spots')
             .update({ 
-              next_planned_image_url: publicUrl,
-              next_planned_date: scheduledDate
+              current_image_url: publicUrl,
+              last_update_date: new Date().toISOString().split('T')[0]
             })
             .eq('id', id);
 
           if (updateError) throw updateError;
+        } else if (imageType === "planned" && scheduledDate) {
+          // Update next planned image if this is earlier than existing, no existing, or existing is in the past
+          const { data: currentSpot } = await supabase
+            .from('signage_spots')
+            .select('next_planned_date')
+            .eq('id', id)
+            .single();
+
+          const today = new Date().toISOString().split('T')[0];
+          const shouldUpdate = !currentSpot?.next_planned_date || 
+                              currentSpot.next_planned_date < today ||
+                              scheduledDate < currentSpot.next_planned_date;
+
+          if (shouldUpdate) {
+            const { error: updateError } = await supabase
+              .from('signage_spots')
+              .update({ 
+                next_planned_image_url: publicUrl,
+                next_planned_date: scheduledDate
+              })
+              .eq('id', id);
+
+            if (updateError) throw updateError;
+          }
         }
       }
 
@@ -1410,6 +1422,7 @@ export default function SignageDetail() {
                     <SelectContent>
                       <SelectItem value="current">Current</SelectItem>
                       <SelectItem value="planned">Planned (Schedule for Future)</SelectItem>
+                      <SelectItem value="location">Location Photo</SelectItem>
                       <SelectItem value="before">Before</SelectItem>
                       <SelectItem value="after">After</SelectItem>
                       <SelectItem value="reference">Reference</SelectItem>
