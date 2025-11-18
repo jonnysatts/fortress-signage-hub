@@ -113,17 +113,32 @@ export default function FloorPlanEditorV2() {
   // Handle highlighting/selecting a specific marker from URL
   useEffect(() => {
     const highlightMarkerId = searchParams.get('highlightMarker');
-    if (!highlightMarkerId || markers.length === 0) return;
+    console.log('[Auto-select] highlightMarkerId from URL:', highlightMarkerId);
+    console.log('[Auto-select] Total markers loaded:', markers.length);
+    console.log('[Auto-select] All markers:', markers.map(m => ({
+      id: m.id,
+      signage_spot_id: m.signage_spot_id,
+      type: m.type,
+      name: m.label
+    })));
+
+    if (!highlightMarkerId || markers.length === 0) {
+      console.warn('[Auto-select] Skipping - no highlightMarkerId or no markers loaded');
+      return;
+    }
 
     // Find the marker to select
     const markerToSelect = markers.find(m => m.signage_spot_id === highlightMarkerId);
     if (markerToSelect) {
       // Auto-select the marker
       dispatch({ type: 'SELECT_MARKER', markerId: markerToSelect.id });
-      console.log('Auto-selected marker:', markerToSelect);
+      console.log('[Auto-select] SUCCESS! Selected marker:', markerToSelect);
       toast.info('Marker selected. You can drag to move it or press Delete to remove it.');
     } else {
-      console.warn('Marker to highlight not found:', highlightMarkerId);
+      console.error('[Auto-select] FAILED - Marker not found!');
+      console.error('[Auto-select] Looking for signage_spot_id:', highlightMarkerId);
+      console.error('[Auto-select] Available signage_spot_ids:', markers.map(m => m.signage_spot_id));
+      toast.error(`Could not find marker for this signage spot. The marker may not exist on this floor plan.`);
     }
   }, [searchParams, markers]);
 
