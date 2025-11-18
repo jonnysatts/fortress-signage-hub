@@ -60,7 +60,11 @@ export default function FloorPlanMiniWidget({ spotId, spotData }: FloorPlanMiniW
     );
   }
 
-  if (!floorPlan || !spotData.show_on_map || spotData.marker_x === null) {
+  // Check for both new (pixel-based) and old (percentage-based) marker data
+  const hasMarkerData = (spotData.marker_x_pixels !== null && spotData.marker_x_pixels !== undefined) ||
+                        (spotData.marker_x !== null && spotData.marker_x !== undefined);
+
+  if (!floorPlan || !spotData.show_on_map || !hasMarkerData) {
     return (
       <Card>
         <CardHeader>
@@ -91,24 +95,40 @@ export default function FloorPlanMiniWidget({ spotId, spotData }: FloorPlanMiniW
   const markerColor = getMarkerColor(spotData);
   const markerStatus = getMarkerStatus(spotData);
 
+  // Determine if using new pixel-based or old percentage-based coordinates
+  const usePixelCoords = spotData.marker_x_pixels !== null && spotData.marker_x_pixels !== undefined;
+
+  // Get floor plan dimensions (use defaults for legacy plans)
+  const floorWidth = floorPlan.original_width || 1920;
+  const floorHeight = floorPlan.original_height || 1080;
+
   // Calculate zoomed viewBox around the marker
   const calculateViewBox = () => {
-    const centerX = spotData.marker_x;
-    const centerY = spotData.marker_y;
+    let centerX, centerY;
 
-    // Zoom level: smaller = more zoomed in (show 20% of the full plan)
-    const zoomWidth = 20;
-    const zoomHeight = 20;
+    if (usePixelCoords) {
+      // Use new pixel coordinates
+      centerX = spotData.marker_x_pixels;
+      centerY = spotData.marker_y_pixels;
+    } else {
+      // Convert old percentage coordinates to pixels
+      centerX = (spotData.marker_x / 100) * floorWidth;
+      centerY = (spotData.marker_y / 100) * floorHeight;
+    }
 
-    // Calculate viewBox boundaries, clamped to 0-100
+    // Zoom level: show area around marker (400px wide view)
+    const zoomWidth = 400;
+    const zoomHeight = (zoomWidth / floorWidth) * floorHeight;  // Maintain aspect ratio
+
+    // Calculate viewBox boundaries, clamped to floor plan size
     const minX = Math.max(0, centerX - zoomWidth / 2);
     const minY = Math.max(0, centerY - zoomHeight / 2);
-    const maxX = Math.min(100, minX + zoomWidth);
-    const maxY = Math.min(100, minY + zoomHeight);
+    const maxX = Math.min(floorWidth, minX + zoomWidth);
+    const maxY = Math.min(floorHeight, minY + zoomHeight);
 
     // Adjust if we hit the edge
-    const finalMinX = maxX === 100 ? 100 - zoomWidth : minX;
-    const finalMinY = maxY === 100 ? 100 - zoomHeight : minY;
+    const finalMinX = maxX === floorWidth ? floorWidth - zoomWidth : minX;
+    const finalMinY = maxY === floorHeight ? floorHeight - zoomHeight : minY;
 
     return `${finalMinX} ${finalMinY} ${zoomWidth} ${zoomHeight}`;
   };
@@ -153,72 +173,88 @@ export default function FloorPlanMiniWidget({ spotId, spotData }: FloorPlanMiniW
                 href={floorPlan.image_url}
                 x="0"
                 y="0"
-                width="100"
-                height="100"
+                width={floorWidth}
+                height={floorHeight}
                 preserveAspectRatio="xMidYMid slice"
               />
 
-              {/* Highlight circle around marker for better visibility */}
-              <circle
-                cx={spotData.marker_x}
-                cy={spotData.marker_y}
-                r={3}
-                fill="none"
-                stroke="hsl(var(--primary))"
-                strokeWidth="0.3"
-                className="animate-pulse"
-                opacity="0.6"
-              />
-              <circle
-                cx={spotData.marker_x}
-                cy={spotData.marker_y}
-                r={2}
-                fill="none"
-                stroke="hsl(var(--primary))"
-                strokeWidth="0.2"
-                className="animate-pulse"
-                opacity="0.4"
-                style={{ animationDelay: '0.5s' }}
-              />
+              {(() => {
+                // Get marker coordinates in pixels
+                let markerX, markerY, markerX2, markerY2, markerWidth, markerHeight, markerRadius;
 
-              {/* Actual marker */}
-              {spotData.marker_type === 'circle' && (
-                <circle
-                  cx={spotData.marker_x}
-                  cy={spotData.marker_y}
-                  r={spotData.marker_size / 20}
-                  fill={markerColor}
-                  stroke="white"
-                  strokeWidth="0.3"
-                  className={markerStatus === 'overdue' ? 'animate-pulse' : ''}
-                />
-              )}
-              {spotData.marker_type === 'rectangle' && (
-                <rect
-                  x={spotData.marker_x - (spotData.marker_size / 20) / 2}
-                  y={spotData.marker_y - (spotData.marker_size / 20) / 2}
-                  width={spotData.marker_size / 20}
-                  height={spotData.marker_size / 20}
-                  fill={markerColor}
-                  stroke="white"
-                  strokeWidth="0.3"
-                  transform={`rotate(${spotData.marker_rotation} ${spotData.marker_x} ${spotData.marker_y})`}
-                  className={markerStatus === 'overdue' ? 'animate-pulse' : ''}
-                />
-              )}
-              {spotData.marker_type === 'line' && (
-                <line
-                  x1={spotData.marker_x}
-                  y1={spotData.marker_y}
-                  x2={spotData.marker_x}
-                  y2={spotData.marker_y + (spotData.marker_size / 10)}
-                  stroke={markerColor}
-                  strokeWidth="1"
-                  strokeLinecap="round"
-                  transform={`rotate(${spotData.marker_rotation} ${spotData.marker_x} ${spotData.marker_y})`}
-                  className={markerStatus === 'overdue' ? 'animate-pulse' : ''}
-                />
-              )}
+                if (usePixelCoords) {
+                  markerX = spotData.marker_x_pixels;
+                  markerY = spotData.marker_y_pixels;
+                  markerX2 = spotData.marker_x2_pixels;
+                  markerY2 = spotData.marker_y2_pixels;
+                  markerWidth = spotData.marker_width_pixels;
+                  markerHeight = spotData.marker_height_pixels;
+                  markerRadius = spotData.marker_radius_pixels || 15;
+                } else {
+                  // Convert percentage to pixels
+                  markerX = (spotData.marker_x / 100) * floorWidth;
+                  markerY = (spotData.marker_y / 100) * floorHeight;
+                  markerRadius = (spotData.marker_size / 2) || 15;
+                  markerWidth = spotData.marker_size || 30;
+                  markerHeight = spotData.marker_size || 30;
+                }
+
+                const markerType = spotData.marker_type || 'circle';
+
+                return (
+                  <>
+                    {/* Highlight pulse around marker */}
+                    <circle
+                      cx={markerX}
+                      cy={markerY}
+                      r={30}
+                      fill="none"
+                      stroke="hsl(var(--primary))"
+                      strokeWidth="3"
+                      className="animate-pulse"
+                      opacity="0.4"
+                    />
+
+                    {/* Actual marker */}
+                    {(markerType === 'circle' || markerType === 'point') && (
+                      <circle
+                        cx={markerX}
+                        cy={markerY}
+                        r={markerRadius}
+                        fill={markerColor}
+                        stroke="white"
+                        strokeWidth="3"
+                        className={markerStatus === 'overdue' ? 'animate-pulse' : ''}
+                      />
+                    )}
+                    {(markerType === 'rectangle' || markerType === 'area') && (
+                      <rect
+                        x={markerX}
+                        y={markerY}
+                        width={markerWidth}
+                        height={markerHeight}
+                        fill={markerColor}
+                        stroke="white"
+                        strokeWidth="3"
+                        transform={`rotate(${spotData.marker_rotation || 0} ${markerX + markerWidth/2} ${markerY + markerHeight/2})`}
+                        className={markerStatus === 'overdue' ? 'animate-pulse' : ''}
+                      />
+                    )}
+                    {markerType === 'line' && markerX2 && markerY2 && (
+                      <line
+                        x1={markerX}
+                        y1={markerY}
+                        x2={markerX2}
+                        y2={markerY2}
+                        stroke={markerColor}
+                        strokeWidth="6"
+                        strokeLinecap="round"
+                        className={markerStatus === 'overdue' ? 'animate-pulse' : ''}
+                      />
+                    )}
+                  </>
+                );
+              })()}
             </svg>
           </div>
 

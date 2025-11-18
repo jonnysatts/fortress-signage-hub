@@ -108,7 +108,7 @@ export default function FloorPlanEditorV2() {
 
   // Handle keyboard shortcuts
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
+    const handleKeyDown = async (e: KeyboardEvent) => {
       // Undo: Ctrl+Z
       if (e.ctrlKey && e.key === 'z' && !e.shiftKey) {
         e.preventDefault();
@@ -121,6 +121,18 @@ export default function FloorPlanEditorV2() {
         dispatch({ type: 'REDO' });
       }
 
+      // Delete: Delete or Backspace (delete selected markers)
+      if ((e.key === 'Delete' || e.key === 'Backspace') && state.selectedMarkerIds.length > 0) {
+        e.preventDefault();
+
+        // Delete all selected markers
+        for (const markerId of state.selectedMarkerIds) {
+          await deleteMarker(markerId);
+        }
+
+        dispatch({ type: 'DESELECT_ALL' });
+      }
+
       // Escape: Cancel
       if (e.key === 'Escape') {
         dispatch({ type: 'CANCEL_DRAFT' });
@@ -130,7 +142,7 @@ export default function FloorPlanEditorV2() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  }, [state.selectedMarkerIds, deleteMarker]);
 
   // Canvas click handler
   const handleCanvasClick = useCallback(async (point: SVGPoint) => {
@@ -162,30 +174,52 @@ export default function FloorPlanEditorV2() {
         }
       }
     } else if (state.mode === 'place-area') {
-      // Place area marker
-      const marker: AreaMarker = {
-        id: state.placementSpotId!,
-        signage_spot_id: state.placementSpotId!,
-        floor_plan_id: id!,
-        location_name: state.placementSpotName!,
-        type: 'area',
-        x: point.x,
-        y: point.y,
-        width: 40,
-        height: 40,
-        rotation: 0,
-        status: 'empty',
-        expiry_date: null,
-        next_planned_date: null,
-        current_image_url: null,
-        show_on_map: true
-      };
+      // Start area placement (two-click workflow like line)
+      if (!state.draftMarker) {
+        // First click: set top-left corner
+        dispatch({
+          type: 'SET_DRAFT_MARKER',
+          marker: {
+            id: state.placementSpotId!,
+            signage_spot_id: state.placementSpotId!,
+            floor_plan_id: id!,
+            location_name: state.placementSpotName!,
+            type: 'area',
+            x: point.x,
+            y: point.y,
+            width: 10,  // Small initial size
+            height: 10,
+            rotation: 0
+          }
+        });
+      } else {
+        // Second click: set bottom-right corner and save
+        const draft = state.draftMarker as Partial<AreaMarker>;
+        const width = Math.abs(point.x - draft.x!);
+        const height = Math.abs(point.y - draft.y!);
+        const x = Math.min(point.x, draft.x!);  // Top-left corner
+        const y = Math.min(point.y, draft.y!);
 
-      const success = await saveMarker(marker);
-      if (success) {
-        dispatch({ type: 'CANCEL_DRAFT' });
-        if (searchParams.get('spotToPlace')) {
-          navigate(`/signage/${state.placementSpotId}`);
+        const marker: AreaMarker = {
+          ...draft,
+          x,
+          y,
+          width: Math.max(width, 20),  // Minimum size
+          height: Math.max(height, 20),
+          rotation: 0,
+          status: 'empty',
+          expiry_date: null,
+          next_planned_date: null,
+          current_image_url: null,
+          show_on_map: true
+        } as AreaMarker;
+
+        const success = await saveMarker(marker);
+        if (success) {
+          dispatch({ type: 'CANCEL_DRAFT' });
+          if (searchParams.get('spotToPlace')) {
+            navigate(`/signage/${state.placementSpotId}`);
+          }
         }
       }
     } else if (state.mode === 'place-line') {
@@ -231,6 +265,42 @@ export default function FloorPlanEditorV2() {
       }
     }
   }, [state, id, saveMarker, navigate, searchParams]);
+
+  // Canvas mouse move handler (for updating draft markers)
+  const handleCanvasMouseMove = useCallback((point: SVGPoint) => {
+    if (!state.draftMarker) return;
+
+    // Update draft marker based on mode
+    if (state.mode === 'place-line' && state.draftMarker.type === 'line') {
+      // Update line endpoint
+      dispatch({
+        type: 'SET_DRAFT_MARKER',
+        marker: {
+          ...state.draftMarker,
+          x2: point.x,
+          y2: point.y
+        }
+      });
+    } else if (state.mode === 'place-area' && state.draftMarker.type === 'area') {
+      // Update area dimensions
+      const draft = state.draftMarker as Partial<AreaMarker>;
+      const width = Math.abs(point.x - draft.x!);
+      const height = Math.abs(point.y - draft.y!);
+      const x = Math.min(point.x, draft.x!);
+      const y = Math.min(point.y, draft.y!);
+
+      dispatch({
+        type: 'SET_DRAFT_MARKER',
+        marker: {
+          ...state.draftMarker,
+          x,
+          y,
+          width: Math.max(width, 10),
+          height: Math.max(height, 10)
+        }
+      });
+    }
+  }, [state.draftMarker, state.mode]);
 
   // Marker click handler
   const handleMarkerClick = useCallback((marker: Marker, event: React.MouseEvent) => {
@@ -328,6 +398,7 @@ export default function FloorPlanEditorV2() {
         canRedo={state.historyIndex < state.history.length - 1}
         showGrid={showGrid}
         zoomLevel={zoomLevel}
+        selectedCount={state.selectedMarkerIds.length}
         placementSpotName={state.placementSpotName}
         onModeChange={(mode) => dispatch({ type: 'SET_MODE', mode })}
         onZoomIn={handleZoomIn}
@@ -336,6 +407,12 @@ export default function FloorPlanEditorV2() {
         onUndo={() => dispatch({ type: 'UNDO' })}
         onRedo={() => dispatch({ type: 'REDO' })}
         onToggleGrid={() => setShowGrid(!showGrid)}
+        onDeleteSelected={async () => {
+          for (const markerId of state.selectedMarkerIds) {
+            await deleteMarker(markerId);
+          }
+          dispatch({ type: 'DESELECT_ALL' });
+        }}
         onCancelPlacement={() => dispatch({ type: 'CANCEL_DRAFT' })}
       />
 
@@ -352,6 +429,7 @@ export default function FloorPlanEditorV2() {
           gridSize={50}
           onMarkerClick={handleMarkerClick}
           onCanvasClick={handleCanvasClick}
+          onCanvasMouseMove={handleCanvasMouseMove}
           onMarkerDragStart={handleMarkerDragStart}
           onMarkerDrag={handleMarkerDrag}
           onMarkerDragEnd={handleMarkerDragEnd}
