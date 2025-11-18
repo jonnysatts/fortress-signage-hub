@@ -84,7 +84,7 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
       const newHistory: HistoryEntry[] = [
         ...state.history.slice(0, state.historyIndex + 1),
         {
-          type: 'add',
+          type: 'add' as const,
           markers: [action.marker],
           timestamp: Date.now()
         }
@@ -121,7 +121,7 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
       const updateHistory: HistoryEntry[] = [
         ...state.history.slice(0, state.historyIndex + 1),
         {
-          type: 'update',
+          type: 'update' as const,
           markers: [action.marker],
           timestamp: Date.now()
         }
