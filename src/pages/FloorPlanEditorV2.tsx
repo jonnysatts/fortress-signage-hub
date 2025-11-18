@@ -180,10 +180,21 @@ export default function FloorPlanEditorV2() {
       const success = await saveMarker(marker);
       if (success) {
         dispatch({ type: 'CANCEL_DRAFT' });
-        // If came from spot detail, navigate back
-        if (searchParams.get('spotToPlace')) {
-          navigate(`/signage/${state.placementSpotId}`);
-        }
+        // Show success with return button
+        toast.success(
+          <div className="flex flex-col gap-2">
+            <span>Circle marker placed successfully!</span>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => navigate(`/signage/${state.placementSpotId}`)}
+              className="w-full"
+            >
+              Return to Signage Detail →
+            </Button>
+          </div>,
+          { duration: 5000 }
+        );
       }
     } else if (state.mode === 'place-area') {
       // Start area placement (two-click workflow like line)
@@ -229,9 +240,21 @@ export default function FloorPlanEditorV2() {
         const success = await saveMarker(marker);
         if (success) {
           dispatch({ type: 'CANCEL_DRAFT' });
-          if (searchParams.get('spotToPlace')) {
-            navigate(`/signage/${state.placementSpotId}`);
-          }
+          // Show success with return button
+          toast.success(
+            <div className="flex flex-col gap-2">
+              <span>Rectangle marker placed successfully!</span>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => navigate(`/signage/${state.placementSpotId}`)}
+                className="w-full"
+              >
+                Return to Signage Detail →
+              </Button>
+            </div>,
+            { duration: 5000 }
+          );
         }
       }
     } else if (state.mode === 'place-line') {
@@ -267,12 +290,34 @@ export default function FloorPlanEditorV2() {
           show_on_map: true
         } as LineMarker;
 
+        console.log('Saving line marker:', {
+          x: marker.x,
+          y: marker.y,
+          x2: marker.x2,
+          y2: marker.y2,
+          type: marker.type
+        });
+
         const success = await saveMarker(marker);
         if (success) {
           dispatch({ type: 'CANCEL_DRAFT' });
-          if (searchParams.get('spotToPlace')) {
-            navigate(`/signage/${state.placementSpotId}`);
-          }
+
+          // Don't auto-navigate - let user see the result
+          // Show success message with option to go back
+          toast.success(
+            <div className="flex flex-col gap-2">
+              <span>Line marker placed successfully!</span>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => navigate(`/signage/${state.placementSpotId}`)}
+                className="w-full"
+              >
+                Return to Signage Detail →
+              </Button>
+            </div>,
+            { duration: 5000 }
+          );
         }
       }
     }
