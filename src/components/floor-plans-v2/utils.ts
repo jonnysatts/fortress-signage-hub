@@ -48,9 +48,12 @@ export function clampToFloorPlan(
   point: SVGPoint,
   floorPlan: FloorPlan
 ): SVGPoint {
+  const width = floorPlan.original_width || 1920;
+  const height = floorPlan.original_height || 1080;
+
   return {
-    x: Math.max(0, Math.min(floorPlan.original_width, point.x)),
-    y: Math.max(0, Math.min(floorPlan.original_height, point.y))
+    x: Math.max(0, Math.min(width, point.x)),
+    y: Math.max(0, Math.min(height, point.y))
   };
 }
 
@@ -74,13 +77,18 @@ export function angleBetween(p1: SVGPoint, p2: SVGPoint): number {
 
 /**
  * Create initial viewBox for a floor plan
+ * Handles legacy floor plans without dimensions by using sensible defaults
  */
 export function createInitialViewBox(floorPlan: FloorPlan): ViewBox {
+  // Use original dimensions if available, otherwise default to 1920x1080
+  const width = floorPlan.original_width || 1920;
+  const height = floorPlan.original_height || 1080;
+
   return {
     x: 0,
     y: 0,
-    width: floorPlan.original_width,
-    height: floorPlan.original_height
+    width,
+    height
   };
 }
 
@@ -131,8 +139,8 @@ export function constrainViewBox(
   viewBox: ViewBox,
   floorPlan: FloorPlan
 ): ViewBox {
-  const maxWidth = floorPlan.original_width;
-  const maxHeight = floorPlan.original_height;
+  const maxWidth = floorPlan.original_width || 1920;
+  const maxHeight = floorPlan.original_height || 1080;
 
   // Don't allow zooming out past full image
   let width = Math.min(viewBox.width, maxWidth);
@@ -250,8 +258,11 @@ export function getMarkerColor(marker: Marker): string {
  * Convert viewBox to zoom level (1.0 = fit full image)
  */
 export function viewBoxToZoomLevel(viewBox: ViewBox, floorPlan: FloorPlan): number {
-  const xZoom = floorPlan.original_width / viewBox.width;
-  const yZoom = floorPlan.original_height / viewBox.height;
+  const width = floorPlan.original_width || 1920;
+  const height = floorPlan.original_height || 1080;
+
+  const xZoom = width / viewBox.width;
+  const yZoom = height / viewBox.height;
   return Math.min(xZoom, yZoom);
 }
 

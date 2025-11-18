@@ -99,7 +99,7 @@ export function useFloorPlanMarkers(floorPlanId: string): UseFloorPlanMarkersRes
         .select('id, location_name, floor_plan_id, marker_type, marker_x, marker_y, marker_x_pixels, marker_y_pixels, marker_x2_pixels, marker_y2_pixels, marker_width_pixels, marker_height_pixels, marker_radius_pixels, marker_size, marker_rotation, status, expiry_date, next_planned_date, current_image_url, show_on_map')
         .eq('floor_plan_id', floorPlanId)
         .eq('show_on_map', true)
-        .not('marker_x_pixels', 'is', null)
+        // Don't filter out markers without pixel data - we'll handle both old and new
         .order('location_name');
 
       if (fetchError) throw fetchError;

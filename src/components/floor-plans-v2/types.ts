@@ -11,8 +11,8 @@ export interface FloorPlan {
   level: string;
   display_name: string;
   image_url: string;
-  original_width: number;   // Image width in pixels (e.g., 1920)
-  original_height: number;  // Image height in pixels (e.g., 1080)
+  original_width: number | null;   // Image width in pixels (e.g., 1920) - null for legacy plans
+  original_height: number | null;  // Image height in pixels (e.g., 1080) - null for legacy plans
   display_order: number;
   created_at?: string;
   updated_at?: string;
