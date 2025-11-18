@@ -61,15 +61,24 @@ export default function FloorPlanCanvas({
     const svgPoint = screenToSVG(svgRef.current, event.clientX, event.clientY);
     const clampedPoint = clampToFloorPlan(svgPoint, floorPlan);
 
-    // Check if clicked on a marker
-    const clickedMarker = findMarkerAtPoint(clampedPoint, markers);
+    // During placement mode, always trigger canvas click (not marker click)
+    // This allows second click to finalize placement even if draft marker is under cursor
+    const isPlacingMarker = mode.startsWith('place-') && draftMarker;
 
-    if (clickedMarker && onMarkerClick) {
-      onMarkerClick(clickedMarker, event);
-    } else if (onCanvasClick) {
+    if (isPlacingMarker && onCanvasClick) {
+      // In placement mode, all clicks go to canvas handler
       onCanvasClick(clampedPoint, event);
+    } else {
+      // Normal mode: check if clicked on a marker
+      const clickedMarker = findMarkerAtPoint(clampedPoint, markers);
+
+      if (clickedMarker && onMarkerClick) {
+        onMarkerClick(clickedMarker, event);
+      } else if (onCanvasClick) {
+        onCanvasClick(clampedPoint, event);
+      }
     }
-  }, [floorPlan, markers, isDraggingMarker, isPanning, onMarkerClick, onCanvasClick]);
+  }, [floorPlan, markers, mode, draftMarker, isDraggingMarker, isPanning, onMarkerClick, onCanvasClick]);
 
   // Handle marker drag start
   const handleMarkerMouseDown = useCallback((marker: Marker, event: React.MouseEvent) => {
