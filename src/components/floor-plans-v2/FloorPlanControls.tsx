@@ -108,34 +108,39 @@ export default function FloorPlanControls({
               <Move className="w-4 h-4" />
             </Button>
 
-            <Separator orientation="vertical" className="h-6" />
+            {/* Only show placement tools when coming from "Add to Floor Plan" workflow */}
+            {placementSpotName && (
+              <>
+                <Separator orientation="vertical" className="h-6" />
 
-            <Button
-              variant={mode === 'place-point' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => onModeChange('place-point')}
-              title="Place circle marker"
-            >
-              <Circle className="w-4 h-4" />
-            </Button>
+                <Button
+                  variant={mode === 'place-point' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => onModeChange('place-point')}
+                  title="Place circle marker"
+                >
+                  <Circle className="w-4 h-4" />
+                </Button>
 
-            <Button
-              variant={mode === 'place-area' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => onModeChange('place-area')}
-              title="Place rectangle marker"
-            >
-              <Square className="w-4 h-4" />
-            </Button>
+                <Button
+                  variant={mode === 'place-area' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => onModeChange('place-area')}
+                  title="Place rectangle marker"
+                >
+                  <Square className="w-4 h-4" />
+                </Button>
 
-            <Button
-              variant={mode === 'place-line' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => onModeChange('place-line')}
-              title="Place line marker"
-            >
-              <Minus className="w-4 h-4" />
-            </Button>
+                <Button
+                  variant={mode === 'place-line' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => onModeChange('place-line')}
+                  title="Place line marker"
+                >
+                  <Minus className="w-4 h-4" />
+                </Button>
+              </>
+            )}
           </>
         )}
       </div>

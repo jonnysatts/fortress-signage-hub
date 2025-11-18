@@ -146,6 +146,14 @@ export default function FloorPlanEditorV2() {
 
   // Canvas click handler
   const handleCanvasClick = useCallback(async (point: SVGPoint) => {
+    // Validate that we have a spot ID for placement
+    if (state.mode.startsWith('place-') && !state.placementSpotId) {
+      toast.error('No signage spot selected. Go to a signage detail page and click "Add to Floor Plan" to place markers.');
+      dispatch({ type: 'CANCEL_DRAFT' });
+      dispatch({ type: 'SET_MODE', mode: 'view' });
+      return;
+    }
+
     if (state.mode === 'place-point') {
       // Place point marker
       const marker: PointMarker = {
@@ -389,6 +397,13 @@ export default function FloorPlanEditorV2() {
             </p>
           </div>
         </div>
+
+        {/* Show helpful message when not in placement mode */}
+        {!state.placementSpotName && (
+          <div className="px-4 py-2 bg-muted/50 border-t text-sm text-muted-foreground">
+            💡 To add markers: Go to a signage spot detail page → Click "Add to Floor Plan" → Choose marker type
+          </div>
+        )}
       </div>
 
       {/* Controls */}
