@@ -394,18 +394,30 @@ export default function FloorPlanEditorV2() {
             Back
           </Button>
           <div>
-            <h1 className="text-2xl font-bold">{floorPlan.display_name}</h1>
+            <h1 className="text-2xl font-bold">
+              {state.placementSpotName ? `Place Marker: ${state.placementSpotName}` : `Manage Markers - ${floorPlan.display_name}`}
+            </h1>
             <p className="text-sm text-muted-foreground">
-              {floorPlan.original_width || 1920} × {floorPlan.original_height || 1080} px
-              {(!floorPlan.original_width || !floorPlan.original_height) && ' (default)'}
+              {state.placementSpotName
+                ? 'Click to place start point, then click again to finalize'
+                : 'Move or delete existing markers • Cannot add new markers from this page'
+              }
             </p>
           </div>
         </div>
 
-        {/* Show helpful message when not in placement mode */}
+        {/* Show helpful banner when not in placement mode */}
         {!state.placementSpotName && (
-          <div className="px-4 py-2 bg-muted/50 border-t text-sm text-muted-foreground">
-            💡 To add markers: Go to a signage spot detail page → Click "Add to Floor Plan" → Choose marker type
+          <div className="px-4 py-3 bg-amber-50 dark:bg-amber-950 border-y border-amber-200 dark:border-amber-800 text-sm">
+            <div className="flex items-start gap-2">
+              <span className="text-lg">💡</span>
+              <div>
+                <strong className="text-amber-900 dark:text-amber-100">To add new markers:</strong>
+                <span className="text-amber-800 dark:text-amber-200 ml-2">
+                  Navigate to a signage spot's detail page → Click "Add to Floor Plan" button → Choose marker type
+                </span>
+              </div>
+            </div>
           </div>
         )}
       </div>

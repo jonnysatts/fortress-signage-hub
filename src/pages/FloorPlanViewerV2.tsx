@@ -152,9 +152,10 @@ export default function FloorPlanViewerV2() {
             size="sm"
             onClick={() => navigate(`/floor-plans/${selectedPlanId}/edit`)}
             className="ml-4"
+            title="Move or delete existing markers. To ADD new markers, go to a signage spot detail page."
           >
             <Edit className="w-4 h-4 mr-2" />
-            Edit
+            Manage Markers
           </Button>
         </div>
       </div>
@@ -177,12 +178,18 @@ export default function FloorPlanViewerV2() {
       )}
 
       {/* Status */}
-      <div className="flex items-center justify-between p-2 text-xs text-muted-foreground border-t">
-        <div>
-          {markers.length} marker{markers.length !== 1 ? 's' : ''}
+      <div className="flex items-center justify-between p-3 text-sm border-t bg-muted/30">
+        <div className="flex items-center gap-4">
+          <span className="text-muted-foreground">
+            {markers.length} marker{markers.length !== 1 ? 's' : ''}
+          </span>
+          <span className="text-muted-foreground">•</span>
+          <span className="text-muted-foreground">
+            Click any marker to view signage details
+          </span>
         </div>
-        <div>
-          Click any marker to view signage details
+        <div className="text-xs text-muted-foreground">
+          💡 To add new markers: Go to a signage spot → Click "Add to Floor Plan"
         </div>
       </div>
     </div>
