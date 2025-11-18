@@ -122,7 +122,7 @@ export default function FloorPlanEditorV2() {
       name: m.label
     })));
 
-    if (!highlightMarkerId || markers.length === 0) {
+    if (!highlightMarkerId || markers.length === 0 || !floorPlan) {
       console.warn('[Auto-select] Skipping - no highlightMarkerId or no markers loaded');
       return;
     }
@@ -133,14 +133,38 @@ export default function FloorPlanEditorV2() {
       // Auto-select the marker
       dispatch({ type: 'SELECT_MARKER', markerId: markerToSelect.id });
       console.log('[Auto-select] SUCCESS! Selected marker:', markerToSelect);
-      toast.info('Marker selected. You can drag to move it or press Delete to remove it.');
+
+      // Auto-zoom to the selected marker (show 600px area around it)
+      const zoomWidth = 600;
+      const floorWidth = floorPlan.original_width || 1920;
+      const floorHeight = floorPlan.original_height || 1080;
+      const zoomHeight = (zoomWidth / floorWidth) * floorHeight;
+
+      const centerX = markerToSelect.x;
+      const centerY = markerToSelect.y;
+
+      const minX = Math.max(0, centerX - zoomWidth / 2);
+      const minY = Math.max(0, centerY - zoomHeight / 2);
+
+      dispatch({
+        type: 'SET_VIEW_BOX',
+        viewBox: {
+          x: minX,
+          y: minY,
+          width: zoomWidth,
+          height: zoomHeight
+        }
+      });
+
+      console.log('[Auto-select] Auto-zoomed to marker at:', { x: centerX, y: centerY });
+      toast.info('Marker selected and zoomed. You can drag to move it or press Delete to remove it.');
     } else {
       console.error('[Auto-select] FAILED - Marker not found!');
       console.error('[Auto-select] Looking for signage_spot_id:', highlightMarkerId);
       console.error('[Auto-select] Available signage_spot_ids:', markers.map(m => m.signage_spot_id));
       toast.error(`Could not find marker for this signage spot. The marker may not exist on this floor plan.`);
     }
-  }, [searchParams, markers]);
+  }, [searchParams, markers, floorPlan]);
 
   // Handle keyboard shortcuts
   useEffect(() => {
