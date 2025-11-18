@@ -162,7 +162,21 @@ export function useFloorPlanMarkers(floorPlanId: string): UseFloorPlanMarkersRes
       return true;
     } catch (err) {
       console.error('Error saving marker:', err);
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      console.error('Full error object:', JSON.stringify(err, null, 2));
+
+      let errorMessage = 'Unknown error';
+      if (err instanceof Error) {
+        errorMessage = err.message;
+      } else if (typeof err === 'object' && err !== null) {
+        // Try to extract error details from Supabase error object
+        const errObj = err as any;
+        if (errObj.message) errorMessage = errObj.message;
+        else if (errObj.error_description) errorMessage = errObj.error_description;
+        else if (errObj.hint) errorMessage = errObj.hint;
+        else if (errObj.details) errorMessage = errObj.details;
+        else errorMessage = JSON.stringify(err);
+      }
+
       toast.error(`Failed to save marker: ${errorMessage}`);
       return false;
     }
