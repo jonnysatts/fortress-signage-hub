@@ -737,11 +737,18 @@ export type Database = {
           legacy_drive_link: string | null
           location_name: string
           location_photo_url: string | null
+          marker_height_pixels: number | null
+          marker_radius_pixels: number | null
           marker_rotation: number | null
           marker_size: number | null
           marker_type: string | null
+          marker_width_pixels: number | null
           marker_x: number | null
+          marker_x_pixels: number | null
+          marker_x2_pixels: number | null
           marker_y: number | null
+          marker_y_pixels: number | null
+          marker_y2_pixels: number | null
           material_type: string | null
           mounting_type: string | null
           next_planned_date: string | null
@@ -787,11 +794,18 @@ export type Database = {
           legacy_drive_link?: string | null
           location_name: string
           location_photo_url?: string | null
+          marker_height_pixels?: number | null
+          marker_radius_pixels?: number | null
           marker_rotation?: number | null
           marker_size?: number | null
           marker_type?: string | null
+          marker_width_pixels?: number | null
           marker_x?: number | null
+          marker_x_pixels?: number | null
+          marker_x2_pixels?: number | null
           marker_y?: number | null
+          marker_y_pixels?: number | null
+          marker_y2_pixels?: number | null
           material_type?: string | null
           mounting_type?: string | null
           next_planned_date?: string | null
@@ -837,11 +851,18 @@ export type Database = {
           legacy_drive_link?: string | null
           location_name?: string
           location_photo_url?: string | null
+          marker_height_pixels?: number | null
+          marker_radius_pixels?: number | null
           marker_rotation?: number | null
           marker_size?: number | null
           marker_type?: string | null
+          marker_width_pixels?: number | null
           marker_x?: number | null
+          marker_x_pixels?: number | null
+          marker_x2_pixels?: number | null
           marker_y?: number | null
+          marker_y_pixels?: number | null
+          marker_y2_pixels?: number | null
           material_type?: string | null
           mounting_type?: string | null
           next_planned_date?: string | null
