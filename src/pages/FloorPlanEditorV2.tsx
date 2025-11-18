@@ -50,7 +50,11 @@ export default function FloorPlanEditorV2() {
 
   // Load floor plan
   useEffect(() => {
-    if (!id) return;
+    if (!id) {
+      toast.error('Floor plan ID is missing. Please select a floor plan first.');
+      navigate('/floor-plans');
+      return;
+    }
 
     const loadFloorPlan = async () => {
       try {
