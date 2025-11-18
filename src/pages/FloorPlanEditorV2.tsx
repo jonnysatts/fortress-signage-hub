@@ -203,7 +203,8 @@ export default function FloorPlanEditorV2() {
             x: point.x,
             y: point.y,
             x2: point.x,
-            y2: point.y
+            y2: point.y,
+            rotation: 0
           }
         });
       } else {
@@ -212,6 +213,7 @@ export default function FloorPlanEditorV2() {
           ...(state.draftMarker as Partial<LineMarker>),
           x2: point.x,
           y2: point.y,
+          rotation: 0,
           status: 'empty',
           expiry_date: null,
           next_planned_date: null,

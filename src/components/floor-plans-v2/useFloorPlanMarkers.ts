@@ -140,19 +140,30 @@ export function useFloorPlanMarkers(floorPlanId: string): UseFloorPlanMarkersRes
         updateData.marker_y2_pixels = Math.round(marker.y2);
       }
 
-      const { error: saveError } = await supabase
+      const { error: saveError, data: updateResult } = await supabase
         .from('signage_spots')
         .update(updateData)
-        .eq('id', marker.signage_spot_id);
+        .eq('id', marker.signage_spot_id)
+        .select();
 
-      if (saveError) throw saveError;
+      if (saveError) {
+        console.error('Database error saving marker:', saveError);
+        console.error('Update data:', updateData);
+        console.error('Signage spot ID:', marker.signage_spot_id);
+        throw saveError;
+      }
+
+      if (!updateResult || updateResult.length === 0) {
+        throw new Error(`Signage spot not found: ${marker.signage_spot_id}`);
+      }
 
       await loadMarkers();  // Refresh
       toast.success('Marker placed successfully');
       return true;
     } catch (err) {
       console.error('Error saving marker:', err);
-      toast.error('Failed to save marker');
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      toast.error(`Failed to save marker: ${errorMessage}`);
       return false;
     }
   }, [loadMarkers]);
