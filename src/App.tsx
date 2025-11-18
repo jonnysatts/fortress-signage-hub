@@ -226,19 +226,7 @@ const App = () => (
             path="/floor-plans"
             element={
               <ProtectedRoute>
-                <SidebarProvider>
-                  <div className="flex min-h-screen w-full">
-                    <AppSidebar />
-                    <div className="flex-1">
-                      <header className="sticky top-0 z-10 border-b bg-card/50 backdrop-blur-sm">
-                        <div className="flex items-center gap-4 p-4">
-                          <SidebarTrigger />
-                        </div>
-                      </header>
-                      <FloorPlanViewerV2 />
-                    </div>
-                  </div>
-                </SidebarProvider>
+                <FloorPlanViewerV2 />
               </ProtectedRoute>
             }
           />
