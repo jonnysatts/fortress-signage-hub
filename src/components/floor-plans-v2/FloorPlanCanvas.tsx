@@ -158,17 +158,18 @@ export default function FloorPlanCanvas({
     if (!showGrid) return null;
 
     const lines: JSX.Element[] = [];
-    const { original_width, original_height } = floorPlan;
+    const width = floorPlan.original_width || 1920;
+    const height = floorPlan.original_height || 1080;
 
     // Vertical lines
-    for (let x = 0; x <= original_width; x += gridSize) {
+    for (let x = 0; x <= width; x += gridSize) {
       lines.push(
         <line
           key={`v-${x}`}
           x1={x}
           y1={0}
           x2={x}
-          y2={original_height}
+          y2={height}
           stroke="hsl(var(--primary))"
           strokeWidth={1}
           opacity={0.2}
@@ -177,13 +178,13 @@ export default function FloorPlanCanvas({
     }
 
     // Horizontal lines
-    for (let y = 0; y <= original_height; y += gridSize) {
+    for (let y = 0; y <= height; y += gridSize) {
       lines.push(
         <line
           key={`h-${y}`}
           x1={0}
           y1={y}
-          x2={original_width}
+          x2={width}
           y2={y}
           stroke="hsl(var(--primary))"
           strokeWidth={1}
@@ -220,8 +221,8 @@ export default function FloorPlanCanvas({
         href={floorPlan.image_url}
         x={0}
         y={0}
-        width={floorPlan.original_width}
-        height={floorPlan.original_height}
+        width={floorPlan.original_width || 1920}
+        height={floorPlan.original_height || 1080}
         preserveAspectRatio="xMidYMid slice"
       />
 
