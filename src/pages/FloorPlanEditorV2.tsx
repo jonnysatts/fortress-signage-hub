@@ -110,6 +110,23 @@ export default function FloorPlanEditorV2() {
     }
   }, [searchParams]);
 
+  // Handle highlighting/selecting a specific marker from URL
+  useEffect(() => {
+    const highlightMarkerId = searchParams.get('highlightMarker');
+    if (!highlightMarkerId || markers.length === 0) return;
+
+    // Find the marker to select
+    const markerToSelect = markers.find(m => m.signage_spot_id === highlightMarkerId);
+    if (markerToSelect) {
+      // Auto-select the marker
+      dispatch({ type: 'SELECT_MARKER', markerId: markerToSelect.id });
+      console.log('Auto-selected marker:', markerToSelect);
+      toast.info('Marker selected. You can drag to move it or press Delete to remove it.');
+    } else {
+      console.warn('Marker to highlight not found:', highlightMarkerId);
+    }
+  }, [searchParams, markers]);
+
   // Handle keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = async (e: KeyboardEvent) => {

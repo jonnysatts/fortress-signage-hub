@@ -76,6 +76,40 @@ export default function FloorPlanViewerV2() {
     }
   }, [selectedPlanId, floorPlans]);
 
+  // Handle highlighting a specific marker from URL
+  useEffect(() => {
+    const highlightMarkerId = searchParams.get('highlightMarker');
+    if (!highlightMarkerId || !floorPlan || !viewBox || markers.length === 0) return;
+
+    // Find the marker to highlight
+    const markerToHighlight = markers.find(m => m.signage_spot_id === highlightMarkerId);
+    if (!markerToHighlight) {
+      console.warn('Marker to highlight not found:', highlightMarkerId);
+      return;
+    }
+
+    // Zoom to marker (show 600px area around it)
+    const zoomWidth = 600;
+    const floorWidth = floorPlan.original_width || 1920;
+    const floorHeight = floorPlan.original_height || 1080;
+    const zoomHeight = (zoomWidth / floorWidth) * floorHeight;
+
+    const centerX = markerToHighlight.x;
+    const centerY = markerToHighlight.y;
+
+    const minX = Math.max(0, centerX - zoomWidth / 2);
+    const minY = Math.max(0, centerY - zoomHeight / 2);
+
+    setViewBox({
+      x: minX,
+      y: minY,
+      width: zoomWidth,
+      height: zoomHeight
+    });
+
+    console.log('Auto-zoomed to marker:', markerToHighlight);
+  }, [searchParams, floorPlan, viewBox, markers]);
+
   const handleZoomIn = () => {
     if (!floorPlan || !viewBox) return;
     const newViewBox = constrainViewBox(zoomViewBox(viewBox, 1.5), floorPlan);
