@@ -18,9 +18,9 @@ import Analytics from "./pages/Analytics";
 import Calendar from "./pages/Calendar";
 import UpcomingUpdates from "./pages/UpcomingUpdates";
 import StaleContentWarnings from "./pages/StaleContentWarnings";
-import FloorPlans from "./pages/FloorPlans";
+import FloorPlanViewerV2 from "./pages/FloorPlanViewerV2";
 import FloorPlanManager from "./pages/FloorPlanManager";
-import FloorPlanEditor from "./pages/FloorPlanEditor";
+import FloorPlanEditorV2 from "./pages/FloorPlanEditorV2";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -235,7 +235,7 @@ const App = () => (
                           <SidebarTrigger />
                         </div>
                       </header>
-                      <FloorPlans />
+                      <FloorPlanViewerV2 />
                     </div>
                   </div>
                 </SidebarProvider>
@@ -266,7 +266,7 @@ const App = () => (
             path="/floor-plans/:id/edit"
             element={
               <ProtectedRoute>
-                <FloorPlanEditor />
+                <FloorPlanEditorV2 />
               </ProtectedRoute>
             }
           />
