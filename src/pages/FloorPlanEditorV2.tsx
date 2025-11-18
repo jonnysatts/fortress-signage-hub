@@ -62,10 +62,9 @@ export default function FloorPlanEditorV2() {
 
         if (error) throw error;
 
-        // Validate floor plan has dimensions
+        // Legacy floor plans without dimensions will use defaults (1920x1080)
         if (!data.original_width || !data.original_height) {
-          toast.error('This floor plan is missing dimension data. Please re-upload it.');
-          return;
+          console.warn('Floor plan missing dimensions, using defaults (1920x1080)');
         }
 
         setFloorPlan(data as FloorPlan);
@@ -313,7 +312,8 @@ export default function FloorPlanEditorV2() {
           <div>
             <h1 className="text-2xl font-bold">{floorPlan.display_name}</h1>
             <p className="text-sm text-muted-foreground">
-              {floorPlan.original_width} × {floorPlan.original_height} px
+              {floorPlan.original_width || 1920} × {floorPlan.original_height || 1080} px
+              {(!floorPlan.original_width || !floorPlan.original_height) && ' (default)'}
             </p>
           </div>
         </div>
