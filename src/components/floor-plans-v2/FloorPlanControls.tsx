@@ -20,7 +20,8 @@ import {
   Undo2,
   Redo2,
   Save,
-  X
+  X,
+  Trash2
 } from 'lucide-react';
 import { EditorMode } from './types';
 
@@ -30,6 +31,7 @@ interface FloorPlanControlsProps {
   canRedo: boolean;
   showGrid: boolean;
   zoomLevel: number;
+  selectedCount?: number;
   placementSpotName?: string | null;
   onModeChange: (mode: EditorMode) => void;
   onZoomIn: () => void;
@@ -38,6 +40,7 @@ interface FloorPlanControlsProps {
   onUndo: () => void;
   onRedo: () => void;
   onToggleGrid: () => void;
+  onDeleteSelected?: () => void;
   onCancelPlacement?: () => void;
   onSave?: () => void;
 }
@@ -48,6 +51,7 @@ export default function FloorPlanControls({
   canRedo,
   showGrid,
   zoomLevel,
+  selectedCount = 0,
   placementSpotName,
   onModeChange,
   onZoomIn,
@@ -56,6 +60,7 @@ export default function FloorPlanControls({
   onUndo,
   onRedo,
   onToggleGrid,
+  onDeleteSelected,
   onCancelPlacement,
   onSave
 }: FloorPlanControlsProps) {
@@ -201,6 +206,21 @@ export default function FloorPlanControls({
         >
           <Redo2 className="w-4 h-4" />
         </Button>
+
+        {selectedCount > 0 && onDeleteSelected && (
+          <>
+            <Separator orientation="vertical" className="h-6" />
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={onDeleteSelected}
+              title={`Delete ${selectedCount} selected marker${selectedCount > 1 ? 's' : ''} (Delete/Backspace)`}
+            >
+              <Trash2 className="w-4 h-4 mr-1" />
+              Delete ({selectedCount})
+            </Button>
+          </>
+        )}
 
         {onSave && (
           <>

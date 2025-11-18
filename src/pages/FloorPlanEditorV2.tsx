@@ -108,7 +108,7 @@ export default function FloorPlanEditorV2() {
 
   // Handle keyboard shortcuts
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
+    const handleKeyDown = async (e: KeyboardEvent) => {
       // Undo: Ctrl+Z
       if (e.ctrlKey && e.key === 'z' && !e.shiftKey) {
         e.preventDefault();
@@ -121,6 +121,18 @@ export default function FloorPlanEditorV2() {
         dispatch({ type: 'REDO' });
       }
 
+      // Delete: Delete or Backspace (delete selected markers)
+      if ((e.key === 'Delete' || e.key === 'Backspace') && state.selectedMarkerIds.length > 0) {
+        e.preventDefault();
+
+        // Delete all selected markers
+        for (const markerId of state.selectedMarkerIds) {
+          await deleteMarker(markerId);
+        }
+
+        dispatch({ type: 'DESELECT_ALL' });
+      }
+
       // Escape: Cancel
       if (e.key === 'Escape') {
         dispatch({ type: 'CANCEL_DRAFT' });
@@ -130,7 +142,7 @@ export default function FloorPlanEditorV2() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  }, [state.selectedMarkerIds, deleteMarker]);
 
   // Canvas click handler
   const handleCanvasClick = useCallback(async (point: SVGPoint) => {
@@ -386,6 +398,7 @@ export default function FloorPlanEditorV2() {
         canRedo={state.historyIndex < state.history.length - 1}
         showGrid={showGrid}
         zoomLevel={zoomLevel}
+        selectedCount={state.selectedMarkerIds.length}
         placementSpotName={state.placementSpotName}
         onModeChange={(mode) => dispatch({ type: 'SET_MODE', mode })}
         onZoomIn={handleZoomIn}
@@ -394,6 +407,12 @@ export default function FloorPlanEditorV2() {
         onUndo={() => dispatch({ type: 'UNDO' })}
         onRedo={() => dispatch({ type: 'REDO' })}
         onToggleGrid={() => setShowGrid(!showGrid)}
+        onDeleteSelected={async () => {
+          for (const markerId of state.selectedMarkerIds) {
+            await deleteMarker(markerId);
+          }
+          dispatch({ type: 'DESELECT_ALL' });
+        }}
         onCancelPlacement={() => dispatch({ type: 'CANCEL_DRAFT' })}
       />
 

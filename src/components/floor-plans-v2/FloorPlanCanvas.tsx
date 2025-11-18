@@ -73,7 +73,10 @@ export default function FloorPlanCanvas({
 
   // Handle marker drag start
   const handleMarkerMouseDown = useCallback((marker: Marker, event: React.MouseEvent) => {
-    if (mode !== 'select' && mode !== 'edit') return;
+    // Allow dragging in any mode except active placement modes with draft markers
+    const isPlacingNew = (mode === 'place-point' || mode === 'place-area' || mode === 'place-line') && draftMarker;
+    if (isPlacingNew) return;  // Don't interfere with placement workflow
+
     if (!svgRef.current) return;
 
     event.stopPropagation();
@@ -86,7 +89,7 @@ export default function FloorPlanCanvas({
     if (onMarkerDragStart) {
       onMarkerDragStart(marker, svgPoint);
     }
-  }, [mode, onMarkerDragStart]);
+  }, [mode, draftMarker, onMarkerDragStart]);
 
   // Handle mouse move (for dragging)
   const handleMouseMove = useCallback((event: React.MouseEvent<SVGSVGElement>) => {
