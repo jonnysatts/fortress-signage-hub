@@ -15,3 +15,32 @@ verify_jwt = false
 [functions.send-alerts]
 verify_jwt = false
 
+# Cron job configurations for automated edge function execution
+# Schedule format: "minute hour day month weekday"
+# See https://crontab.guru/ for help with cron syntax
+
+# Run auto-promote-scheduled daily at 1 AM UTC to promote scheduled images
+[[cron]]
+function = "auto-promote-scheduled"
+schedule = "0 1 * * *"
+
+# Run update-signage-status daily at 2 AM UTC to mark stale content
+[[cron]]
+function = "update-signage-status"
+schedule = "0 2 * * *"
+
+# Run update-campaign-status daily at 3 AM UTC to activate/deactivate campaigns
+[[cron]]
+function = "update-campaign-status"
+schedule = "0 3 * * *"
+
+# Run print-job-reminders daily at 9 AM UTC (4 AM EST) for print deadline alerts
+[[cron]]
+function = "print-job-reminders"
+schedule = "0 9 * * *"
+
+# Run send-alerts every 30 minutes for real-time notifications
+[[cron]]
+function = "send-alerts"
+schedule = "*/30 * * * *"
+
