@@ -133,6 +133,12 @@ export default function FloorPlanEditorV2() {
       // Auto-select the marker
       dispatch({ type: 'SELECT_MARKER', markerId: markerToSelect.id });
       console.log('[Auto-select] SUCCESS! Selected marker:', markerToSelect);
+      console.log('[Auto-select] Marker coordinates:', {
+        x: markerToSelect.x,
+        y: markerToSelect.y,
+        type: markerToSelect.type,
+        signage_spot_id: markerToSelect.signage_spot_id
+      });
 
       // Auto-zoom to the selected marker (show 600px area around it)
       const zoomWidth = 600;
@@ -146,17 +152,22 @@ export default function FloorPlanEditorV2() {
       const minX = Math.max(0, centerX - zoomWidth / 2);
       const minY = Math.max(0, centerY - zoomHeight / 2);
 
+      const newViewBox = {
+        x: minX,
+        y: minY,
+        width: zoomWidth,
+        height: zoomHeight
+      };
+
+      console.log('[Auto-select] Calculated viewBox:', newViewBox);
+      console.log('[Auto-select] Floor dimensions:', { floorWidth, floorHeight });
+
       dispatch({
         type: 'SET_VIEW_BOX',
-        viewBox: {
-          x: minX,
-          y: minY,
-          width: zoomWidth,
-          height: zoomHeight
-        }
+        viewBox: newViewBox
       });
 
-      console.log('[Auto-select] Auto-zoomed to marker at:', { x: centerX, y: centerY });
+      console.log('[Auto-select] Dispatched SET_VIEW_BOX action');
       toast.info('Marker selected and zoomed. You can drag to move it or press Delete to remove it.');
     } else {
       console.error('[Auto-select] FAILED - Marker not found!');

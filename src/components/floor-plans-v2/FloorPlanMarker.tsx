@@ -26,7 +26,7 @@ export default function FloorPlanMarker({
   const baseColor = getMarkerColor(marker as Marker);
   const fill = isDraft ? 'hsl(var(--primary))' : baseColor;
   const stroke = isSelected ? 'hsl(var(--primary))' : 'white';
-  const strokeWidth = isSelected ? 4 : 2;
+  const strokeWidth = isSelected ? 5 : 2;
   const opacity = isDraft ? 0.6 : isDragging ? 0.8 : 1;
   const cursor = onMouseDown ? 'move' : 'pointer';
 
@@ -49,12 +49,27 @@ export default function FloorPlanMarker({
     }
 
     return (
-      <circle
-        cx={pointMarker.x}
-        cy={pointMarker.y}
-        r={pointMarker.radius}
-        {...commonProps}
-      />
+      <>
+        {/* Pulsing ring for selected markers */}
+        {isSelected && (
+          <circle
+            cx={pointMarker.x}
+            cy={pointMarker.y}
+            r={pointMarker.radius + 15}
+            fill="none"
+            stroke="hsl(var(--primary))"
+            strokeWidth="3"
+            opacity="0.6"
+            className="animate-pulse"
+          />
+        )}
+        <circle
+          cx={pointMarker.x}
+          cy={pointMarker.y}
+          r={pointMarker.radius}
+          {...commonProps}
+        />
+      </>
     );
   }
 
@@ -74,14 +89,31 @@ export default function FloorPlanMarker({
     const halfH = areaMarker.height / 2;
 
     return (
-      <rect
-        x={areaMarker.x - halfW}
-        y={areaMarker.y - halfH}
-        width={areaMarker.width}
-        height={areaMarker.height}
-        transform={rotation !== 0 ? `rotate(${rotation} ${areaMarker.x} ${areaMarker.y})` : undefined}
-        {...commonProps}
-      />
+      <>
+        {/* Pulsing outline for selected markers */}
+        {isSelected && (
+          <rect
+            x={areaMarker.x - halfW - 15}
+            y={areaMarker.y - halfH - 15}
+            width={areaMarker.width + 30}
+            height={areaMarker.height + 30}
+            fill="none"
+            stroke="hsl(var(--primary))"
+            strokeWidth="3"
+            opacity="0.6"
+            className="animate-pulse"
+            transform={rotation !== 0 ? `rotate(${rotation} ${areaMarker.x} ${areaMarker.y})` : undefined}
+          />
+        )}
+        <rect
+          x={areaMarker.x - halfW}
+          y={areaMarker.y - halfH}
+          width={areaMarker.width}
+          height={areaMarker.height}
+          transform={rotation !== 0 ? `rotate(${rotation} ${areaMarker.x} ${areaMarker.y})` : undefined}
+          {...commonProps}
+        />
+      </>
     );
   }
 
@@ -97,19 +129,35 @@ export default function FloorPlanMarker({
     }
 
     return (
-      <line
-        x1={lineMarker.x}
-        y1={lineMarker.y}
-        x2={lineMarker.x2}
-        y2={lineMarker.y2}
-        stroke={fill}
-        strokeWidth={12}
-        strokeLinecap="round"
-        opacity={opacity}
-        style={{ cursor }}
-        onMouseDown={onMouseDown}
-        className={`floor-plan-marker line ${isSelected ? 'selected' : ''} ${isDragging ? 'dragging' : ''}`}
-      />
+      <>
+        {/* Pulsing outline for selected line markers */}
+        {isSelected && (
+          <line
+            x1={lineMarker.x}
+            y1={lineMarker.y}
+            x2={lineMarker.x2}
+            y2={lineMarker.y2}
+            stroke="hsl(var(--primary))"
+            strokeWidth={20}
+            strokeLinecap="round"
+            opacity="0.4"
+            className="animate-pulse"
+          />
+        )}
+        <line
+          x1={lineMarker.x}
+          y1={lineMarker.y}
+          x2={lineMarker.x2}
+          y2={lineMarker.y2}
+          stroke={fill}
+          strokeWidth={12}
+          strokeLinecap="round"
+          opacity={opacity}
+          style={{ cursor }}
+          onMouseDown={onMouseDown}
+          className={`floor-plan-marker line ${isSelected ? 'selected' : ''} ${isDragging ? 'dragging' : ''}`}
+        />
+      </>
     );
   }
 
