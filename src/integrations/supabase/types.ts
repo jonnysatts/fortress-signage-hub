@@ -372,6 +372,8 @@ export type Database = {
           id: string
           image_url: string
           level: string
+          original_height: number | null
+          original_width: number | null
           updated_at: string | null
           venue: string
         }
@@ -382,6 +384,8 @@ export type Database = {
           id?: string
           image_url: string
           level: string
+          original_height?: number | null
+          original_width?: number | null
           updated_at?: string | null
           venue: string
         }
@@ -392,6 +396,8 @@ export type Database = {
           id?: string
           image_url?: string
           level?: string
+          original_height?: number | null
+          original_width?: number | null
           updated_at?: string | null
           venue?: string
         }
