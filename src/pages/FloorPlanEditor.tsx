@@ -11,7 +11,7 @@ import { Separator } from "@/components/ui/separator";
 import { ArrowLeft, Save, Eye, Grid3x3, Undo, ZoomIn, ZoomOut, Maximize, Crosshair } from "lucide-react";
 import { toast } from "sonner";
 import { getMarkerColor, getMarkerStatus } from "@/utils/markerUtils";
-import { pixelToPercent } from "@/utils/coordinateUtils";
+import { eventToPercent, percentToPixel, clampPercent } from "@/utils/coordinateUtils";
 import { TransformWrapper, TransformComponent, useControls } from "react-zoom-pan-pinch";
 import CalibrationOverlay from "@/components/CalibrationOverlay";
 
@@ -211,11 +211,9 @@ export default function FloorPlanEditor() {
 
   // Line placement helpers (percent-based coordinates)
   const getPercentFromEvent = (e: React.MouseEvent) => {
-    if (!containerRef.current) return { x: 0, y: 0 };
-    const rect = containerRef.current.getBoundingClientRect();
-    const x = ((e.clientX - rect.left) / rect.width) * 100;
-    const y = ((e.clientY - rect.top) / rect.height) * 100;
-    return { x: Math.max(0, Math.min(100, x)), y: Math.max(0, Math.min(100, y)) };
+    const coords = eventToPercent(e, imageRef.current);
+    if (!coords) return { x: 0, y: 0 };
+    return clampPercent(coords);
   };
 
   const handleLineMouseDown = (e: React.MouseEvent) => {
@@ -239,9 +237,9 @@ export default function FloorPlanEditor() {
   };
 
   const confirmDraftPlacement = async () => {
-    if (!draftStart || !draftEnd || !selectedSpotToAdd || !containerRef.current) return;
-    // Convert percent delta to pixel length and angle using drawn container size
-    const rect = containerRef.current.getBoundingClientRect();
+    if (!draftStart || !draftEnd || !selectedSpotToAdd || !imageRef.current) return;
+    // Convert percent delta to pixel length and angle using image size
+    const rect = imageRef.current.getBoundingClientRect();
     const dxPx = ((draftEnd.x - draftStart.x) / 100) * rect.width;
     const dyPx = ((draftEnd.y - draftStart.y) / 100) * rect.height;
     const length = Math.max(5, Math.round(Math.hypot(dxPx, dyPx)));
@@ -250,7 +248,7 @@ export default function FloorPlanEditor() {
     console.log('[EDITOR] Saving line placement:', {
       startPercent: draftStart,
       endPercent: draftEnd,
-      containerRect: { width: rect.width, height: rect.height },
+      imageRect: { width: rect.width, height: rect.height },
       calculatedLength: length,
       calculatedAngle: angle
     });
@@ -296,11 +294,12 @@ export default function FloorPlanEditor() {
   const handleImageClick = async (e: React.MouseEvent<HTMLDivElement>) => {
     // For line placement we use drag + submit flow, so ignore simple clicks
     if (placementMode && markerType === 'line') return;
-    if (!selectedSpotToAdd || !containerRef.current) return;
+    if (!selectedSpotToAdd) return;
 
-    const rect = containerRef.current.getBoundingClientRect();
-    const x = ((e.clientX - rect.left) / rect.width) * 100;
-    const y = ((e.clientY - rect.top) / rect.height) * 100;
+    const coords = eventToPercent(e, imageRef.current);
+    if (!coords) return;
+
+    const clampedCoords = clampPercent(coords);
 
     try {
       // Update the signage spot with marker info
@@ -308,8 +307,8 @@ export default function FloorPlanEditor() {
         .from('signage_spots')
         .update({
           floor_plan_id: id,
-          marker_x: x,
-          marker_y: y,
+          marker_x: clampedCoords.x,
+          marker_y: clampedCoords.y,
           marker_type: markerType,
           marker_size: markerSize,
           marker_rotation: 0,
@@ -325,7 +324,7 @@ export default function FloorPlanEditor() {
       setSpotToPlaceName("");
       loadMarkers();
       loadAvailableSpots();
-      
+
       // If came from placement mode, redirect to signage detail
       if (searchParams.get('spotToPlace')) {
         navigate(`/signage/${selectedSpotToAdd}`);
@@ -347,14 +346,15 @@ export default function FloorPlanEditor() {
 
   const handleMarkerDrag = async (e: React.MouseEvent) => {
     const draggingMarker = markers.find(m => m.isDragging);
-    if (!draggingMarker || !containerRef.current) return;
+    if (!draggingMarker) return;
 
-    const rect = containerRef.current.getBoundingClientRect();
-    const x = Math.max(0, Math.min(100, ((e.clientX - rect.left) / rect.width) * 100));
-    const y = Math.max(0, Math.min(100, ((e.clientY - rect.top) / rect.height) * 100));
+    const coords = eventToPercent(e, imageRef.current);
+    if (!coords) return;
+
+    const clampedCoords = clampPercent(coords);
 
     const updatedMarkers = markers.map(m =>
-      m.id === draggingMarker.id ? { ...m, marker_x: x, marker_y: y } : m
+      m.id === draggingMarker.id ? { ...m, marker_x: clampedCoords.x, marker_y: clampedCoords.y } : m
     );
     setMarkers(updatedMarkers);
   };
@@ -448,25 +448,29 @@ export default function FloorPlanEditor() {
   };
 
   const renderMarker = (marker: Marker) => {
-    const rect = containerRef.current?.getBoundingClientRect();
-    // Ensure container is loaded before rendering (check for valid dimensions)
+    // Use imageRef for consistent coordinate calculations
+    const rect = imageRef.current?.getBoundingClientRect();
+    // Ensure image is loaded before rendering (check for valid dimensions)
     if (!rect || rect.width === 0 || rect.height === 0) return null;
 
     const color = getMarkerColor(marker);
     const isSelected = selectedMarker === marker.id;
     const scale = isSelected ? 1.1 : 1;
 
-    // Convert stored percentage coordinates to pixel positions based on the actual drawn container size
-    const clamp = (v: number) => Math.max(0, Math.min(100, v));
-    const pxX = ((clamp(marker.marker_x ?? 0)) / 100) * rect.width;
-    const pxY = ((clamp(marker.marker_y ?? 0)) / 100) * rect.height;
+    // Convert stored percentage coordinates to pixel positions based on current image rendering size
+    const pixelPos = percentToPixel(
+      marker.marker_x ?? 0,
+      marker.marker_y ?? 0,
+      rect.width,
+      rect.height
+    );
 
     if (marker.marker_type === 'line') {
       console.log('[EDITOR] Rendering line:', {
         markerId: marker.id,
         storedPercent: { x: marker.marker_x, y: marker.marker_y },
-        containerRect: { width: rect.width, height: rect.height },
-        calculatedPixel: { x: pxX, y: pxY },
+        imageRect: { width: rect.width, height: rect.height },
+        calculatedPixel: pixelPos,
         size: marker.marker_size,
         rotation: marker.marker_rotation
       });
@@ -489,8 +493,8 @@ export default function FloorPlanEditor() {
       return (
         <circle
           key={marker.id}
-          cx={pxX}
-          cy={pxY}
+          cx={pixelPos.x}
+          cy={pixelPos.y}
           r={marker.marker_size / 2}
           fill={color}
           stroke={isSelected ? 'hsl(var(--primary))' : 'white'}
@@ -504,7 +508,7 @@ export default function FloorPlanEditor() {
       return (
         <g
           key={marker.id}
-          transform={`translate(${pxX}, ${pxY}) rotate(${marker.marker_rotation})`}
+          transform={`translate(${pixelPos.x}, ${pixelPos.y}) rotate(${marker.marker_rotation})`}
           {...eventProps}
         >
           <rect
@@ -524,7 +528,7 @@ export default function FloorPlanEditor() {
       return (
         <g
           key={marker.id}
-          transform={`translate(${pxX}, ${pxY}) rotate(${marker.marker_rotation})`}
+          transform={`translate(${pixelPos.x}, ${pixelPos.y}) rotate(${marker.marker_rotation})`}
           {...eventProps}
         >
           <line

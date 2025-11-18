@@ -138,21 +138,19 @@ export default function FloorPlanViewer({
     const isOverdue = markerStatus === 'overdue';
     const isHovered = hoveredMarker === marker.id;
 
-    // Use imageRef instead of containerRef to account for zoom transform
+    // Use imageRef for consistent coordinate calculations
     const rect = imageRef.current?.getBoundingClientRect();
     // Ensure image is loaded before rendering (check for valid dimensions)
     if (!rect || rect.width === 0 || rect.height === 0) return null;
 
-    // Compensate for parent CSS zoom transform so positions aren't double-scaled
-    const scaleFactor = Math.max(zoom || 1, 0.0001);
-    const baseWidth = rect.width / scaleFactor;
-    const baseHeight = rect.height / scaleFactor;
-
+    // Convert stored percentage coordinates to pixel positions based on current image rendering size
+    // Note: The parent zoom transform is already applied to the image, so rect.width/height
+    // already includes the zoom. No need to compensate.
     const pixelPos = percentToPixel(
       marker.marker_x,
       marker.marker_y,
-      baseWidth,
-      baseHeight
+      rect.width,
+      rect.height
     );
 
     const scale = isHovered ? 1.2 : 1;
