@@ -9,7 +9,7 @@ import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Edit, ZoomIn, ZoomOut, Maximize } from 'lucide-react';
+import { ArrowLeft, Edit, ZoomIn, ZoomOut, Maximize, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { FloorPlan } from '@/components/floor-plans-v2/types';
@@ -27,7 +27,12 @@ export default function FloorPlanViewerV2() {
   const [viewBox, setViewBox] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
-  const { markers } = useFloorPlanMarkers(selectedPlanId);
+  const { markers, refetch } = useFloorPlanMarkers(selectedPlanId);
+
+  // Debug marker data
+  useEffect(() => {
+    console.log('Floor plan viewer - loaded markers:', markers.length, markers);
+  }, [markers]);
 
   // Load floor plans
   useEffect(() => {
@@ -134,6 +139,18 @@ export default function FloorPlanViewerV2() {
         </div>
 
         <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              refetch();
+              toast.success('Markers refreshed');
+            }}
+            title="Refresh markers"
+          >
+            <RefreshCw className="w-4 h-4" />
+          </Button>
+
           <Button variant="outline" size="sm" onClick={handleZoomOut}>
             <ZoomOut className="w-4 h-4" />
           </Button>
