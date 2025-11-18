@@ -21,6 +21,7 @@ interface FloorPlanCanvasProps {
   gridSize?: number;
   onMarkerClick?: (marker: Marker, event: React.MouseEvent) => void;
   onCanvasClick?: (point: SVGPoint, event: React.MouseEvent) => void;
+  onCanvasMouseMove?: (point: SVGPoint) => void;
   onMarkerDragStart?: (marker: Marker, point: SVGPoint) => void;
   onMarkerDrag?: (marker: Marker, point: SVGPoint) => void;
   onMarkerDragEnd?: (marker: Marker, point: SVGPoint) => void;
@@ -39,6 +40,7 @@ export default function FloorPlanCanvas({
   gridSize = 50,
   onMarkerClick,
   onCanvasClick,
+  onCanvasMouseMove,
   onMarkerDragStart,
   onMarkerDrag,
   onMarkerDragEnd,
@@ -111,7 +113,12 @@ export default function FloorPlanCanvas({
       onViewBoxChange(newViewBox);
       setPanStart(clampedPoint);
     }
-  }, [floorPlan, isDraggingMarker, draggedMarker, isPanning, panStart, viewBox, onMarkerDrag, onViewBoxChange]);
+
+    // Always call onCanvasMouseMove for draft marker updates
+    if (onCanvasMouseMove && !isDraggingMarker && !isPanning) {
+      onCanvasMouseMove(clampedPoint);
+    }
+  }, [floorPlan, isDraggingMarker, draggedMarker, isPanning, panStart, viewBox, onMarkerDrag, onViewBoxChange, onCanvasMouseMove]);
 
   // Handle mouse up (end drag)
   const handleMouseUp = useCallback((event: React.MouseEvent<SVGSVGElement>) => {
