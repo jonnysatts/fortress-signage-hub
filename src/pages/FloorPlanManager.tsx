@@ -108,6 +108,22 @@ export default function FloorPlanManager() {
 
     setUploading(true);
     try {
+      // Load image to get dimensions
+      const img = new Image();
+      const imageUrl = URL.createObjectURL(selectedFile);
+
+      const imageDimensions = await new Promise<{ width: number; height: number }>((resolve, reject) => {
+        img.onload = () => {
+          URL.revokeObjectURL(imageUrl);
+          resolve({ width: img.naturalWidth, height: img.naturalHeight });
+        };
+        img.onerror = () => {
+          URL.revokeObjectURL(imageUrl);
+          reject(new Error('Failed to load image'));
+        };
+        img.src = imageUrl;
+      });
+
       // Upload file to storage
       const fileName = `${formData.venue.toLowerCase()}-${formData.level.toLowerCase()}-${Date.now()}.jpg`;
       const { data: uploadData, error: uploadError } = await supabase.storage
@@ -121,7 +137,7 @@ export default function FloorPlanManager() {
         .from('floor-plans')
         .getPublicUrl(fileName);
 
-      // Insert floor plan record
+      // Insert floor plan record with image dimensions
       const { error: insertError } = await supabase
         .from('floor_plans')
         .insert({
@@ -129,12 +145,14 @@ export default function FloorPlanManager() {
           level: formData.level,
           display_name: formData.display_name,
           image_url: publicUrl,
-          display_order: formData.display_order
+          display_order: formData.display_order,
+          original_width: imageDimensions.width,
+          original_height: imageDimensions.height
         });
 
       if (insertError) throw insertError;
 
-      toast.success('Floor plan uploaded successfully!');
+      toast.success(`Floor plan uploaded successfully! (${imageDimensions.width}×${imageDimensions.height}px)`);
       setUploadDialogOpen(false);
       resetForm();
       loadFloorPlans();
