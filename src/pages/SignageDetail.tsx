@@ -245,18 +245,12 @@ export default function SignageDetail() {
 
         if (historyError) throw historyError;
 
-        // Update signage_spot based on image type
-        if (imageType === "current") {
-          const { error: updateError } = await supabase
-            .from('signage_spots')
-            .update({ 
-              current_image_url: publicUrl,
-              last_update_date: new Date().toISOString().split('T')[0]
-            })
-            .eq('id', id);
+        // Note: For 'current' image types, the database trigger 'handle_photo_upload()'
+        // automatically updates signage_spots.current_image_url and last_update_date.
+        // No need to manually update here to avoid race conditions.
 
-          if (updateError) throw updateError;
-        } else if (imageType === "planned" && scheduledDate) {
+        // Update signage_spot based on image type
+        if (imageType === "planned" && scheduledDate) {
           // Update next planned image if this is earlier than existing, no existing, or existing is in the past
           const { data: currentSpot } = await supabase
             .from('signage_spots')
