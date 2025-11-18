@@ -95,6 +95,18 @@ export default function FloorPlanMiniWidget({ spotId, spotData }: FloorPlanMiniW
   const markerColor = getMarkerColor(spotData);
   const markerStatus = getMarkerStatus(spotData);
 
+  console.log('[FloorPlanMiniWidget] Rendering for spot:', {
+    spotId,
+    spotName: spotData.location_name,
+    floorPlanId: floorPlan.id,
+    floorPlanName: floorPlan.display_name,
+    marker_x_pixels: spotData.marker_x_pixels,
+    marker_y_pixels: spotData.marker_y_pixels,
+    marker_type: spotData.marker_type,
+    marker_x_percent: spotData.marker_x,
+    marker_y_percent: spotData.marker_y
+  });
+
   // Determine if using new pixel-based or old percentage-based coordinates
   const usePixelCoords = spotData.marker_x_pixels !== null && spotData.marker_x_pixels !== undefined;
 
@@ -146,7 +158,11 @@ export default function FloorPlanMiniWidget({ spotId, spotData }: FloorPlanMiniW
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => navigate(`/floor-plans/${floorPlan.id}/edit?highlightMarker=${spotId}`)}
+            onClick={() => {
+              const url = `/floor-plans/${floorPlan.id}/edit?highlightMarker=${spotId}`;
+              console.log('[FloorPlanMiniWidget] Navigating to edit marker:', url);
+              navigate(url);
+            }}
             title="Edit this marker's position"
           >
             <Edit2 className="w-4 h-4" />
