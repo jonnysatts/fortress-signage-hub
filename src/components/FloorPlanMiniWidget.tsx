@@ -146,7 +146,8 @@ export default function FloorPlanMiniWidget({ spotId, spotData }: FloorPlanMiniW
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => navigate(`/floor-plans?plan=${floorPlan.id}&spot=${spotId}`)}
+            onClick={() => navigate(`/floor-plans/${floorPlan.id}/edit?highlightMarker=${spotId}`)}
+            title="Edit this marker's position"
           >
             <Edit2 className="w-4 h-4" />
           </Button>
@@ -262,7 +263,7 @@ export default function FloorPlanMiniWidget({ spotId, spotData }: FloorPlanMiniW
             variant="outline"
             size="sm"
             className="w-full"
-            onClick={() => navigate(`/floor-plans?plan=${floorPlan.id}&spot=${spotId}`)}
+            onClick={() => navigate(`/floor-plans?plan=${floorPlan.id}&highlightMarker=${spotId}`)}
           >
             View Full Floor Plan →
           </Button>
