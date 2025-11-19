@@ -1,31 +1,47 @@
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
+import { User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { Database } from "@/integrations/supabase/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { SignageCard } from "@/components/SignageCard";
 import { DashboardFilters } from "@/components/DashboardFilters";
 import { OnboardingTour } from "@/components/OnboardingTour";
 import { useOnboarding } from "@/hooks/useOnboarding";
-import { 
-  CheckCircle2, 
-  Clock, 
-  AlertCircle, 
+import {
+  CheckCircle2,
+  Clock,
+  AlertCircle,
   Circle,
   Plus,
   Image as ImageIcon,
-  User,
+  User as UserIcon,
   Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
 
+type Profile = Database['public']['Tables']['profiles']['Row'];
+type Venue = Database['public']['Tables']['venues']['Row'];
+type SignageSpot = Database['public']['Tables']['signage_spots']['Row'] & {
+  venues?: Venue | null;
+  signage_campaigns?: {
+    campaign_id: string;
+    campaigns: {
+      id: string;
+      name: string;
+      is_active: boolean | null;
+    } | null;
+  }[] | null;
+};
+
 export default function Dashboard() {
   const navigate = useNavigate();
   const { showOnboarding, completeOnboarding, skipOnboarding } = useOnboarding();
-  const [user, setUser] = useState<any>(null);
-  const [profile, setProfile] = useState<any>(null);
-  const [venues, setVenues] = useState<any[]>([]);
-  const [signageSpots, setSignageSpots] = useState<any[]>([]);
+  const [user, setUser] = useState<User | null>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [venues, setVenues] = useState<Venue[]>([]);
+  const [signageSpots, setSignageSpots] = useState<SignageSpot[]>([]);
   const [selectedVenue, setSelectedVenue] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
@@ -38,17 +54,7 @@ export default function Dashboard() {
   const [isMultiSelectMode, setIsMultiSelectMode] = useState(false);
   const [showUpcomingOnly, setShowUpcomingOnly] = useState(false);
 
-  useEffect(() => {
-    checkAuth();
-  }, []);
-
-  useEffect(() => {
-    if (user) {
-      fetchData();
-    }
-  }, [user, selectedVenue]);
-
-  const checkAuth = async () => {
+  const checkAuth = useCallback(async () => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
       navigate("/auth");
@@ -57,33 +63,37 @@ export default function Dashboard() {
     setUser(session.user);
 
     const { data: profileData, error: profileError } = await supabase
-      .from("profiles" as any)
+      .from("profiles")
       .select("*")
       .eq("id", session.user.id)
       .maybeSingle();
-    
+
     if (!profileError && profileData) {
       setProfile(profileData);
     }
-  };
+  }, [navigate]);
+
+  useEffect(() => {
+    checkAuth();
+  }, [checkAuth]);
 
   const fetchData = useCallback(async () => {
     setIsLoading(true);
     try {
       const { data: venuesData } = await supabase
-        .from("venues" as any)
+        .from("venues")
         .select("*")
         .eq("is_active", true);
       setVenues(venuesData || []);
 
       let query = supabase
-        .from("signage_spots" as any)
+        .from("signage_spots")
         .select(`
           *,
           venues(*),
           signage_campaigns(
             campaign_id,
-            campaigns(name, is_active)
+            campaigns(id, name, is_active)
           )
         `)
         .order("created_at", { ascending: false });
@@ -92,14 +102,29 @@ export default function Dashboard() {
         query = query.eq("venue_id", selectedVenue);
       }
 
-      const { data: spotsData } = await query;
-      setSignageSpots(spotsData || []);
-    } catch (error: any) {
+      const { data: spotsData, error } = await query;
+
+      if (error) throw error;
+
+      // Transform data to match SignageSpot type
+      const spots = spotsData?.map(spot => ({
+        ...spot,
+        signage_campaigns: spot.signage_campaigns || []
+      })) as unknown as SignageSpot[];
+
+      setSignageSpots(spots || []);
+    } catch (error: unknown) {
       console.error("Failed to load data:", error);
     } finally {
       setIsLoading(false);
     }
   }, [selectedVenue]);
+
+  useEffect(() => {
+    if (user) {
+      fetchData();
+    }
+  }, [user, fetchData]);
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -112,32 +137,32 @@ export default function Dashboard() {
       if (!spot.location_name.toLowerCase().includes(searchQuery.toLowerCase())) {
         return false;
       }
-      
+
       // Status filter
       if (selectedStatus !== "all" && spot.status !== selectedStatus) {
         return false;
       }
-      
+
       // Priority filter
       if (selectedPriority !== "all" && spot.priority_level !== selectedPriority) {
         return false;
       }
-      
+
       // Category filter
       if (selectedCategory !== "all" && spot.content_category !== selectedCategory) {
         return false;
       }
-      
+
       // Assigned to me filter
       if (showAssignedToMe && spot.assigned_user_id !== user?.id) {
         return false;
       }
-      
+
       // Upcoming changes filter
       if (showUpcomingOnly && !spot.next_planned_date) {
         return false;
       }
-      
+
       return true;
     });
   }, [signageSpots, searchQuery, selectedStatus, selectedPriority, selectedCategory, showAssignedToMe, showUpcomingOnly, user?.id]);
@@ -164,25 +189,26 @@ export default function Dashboard() {
 
   const handleBulkDelete = async () => {
     if (selectedSpots.size === 0) return;
-    
+
     if (!confirm(`Are you sure you want to delete ${selectedSpots.size} signage spot(s)?`)) {
       return;
     }
-    
+
     try {
       const { error } = await supabase
-        .from("signage_spots" as any)
+        .from("signage_spots")
         .delete()
         .in("id", Array.from(selectedSpots));
-      
+
       if (error) throw error;
-      
+
       toast.success(`Deleted ${selectedSpots.size} signage spot(s)`);
       setSelectedSpots(new Set());
       setIsMultiSelectMode(false);
       fetchData();
-    } catch (error: any) {
-      toast.error("Failed to delete spots: " + error.message);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      toast.error("Failed to delete spots: " + errorMessage);
     }
   };
 
@@ -273,7 +299,7 @@ export default function Dashboard() {
             size="sm"
             onClick={() => setShowAssignedToMe(!showAssignedToMe)}
           >
-            <User className="w-3 h-3 mr-1" />
+            <UserIcon className="w-3 h-3 mr-1" />
             Assigned to Me
           </Button>
           <Button
@@ -360,8 +386,8 @@ export default function Dashboard() {
             {filteredSpots.map((spot) => {
               const daysSinceUpdate = getDaysSinceUpdate(spot.last_update_date);
               const needsUpdate = daysSinceUpdate !== null && daysSinceUpdate > 180;
-              const activeCampaign = spot.signage_campaigns?.find((sc: any) => sc.campaigns?.is_active);
-              
+              const activeCampaign = spot.signage_campaigns?.find((sc) => sc.campaigns?.is_active);
+
               return (
                 <SignageCard
                   key={spot.id}

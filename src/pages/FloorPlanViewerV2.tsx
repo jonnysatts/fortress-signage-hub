@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ArrowLeft, Edit, ZoomIn, ZoomOut, Maximize, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 
-import { FloorPlan } from '@/components/floor-plans-v2/types';
+import { FloorPlan, Marker, ViewBox } from '@/components/floor-plans-v2/types';
 import { useFloorPlanMarkers } from '@/components/floor-plans-v2/useFloorPlanMarkers';
 import { createInitialViewBox, zoomViewBox, constrainViewBox, viewBoxToZoomLevel } from '@/components/floor-plans-v2/utils';
 import FloorPlanCanvas from '@/components/floor-plans-v2/FloorPlanCanvas';
@@ -24,7 +24,7 @@ export default function FloorPlanViewerV2() {
   const [floorPlans, setFloorPlans] = useState<FloorPlan[]>([]);
   const [selectedPlanId, setSelectedPlanId] = useState<string>('');
   const [floorPlan, setFloorPlan] = useState<FloorPlan | null>(null);
-  const [viewBox, setViewBox] = useState<any>(null);
+  const [viewBox, setViewBox] = useState<ViewBox | null>(null);
   const [loading, setLoading] = useState(true);
 
   const { markers, refetch } = useFloorPlanMarkers(selectedPlanId);
@@ -127,7 +127,7 @@ export default function FloorPlanViewerV2() {
     setViewBox(createInitialViewBox(floorPlan));
   };
 
-  const handleMarkerClick = (marker: any) => {
+  const handleMarkerClick = (marker: Marker) => {
     navigate(`/signage/${marker.signage_spot_id}`);
   };
 

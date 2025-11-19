@@ -20,14 +20,14 @@ interface FloorPlanCanvasProps {
   showGrid?: boolean;
   gridSize?: number;
   onMarkerClick?: (marker: Marker, event: React.MouseEvent) => void;
-  onCanvasClick?: (point: SVGPoint, event: React.MouseEvent) => void;
+  onCanvasClick?: (point: SVGPoint) => void;
   onCanvasMouseMove?: (point: SVGPoint) => void;
   onMarkerDragStart?: (marker: Marker, point: SVGPoint) => void;
   onMarkerDrag?: (marker: Marker, point: SVGPoint) => void;
   onMarkerDragEnd?: (marker: Marker, point: SVGPoint) => void;
   onViewBoxChange?: (viewBox: ViewBox) => void;
-  onCanvasMouseDown?: (point: SVGPoint, event: React.MouseEvent) => void;
-  onCanvasMouseUp?: (point: SVGPoint, event: React.MouseEvent) => void;
+  onCanvasMouseDown?: (point: SVGPoint) => void;
+  onCanvasMouseUp?: (point: SVGPoint) => void;
   onResizeStart?: (handle: string, marker: Marker, event: React.MouseEvent) => void;
   className?: string;
 }
@@ -79,7 +79,7 @@ const FloorPlanCanvas = React.memo(function FloorPlanCanvas({
 
     if (isPlacingMarker && onCanvasClick) {
       // In placement mode, all clicks go to canvas handler
-      onCanvasClick(clampedPoint, event);
+      onCanvasClick(clampedPoint);
     } else {
       // Normal mode: check if clicked on a marker
       const clickedMarker = findMarkerAtPoint(clampedPoint, markers);
@@ -87,7 +87,7 @@ const FloorPlanCanvas = React.memo(function FloorPlanCanvas({
       if (clickedMarker && onMarkerClick) {
         onMarkerClick(clickedMarker, event);
       } else if (onCanvasClick) {
-        onCanvasClick(clampedPoint, event);
+        onCanvasClick(clampedPoint);
       }
     }
   }, [floorPlan, markers, mode, draftMarker, onMarkerClick, onCanvasClick]);
@@ -113,7 +113,7 @@ const FloorPlanCanvas = React.memo(function FloorPlanCanvas({
     }
 
     if (onCanvasMouseDown) {
-      onCanvasMouseDown(clampedPoint, event);
+      onCanvasMouseDown(clampedPoint);
     }
   }, [floorPlan, markers, mode, draftMarker, onCanvasMouseDown, onViewBoxChange]);
 
@@ -196,7 +196,7 @@ const FloorPlanCanvas = React.memo(function FloorPlanCanvas({
     // 3. End Placement/Resize
     if (onCanvasMouseUp) {
       // Always forward mouse up to parent to finish placement/resize
-      onCanvasMouseUp(clampedPoint, event as any);
+      onCanvasMouseUp(clampedPoint);
     }
 
     // Reset refs

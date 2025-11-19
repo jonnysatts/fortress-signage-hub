@@ -47,10 +47,10 @@ Deno.serve(async (req) => {
 
     if (!plannedImages || plannedImages.length === 0) {
       return new Response(
-        JSON.stringify({ 
-          success: true, 
+        JSON.stringify({
+          success: true,
           message: 'No images to promote',
-          promoted: 0 
+          promoted: 0
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
@@ -75,9 +75,10 @@ Deno.serve(async (req) => {
           promotedCount++;
           console.log(`Successfully promoted image ${image.id} for spot ${image.signage_spot_id}`);
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
+        const errorMessage = err instanceof Error ? err.message : 'Unknown error';
         console.error(`Exception promoting image ${image.id}:`, err);
-        errors.push(`${image.id}: ${err.message}`);
+        errors.push(`${image.id}: ${errorMessage}`);
       }
     }
 
@@ -93,10 +94,11 @@ Deno.serve(async (req) => {
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Auto-promote error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: errorMessage }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -71,13 +71,7 @@ export function DayDetailView({ date, open, onClose, onRefresh }: DayDetailViewP
   const [printJobs, setPrintJobs] = useState<PrintJob[]>([]);
   const [activeCampaigns, setActiveCampaigns] = useState<ActiveCampaign[]>([]);
 
-  useEffect(() => {
-    if (open && date) {
-      loadDayData();
-    }
-  }, [open, date]);
-
-  const loadDayData = async () => {
+  const loadDayData = useCallback(async () => {
     if (!date) return;
     
     setIsLoading(true);
@@ -214,7 +208,7 @@ export function DayDetailView({ date, open, onClose, onRefresh }: DayDetailViewP
         setActiveCampaigns(campaignsWithCounts);
       }
 
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Error loading day data:', error);
       toast({
         title: "Error",
@@ -224,7 +218,13 @@ export function DayDetailView({ date, open, onClose, onRefresh }: DayDetailViewP
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [date, toast]);
+
+  useEffect(() => {
+    if (open && date) {
+      loadDayData();
+    }
+  }, [open, date, loadDayData]);
 
   if (!date) return null;
 

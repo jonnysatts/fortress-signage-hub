@@ -44,6 +44,10 @@ export function CampaignLinker({
   const [allCampaigns, setAllCampaigns] = useState<Campaign[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  const isPostgrestError = (error: unknown): error is { code?: string } => {
+    return Boolean(error) && typeof error === 'object' && 'code' in error;
+  };
+
   useEffect(() => {
     fetchCampaigns();
   }, []);
@@ -58,7 +62,7 @@ export function CampaignLinker({
 
       if (error) throw error;
       setAllCampaigns(data || []);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.error("Failed to load campaigns");
       console.error(error);
     } finally {
@@ -78,8 +82,8 @@ export function CampaignLinker({
       if (error) throw error;
       toast.success("Campaign linked");
       onUpdate();
-    } catch (error: any) {
-      if (error.code === '23505') {
+    } catch (error: unknown) {
+      if (isPostgrestError(error) && error.code === '23505') {
         toast.error("This campaign is already linked");
       } else {
         toast.error("Failed to link campaign");
@@ -98,7 +102,7 @@ export function CampaignLinker({
       if (error) throw error;
       toast.success("Campaign unlinked");
       onUpdate();
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.error("Failed to unlink campaign");
       console.error(error);
     }

@@ -22,7 +22,7 @@ Deno.serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    
+
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     console.log('Starting campaign status update job...');
@@ -45,10 +45,10 @@ Deno.serve(async (req) => {
 
     if (!endedCampaigns || endedCampaigns.length === 0) {
       return new Response(
-        JSON.stringify({ 
-          success: true, 
+        JSON.stringify({
+          success: true,
           message: 'No campaigns to update',
-          processed: 0 
+          processed: 0
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
@@ -75,8 +75,8 @@ Deno.serve(async (req) => {
       // Update all linked signage spots to "overdue" if they're currently "current"
       if (linkedSpots && linkedSpots.length > 0) {
         const spotIds = linkedSpots
-          .filter((ls: any) => ls.signage_spots?.status === 'current')
-          .map((ls: any) => ls.signage_spot_id);
+          .filter((ls: { signage_spots: { status: string } | null }) => ls.signage_spots?.status === 'current')
+          .map((ls: { signage_spot_id: string }) => ls.signage_spot_id);
 
         if (spotIds.length > 0) {
           const { error: updateError } = await supabase
@@ -109,8 +109,8 @@ Deno.serve(async (req) => {
     console.log(`Campaign status update completed. Updated ${updatedSpots} signage spots.`);
 
     return new Response(
-      JSON.stringify({ 
-        success: true, 
+      JSON.stringify({
+        success: true,
         message: `Processed ${endedCampaigns.length} campaigns, updated ${updatedSpots} signage spots`,
         campaignsProcessed: endedCampaigns.length,
         spotsUpdated: updatedSpots

@@ -13,7 +13,7 @@ import { Card } from '@/components/ui/card';
 import { ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 
-import { FloorPlan, Marker, SVGPoint, PointMarker, AreaMarker, LineMarker } from '@/components/floor-plans-v2/types';
+import { FloorPlan, Marker, SVGPoint, PointMarker, AreaMarker, LineMarker, ViewBox } from '@/components/floor-plans-v2/types';
 import { editorReducer, createInitialEditorState } from '@/components/floor-plans-v2/editorReducer';
 import { useFloorPlanMarkers } from '@/components/floor-plans-v2/useFloorPlanMarkers';
 import { createInitialViewBox, constrainViewBox, viewBoxToZoomLevel } from '@/components/floor-plans-v2/utils';
@@ -83,6 +83,15 @@ export default function FloorPlanEditorV2() {
 
     loadFloorPlan();
   }, [id, navigate]);
+
+  useEffect(() => {
+    if (floorPlan) {
+      dispatch({
+        type: 'SET_VIEW_BOX',
+        viewBox: createInitialViewBox(floorPlan)
+      });
+    }
+  }, [floorPlan]);
 
   // Handle spot placement from URL params
   useEffect(() => {
@@ -327,24 +336,23 @@ export default function FloorPlanEditorV2() {
       const start = placementStartRef.current;
       if (!start) return;
 
-      // Calculate top-left and dimensions based on drag direction
-      const x = Math.min(start.x, point.x);
-      const y = Math.min(start.y, point.y);
       const width = Math.abs(point.x - start.x);
       const height = Math.abs(point.y - start.y);
+      const centerX = start.x + (point.x - start.x) / 2;
+      const centerY = start.y + (point.y - start.y) / 2;
 
       dispatch({
         type: 'SET_DRAFT_MARKER',
         marker: {
           ...state.draftMarker,
-          x,
-          y,
+          x: centerX,
+          y: centerY,
           width,
           height
         }
       });
     }
-  }, [state.draftMarker, state.mode]);
+  }, [state.draftMarker, state.mode, state.isResizing]);
 
   // Canvas mouse up handler (finish placement or resize)
   const handleCanvasMouseUp = useCallback(async (point: SVGPoint) => {
@@ -360,7 +368,7 @@ export default function FloorPlanEditorV2() {
 
     if (state.mode === 'place-area' || state.mode === 'place-line') {
       // Finalize marker
-      let marker = state.draftMarker as Marker;
+      const marker = state.draftMarker as Marker;
 
       // Validate minimum size to prevent accidental clicks creating tiny markers
       let isValid = true;
@@ -375,19 +383,14 @@ export default function FloorPlanEditorV2() {
       }
 
       if (!isValid) {
-        // If too small (likely just a click), cancel draft and let user try again
-        // OR we could set a default size?
-        // User feedback: "It assumes... and presents a line you didn't create"
-        // So we should NOT create a default. We should just cancel if it's a click.
-        dispatch({ type: 'CANCEL_DRAFT' });
+        dispatch({ type: 'CANCEL_DRAFT', preserveContext: true });
         toast.info('Click and drag to draw the shape.');
         return;
       }
 
-      // Optimistically clear draft immediately to prevent "sticky" visual
-      dispatch({ type: 'CANCEL_DRAFT' });
+      dispatch({ type: 'CANCEL_DRAFT', preserveContext: true });
 
-      const savedMarker = await saveMarker({
+      const success = await saveMarker({
         ...marker,
         status: 'empty',
         expiry_date: null,
@@ -396,7 +399,9 @@ export default function FloorPlanEditorV2() {
         show_on_map: true
       });
 
-      if (savedMarker) {
+      if (success) {
+        dispatch({ type: 'SELECT_MARKER', markerId: marker.id });
+        dispatch({ type: 'SET_MODE', mode: 'select' });
         toast.success(
           <div className="flex flex-col gap-2">
             <span>{marker.type === 'line' ? 'Line' : 'Rectangle'} placed!</span>
@@ -413,7 +418,7 @@ export default function FloorPlanEditorV2() {
         );
       }
     }
-  }, [state.draftMarker, state.mode, saveMarker, navigate, state.placementSpotId, handleResizeEnd]);
+  }, [state.draftMarker, state.mode, saveMarker, navigate, state.placementSpotId, handleResizeEnd, state.isResizing]);
 
   // Canvas click handler (only for Point markers now)
   const handleCanvasClick = useCallback(async (point: SVGPoint) => {
@@ -447,7 +452,9 @@ export default function FloorPlanEditorV2() {
 
       const success = await saveMarker(marker);
       if (success) {
-        dispatch({ type: 'CANCEL_DRAFT' });
+        dispatch({ type: 'CANCEL_DRAFT', preserveContext: true });
+        dispatch({ type: 'SELECT_MARKER', markerId: marker.id });
+        dispatch({ type: 'SET_MODE', mode: 'select' });
         toast.success(
           <div className="flex flex-col gap-2">
             <span>Circle marker placed!</span>
@@ -488,17 +495,13 @@ export default function FloorPlanEditorV2() {
   }, []);
 
   const handleMarkerDragEnd = useCallback(async (marker: Marker, point: SVGPoint) => {
+    const finalMarker = state.draggedMarkerOverride
+      ? { ...marker, ...state.draggedMarkerOverride }
+      : { ...marker, x: point.x, y: point.y };
+
     dispatch({ type: 'END_DRAG' });
-
-    // Update marker in database
-    const updatedMarker = {
-      ...marker,
-      x: point.x,
-      y: point.y
-    };
-
-    await updateMarker(updatedMarker);
-  }, [updateMarker]);
+    await updateMarker(finalMarker as Marker);
+  }, [updateMarker, state.draggedMarkerOverride]);
 
 
 
@@ -519,7 +522,7 @@ export default function FloorPlanEditorV2() {
   }, [floorPlan]);
 
   // ViewBox change handler
-  const handleViewBoxChange = useCallback((newViewBox: any) => {
+  const handleViewBoxChange = useCallback((newViewBox: ViewBox) => {
     if (!floorPlan) return;
     const constrained = constrainViewBox(newViewBox, floorPlan);
     dispatch({ type: 'SET_VIEW_BOX', viewBox: constrained });

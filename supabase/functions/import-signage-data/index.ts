@@ -643,19 +643,20 @@ serve(async (req) => {
         status: 200,
       },
     )
-  } catch (error: any) {
-    console.error('Import error:', error);
+  } catch (error: unknown) {
+    const err = error as { message: string; code?: string; details?: string; hint?: string };
+    console.error('Import error:', err);
     console.error('Error details:', {
-      message: error.message,
-      code: error.code,
-      details: error.details,
-      hint: error.hint
+      message: err.message || 'Unknown error',
+      code: err.code,
+      details: err.details,
+      hint: err.hint
     });
     return new Response(
-      JSON.stringify({ 
-        error: error.message,
-        details: error.details,
-        hint: error.hint
+      JSON.stringify({
+        error: err.message || 'Unknown error',
+        details: err.details,
+        hint: err.hint
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

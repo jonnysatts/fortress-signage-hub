@@ -15,9 +15,20 @@ import { cn } from "@/lib/utils";
 import { TagSelector } from "@/components/TagSelector";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
+import type { Database } from "@/integrations/supabase/types";
+
+type CampaignRow = Database["public"]["Tables"]["campaigns"]["Row"];
+type CampaignUpdate = Database["public"]["Tables"]["campaigns"]["Update"];
+type CampaignTemplateRow = Database["public"]["Tables"]["campaign_templates"]["Row"];
+type SignageGroupRow = Database["public"]["Tables"]["signage_groups"]["Row"];
+
+interface CampaignTemplateConfig {
+  groups?: string[] | null;
+  tags?: string[] | null;
+}
 
 interface CampaignDialogProps {
-  campaign?: any;
+  campaign?: CampaignRow | null;
   onSuccess?: () => void;
   trigger?: React.ReactNode;
 }
@@ -33,12 +44,16 @@ export function CampaignDialog({ campaign, onSuccess, trigger }: CampaignDialogP
     campaign?.end_date ? new Date(campaign.end_date) : undefined
   );
   const [isActive, setIsActive] = useState(campaign?.is_active ?? true);
-  const [budgetAllocated, setBudgetAllocated] = useState(campaign?.budget_allocated || "");
+  const [budgetAllocated, setBudgetAllocated] = useState(
+    campaign?.budget_allocated !== null && campaign?.budget_allocated !== undefined
+      ? campaign.budget_allocated.toString()
+      : ""
+  );
   const [budgetNotes, setBudgetNotes] = useState(campaign?.budget_notes || "");
   const [selectedGroups, setSelectedGroups] = useState<string[]>(campaign?.groups || []);
   const [tags, setTags] = useState<string[]>(campaign?.tags || []);
-  const [templates, setTemplates] = useState<any[]>([]);
-  const [availableGroups, setAvailableGroups] = useState<any[]>([]);
+  const [templates, setTemplates] = useState<CampaignTemplateRow[]>([]);
+  const [availableGroups, setAvailableGroups] = useState<SignageGroupRow[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [showTemplateSave, setShowTemplateSave] = useState(false);
   const [templateName, setTemplateName] = useState("");
@@ -73,8 +88,9 @@ export function CampaignDialog({ campaign, onSuccess, trigger }: CampaignDialogP
   const handleLoadTemplate = (templateId: string) => {
     const template = templates.find(t => t.id === templateId);
     if (template?.template_config) {
-      setSelectedGroups(template.template_config.groups || []);
-      setTags(template.template_config.tags || []);
+      const config = template.template_config as CampaignTemplateConfig;
+      setSelectedGroups(config.groups || []);
+      setTags(config.tags || []);
       toast.success(`Loaded template: ${template.name}`);
     }
   };
@@ -107,8 +123,9 @@ export function CampaignDialog({ campaign, onSuccess, trigger }: CampaignDialogP
       setTemplateName("");
       setTemplateDescription("");
       fetchTemplates();
-    } catch (error: any) {
-      toast.error("Failed to save template");
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Failed to save template";
+      toast.error("Failed to save template: " + message);
       console.error(error);
     }
   };
@@ -120,13 +137,13 @@ export function CampaignDialog({ campaign, onSuccess, trigger }: CampaignDialogP
     try {
       const { data: { user } } = await supabase.auth.getUser();
       
-      const campaignData = {
+      const campaignData: CampaignUpdate = {
         name,
         description,
         start_date: startDate ? format(startDate, "yyyy-MM-dd") : null,
         end_date: endDate ? format(endDate, "yyyy-MM-dd") : null,
         is_active: isActive,
-        budget_allocated: budgetAllocated || null,
+        budget_allocated: budgetAllocated ? Number(budgetAllocated) : null,
         budget_notes: budgetNotes || null,
         groups: selectedGroups,
         tags: tags,
@@ -135,7 +152,7 @@ export function CampaignDialog({ campaign, onSuccess, trigger }: CampaignDialogP
 
       if (campaign) {
         const { error } = await supabase
-          .from("campaigns" as any)
+          .from("campaigns")
           .update(campaignData)
           .eq("id", campaign.id);
 
@@ -143,7 +160,7 @@ export function CampaignDialog({ campaign, onSuccess, trigger }: CampaignDialogP
         toast.success("Campaign updated successfully");
       } else {
         const { error } = await supabase
-          .from("campaigns" as any)
+          .from("campaigns")
           .insert(campaignData);
 
         if (error) throw error;
@@ -152,8 +169,9 @@ export function CampaignDialog({ campaign, onSuccess, trigger }: CampaignDialogP
 
       setOpen(false);
       onSuccess?.();
-    } catch (error: any) {
-      toast.error("Failed to save campaign: " + error.message);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Failed to save campaign";
+      toast.error("Failed to save campaign: " + message);
     } finally {
       setIsSaving(false);
     }

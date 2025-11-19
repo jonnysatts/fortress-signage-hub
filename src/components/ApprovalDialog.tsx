@@ -68,8 +68,9 @@ export function ApprovalDialog({
       onOpenChange(false);
       setComments("");
       onApprovalChange?.();
-    } catch (error: any) {
-      toast.error("Failed to update approval status");
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Failed to update approval status';
+      toast.error(message);
       console.error(error);
     } finally {
       setIsProcessing(false);

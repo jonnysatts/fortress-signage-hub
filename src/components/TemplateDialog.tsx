@@ -61,8 +61,9 @@ export function TemplateDialog({
       setName("");
       setDescription("");
       onTemplateSaved?.();
-    } catch (error: any) {
-      toast.error("Failed to save template");
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Failed to save template";
+      toast.error(message);
       console.error(error);
     } finally {
       setIsSaving(false);

@@ -1,6 +1,8 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { Database } from "@/integrations/supabase/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -40,16 +42,36 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
+type SignageSpot = Database['public']['Tables']['signage_spots']['Row'] & {
+  venues?: Database['public']['Tables']['venues']['Row'] | null;
+  profiles?: { id: string; full_name: string | null; email: string | null } | null;
+};
+
+type SignageCampaign = Database['public']['Tables']['signage_campaigns']['Row'] & {
+  campaigns?: Database['public']['Tables']['campaigns']['Row'] | null;
+};
+
+type PhotoHistory = Database['public']['Tables']['photo_history']['Row'];
+type SpotGroup = Database['public']['Tables']['signage_spot_groups']['Row'] & {
+  signage_groups?: Database['public']['Tables']['signage_groups']['Row'] | null;
+};
+
+type UserProfile = {
+  id: string;
+  full_name: string | null;
+  email: string | null;
+};
+
 export default function SignageDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const locationPhotoInputRef = useRef<HTMLInputElement>(null);
-  
-  const [spot, setSpot] = useState<any>(null);
-  const [campaigns, setCampaigns] = useState<any[]>([]);
-  const [photoHistory, setPhotoHistory] = useState<any[]>([]);
+
+  const [spot, setSpot] = useState<SignageSpot | null>(null);
+  const [campaigns, setCampaigns] = useState<SignageCampaign[]>([]);
+  const [photoHistory, setPhotoHistory] = useState<PhotoHistory[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isUploading, setIsUploading] = useState(false);
   const [isUploadingLocationPhoto, setIsUploadingLocationPhoto] = useState(false);
@@ -62,77 +84,33 @@ export default function SignageDetail() {
   const [printDueDate, setPrintDueDate] = useState<string>("");
   const [printNotes, setPrintNotes] = useState<string>("");
   const [historyFilter, setHistoryFilter] = useState<'all' | 'current' | 'planned' | 'reference' | 'before'>('all');
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
-  const [editedSpot, setEditedSpot] = useState<any>(null);
+  const [editedSpot, setEditedSpot] = useState<SignageSpot | null>(null);
   const [isSaving, setIsSaving] = useState(false);
-  const [users, setUsers] = useState<any[]>([]);
+  const [users, setUsers] = useState<UserProfile[]>([]);
   const [expandedImage, setExpandedImage] = useState<string | null>(null);
   const [defaultTab, setDefaultTab] = useState("details");
-  const [spotGroups, setSpotGroups] = useState<any[]>([]);
+  const [spotGroups, setSpotGroups] = useState<SpotGroup[]>([]);
 
-  useEffect(() => {
-    checkUser();
-    fetchSpot();
-    fetchCampaigns();
-    fetchPhotoHistory();
-    fetchUsers();
-    fetchSpotGroups();
-    
-    // Check for tab param in URL
-    const tab = searchParams.get('tab');
-    if (tab === 'upload') {
-      setDefaultTab('upload');
-    }
-  }, [id]);
-
-  const checkUser = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session?.user) {
-      setUser(session.user);
-
-      // Get all roles for the user from user_roles (secure)
-      const { data: roles, error } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', session.user.id);
-
-      const roleList = roles?.map(r => r.role) || [];
-      const effectiveRole = roleList.includes('admin')
-        ? 'admin'
-        : roleList.includes('manager')
-        ? 'manager'
-        : roleList.includes('staff')
-        ? 'staff'
-        : null;
-
-      console.info('Auth debug', {
-        userId: session.user.id,
-        roles: roleList,
-        effectiveRole,
-      });
-
-      setUserRole(effectiveRole);
-    }
-  };
-
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('profiles')
         .select('id, full_name, email')
         .eq('is_active', true)
         .order('full_name');
-      
+
       if (error) throw error;
       setUsers(data || []);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to load users:', error);
     }
-  };
+  }, []);
 
-  const fetchSpot = async () => {
+  const fetchSpot = useCallback(async () => {
+    if (!id) return;
     try {
       const { data, error } = await supabase
         .from("signage_spots")
@@ -141,17 +119,23 @@ export default function SignageDetail() {
         .single();
 
       if (error) throw error;
-      setSpot(data);
-      setEditedSpot(data);
-    } catch (error: any) {
+
+      // Cast the response to match our extended type
+      // The Supabase client types are correct but the join makes it tricky to infer automatically without a complex query type
+      const typedData = data as unknown as SignageSpot;
+
+      setSpot(typedData);
+      setEditedSpot(typedData);
+    } catch (error: unknown) {
       toast.error("Failed to load signage spot");
       console.error(error);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [id]);
 
-  const fetchCampaigns = async () => {
+  const fetchCampaigns = useCallback(async () => {
+    if (!id) return;
     try {
       const { data, error } = await supabase
         .from("signage_campaigns")
@@ -159,13 +143,14 @@ export default function SignageDetail() {
         .eq("signage_spot_id", id);
 
       if (error) throw error;
-      setCampaigns(data || []);
-    } catch (error: any) {
+      setCampaigns((data as unknown as SignageCampaign[]) || []);
+    } catch (error: unknown) {
       console.error("Failed to load campaigns:", error);
     }
-  };
+  }, [id]);
 
-  const fetchPhotoHistory = async () => {
+  const fetchPhotoHistory = useCallback(async () => {
+    if (!id) return;
     try {
       const { data, error } = await supabase
         .from("photo_history")
@@ -175,12 +160,13 @@ export default function SignageDetail() {
 
       if (error) throw error;
       setPhotoHistory(data || []);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Failed to load photo history:", error);
     }
-  };
+  }, [id]);
 
-  const fetchSpotGroups = async () => {
+  const fetchSpotGroups = useCallback(async () => {
+    if (!id) return;
     try {
       const { data, error } = await supabase
         .from("signage_spot_groups")
@@ -188,11 +174,56 @@ export default function SignageDetail() {
         .eq("signage_spot_id", id);
 
       if (error) throw error;
-      setSpotGroups(data || []);
-    } catch (error: any) {
+      setSpotGroups((data as unknown as SpotGroup[]) || []);
+    } catch (error: unknown) {
       console.error("Failed to load spot groups:", error);
     }
-  };
+  }, [id]);
+
+  const checkUser = useCallback(async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.user) {
+      setUser(session.user);
+
+      // Get all roles for the user from user_roles (secure)
+      const { data: roles } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', session.user.id);
+
+      const roleList = roles?.map(r => r.role) || [];
+      const effectiveRole = roleList.includes('admin')
+        ? 'admin'
+        : roleList.includes('manager')
+          ? 'manager'
+          : roleList.includes('staff')
+            ? 'staff'
+            : null;
+
+      console.info('Auth debug', {
+        userId: session.user.id,
+        roles: roleList,
+        effectiveRole,
+      });
+
+      setUserRole(effectiveRole);
+    }
+  }, []);
+
+  useEffect(() => {
+    checkUser();
+    fetchSpot();
+    fetchCampaigns();
+    fetchPhotoHistory();
+    fetchUsers();
+    fetchSpotGroups();
+
+    // Check for tab param in URL
+    const tab = searchParams.get('tab');
+    if (tab === 'upload') {
+      setDefaultTab('upload');
+    }
+  }, [id, searchParams, checkUser, fetchSpot, fetchCampaigns, fetchPhotoHistory, fetchUsers, fetchSpotGroups]);
 
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -203,7 +234,7 @@ export default function SignageDetail() {
       // Upload to Supabase Storage
       const fileExt = file.name.split('.').pop();
       const fileName = `${id}/${Date.now()}.${fileExt}`;
-      
+
       const { error: uploadError } = await supabase.storage
         .from('signage')
         .upload(fileName, file);
@@ -219,7 +250,7 @@ export default function SignageDetail() {
       if (imageType === "location") {
         const { error: updateError } = await supabase
           .from('signage_spots')
-          .update({ 
+          .update({
             location_photo_url: publicUrl
           })
           .eq('id', id);
@@ -259,14 +290,14 @@ export default function SignageDetail() {
             .single();
 
           const today = new Date().toISOString().split('T')[0];
-          const shouldUpdate = !currentSpot?.next_planned_date || 
-                              currentSpot.next_planned_date < today ||
-                              scheduledDate < currentSpot.next_planned_date;
+          const shouldUpdate = !currentSpot?.next_planned_date ||
+            currentSpot.next_planned_date < today ||
+            scheduledDate < currentSpot.next_planned_date;
 
           if (shouldUpdate) {
             const { error: updateError } = await supabase
               .from('signage_spots')
-              .update({ 
+              .update({
                 next_planned_image_url: publicUrl,
                 next_planned_date: scheduledDate
               })
@@ -287,8 +318,9 @@ export default function SignageDetail() {
       setPrintNotes("");
       fetchSpot();
       fetchPhotoHistory();
-    } catch (error: any) {
-      toast.error("Failed to upload image: " + error.message);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      toast.error("Failed to upload image: " + errorMessage);
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) {
@@ -306,7 +338,7 @@ export default function SignageDetail() {
       // Upload to Supabase Storage
       const fileExt = file.name.split('.').pop();
       const fileName = `${id}/location-${Date.now()}.${fileExt}`;
-      
+
       const { error: uploadError } = await supabase.storage
         .from('signage')
         .upload(fileName, file);
@@ -328,8 +360,9 @@ export default function SignageDetail() {
 
       toast.success("Location photo uploaded successfully!");
       fetchSpot();
-    } catch (error: any) {
-      toast.error("Failed to upload location photo: " + error.message);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      toast.error("Failed to upload location photo: " + errorMessage);
     } finally {
       setIsUploadingLocationPhoto(false);
       if (locationPhotoInputRef.current) {
@@ -373,8 +406,9 @@ export default function SignageDetail() {
       toast.success("Image deleted successfully!");
       fetchSpot();
       fetchPhotoHistory();
-    } catch (error: any) {
-      toast.error("Failed to delete image: " + error.message);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      toast.error("Failed to delete image: " + errorMessage);
     }
   };
 
@@ -422,8 +456,9 @@ export default function SignageDetail() {
       toast.success("Changes saved successfully!");
       setIsEditMode(false);
       fetchSpot();
-    } catch (error: any) {
-      toast.error("Failed to save changes: " + error.message);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      toast.error("Failed to save changes: " + errorMessage);
     } finally {
       setIsSaving(false);
     }
@@ -444,8 +479,9 @@ export default function SignageDetail() {
 
       toast.success("Marked as updated!");
       fetchSpot();
-    } catch (error: any) {
-      toast.error("Failed to update status: " + error.message);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      toast.error("Failed to update status: " + errorMessage);
     }
   };
 
@@ -460,8 +496,9 @@ export default function SignageDetail() {
 
       toast.success("Signage spot deleted");
       navigate("/dashboard");
-    } catch (error: any) {
-      toast.error("Failed to delete: " + error.message);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      toast.error("Failed to delete: " + errorMessage);
     }
   };
 
@@ -477,8 +514,9 @@ export default function SignageDetail() {
       toast.success("Image promoted to current!");
       fetchSpot();
       fetchPhotoHistory();
-    } catch (error: any) {
-      toast.error("Failed to promote image: " + error.message);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      toast.error("Failed to promote image: " + errorMessage);
     }
   };
 
@@ -494,8 +532,9 @@ export default function SignageDetail() {
       toast.success("Rolled back to previous image!");
       fetchSpot();
       fetchPhotoHistory();
-    } catch (error: any) {
-      toast.error("Failed to rollback: " + error.message);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      toast.error("Failed to rollback: " + errorMessage);
     }
   };
 
@@ -531,13 +570,13 @@ export default function SignageDetail() {
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Dashboard
           </Button>
-          
+
           <h1 className="text-3xl font-bold tracking-tight mb-2">{spot?.location_name}</h1>
           <div className="flex items-center gap-3 flex-wrap">
             <StatusBadge status={spot?.status} />
-            {spot?.venue && (
+            {spot?.venues && (
               <Badge variant="outline" className="text-sm">
-                {spot.venue.name}
+                {spot.venues.name}
               </Badge>
             )}
           </div>
@@ -716,7 +755,7 @@ export default function SignageDetail() {
                       </div>
                       {spot.previous_image_url ? (
                         <div className="space-y-2">
-                          <div 
+                          <div
                             className="relative bg-muted rounded-lg overflow-hidden cursor-pointer border-2 border-transparent hover:border-primary transition-all"
                             onClick={() => setExpandedImage(spot.previous_image_url)}
                           >
@@ -727,7 +766,7 @@ export default function SignageDetail() {
                             />
                           </div>
                           <p className="text-xs text-muted-foreground">
-                            {spot.previous_update_date 
+                            {spot.previous_update_date
                               ? `Replaced ${format(new Date(spot.previous_update_date), 'MMM d, yyyy')}`
                               : 'Historical'
                             }
@@ -748,7 +787,7 @@ export default function SignageDetail() {
                       </div>
                       {spot.current_image_url ? (
                         <div className="space-y-2">
-                          <div 
+                          <div
                             className="relative bg-muted rounded-lg overflow-hidden cursor-pointer border-2 border-green-500 hover:border-green-600 transition-all"
                             onClick={() => setExpandedImage(spot.current_image_url)}
                           >
@@ -762,7 +801,7 @@ export default function SignageDetail() {
                             </div>
                           </div>
                           <p className="text-xs text-muted-foreground">
-                            {spot.last_update_date 
+                            {spot.last_update_date
                               ? `Updated ${format(new Date(spot.last_update_date), 'MMM d, yyyy')}`
                               : 'Current'
                             }
@@ -789,7 +828,7 @@ export default function SignageDetail() {
                       </div>
                       {spot.next_planned_image_url ? (
                         <div className="space-y-2">
-                          <div 
+                          <div
                             className="relative bg-muted rounded-lg overflow-hidden cursor-pointer border-2 border-blue-500 hover:border-blue-600 transition-all"
                             onClick={() => setExpandedImage(spot.next_planned_image_url)}
                           >
@@ -808,7 +847,7 @@ export default function SignageDetail() {
                           <p className="text-xs text-muted-foreground">
                             {Math.ceil((new Date(spot.next_planned_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24))} days away
                           </p>
-                          
+
                           {canPromote && (
                             <Button
                               size="sm"
@@ -823,7 +862,7 @@ export default function SignageDetail() {
                               Promote to Current Now
                             </Button>
                           )}
-                          
+
                           {spot.previous_image_url && canPromote && (
                             <AlertDialog>
                               <AlertDialogTrigger asChild>
@@ -894,8 +933,8 @@ export default function SignageDetail() {
                     {isEditMode ? (
                       <Input
                         id="location_name"
-                        value={editedSpot.location_name}
-                        onChange={(e) => setEditedSpot({ ...editedSpot, location_name: e.target.value })}
+                        value={editedSpot?.location_name || ""}
+                        onChange={(e) => editedSpot && setEditedSpot({ ...editedSpot, location_name: e.target.value })}
                       />
                     ) : (
                       <p className="font-medium">{spot.location_name}</p>
@@ -911,8 +950,8 @@ export default function SignageDetail() {
                     <Label htmlFor="status">Status</Label>
                     {isEditMode ? (
                       <Select
-                        value={editedSpot.status}
-                        onValueChange={(value) => setEditedSpot({ ...editedSpot, status: value })}
+                        value={editedSpot?.status || "empty"}
+                        onValueChange={(value) => editedSpot && setEditedSpot({ ...editedSpot, status: value as SignageSpot['status'] })}
                       >
                         <SelectTrigger id="status">
                           <SelectValue />
@@ -936,8 +975,8 @@ export default function SignageDetail() {
                     <Label htmlFor="priority_level">Priority Level</Label>
                     {isEditMode ? (
                       <Select
-                        value={editedSpot.priority_level || ""}
-                        onValueChange={(value) => setEditedSpot({ ...editedSpot, priority_level: value })}
+                        value={editedSpot?.priority_level || ""}
+                        onValueChange={(value) => editedSpot && setEditedSpot({ ...editedSpot, priority_level: value as SignageSpot['priority_level'] })}
                       >
                         <SelectTrigger id="priority_level">
                           <SelectValue placeholder="Select priority" />
@@ -958,8 +997,8 @@ export default function SignageDetail() {
                     <Label htmlFor="content_category">Content Category</Label>
                     {isEditMode ? (
                       <Select
-                        value={editedSpot.content_category || ""}
-                        onValueChange={(value) => setEditedSpot({ ...editedSpot, content_category: value })}
+                        value={editedSpot?.content_category || ""}
+                        onValueChange={(value) => editedSpot && setEditedSpot({ ...editedSpot, content_category: value as SignageSpot['content_category'] })}
                       >
                         <SelectTrigger id="content_category">
                           <SelectValue placeholder="Select category" />
@@ -982,8 +1021,8 @@ export default function SignageDetail() {
                     <Label htmlFor="assigned_user">Assigned To</Label>
                     {isEditMode ? (
                       <Select
-                        value={editedSpot.assigned_user_id || "unassigned"}
-                        onValueChange={(value) => setEditedSpot({ ...editedSpot, assigned_user_id: value === "unassigned" ? null : value })}
+                        value={editedSpot?.assigned_user_id || "unassigned"}
+                        onValueChange={(value) => editedSpot && setEditedSpot({ ...editedSpot, assigned_user_id: value === "unassigned" ? null : value })}
                       >
                         <SelectTrigger id="assigned_user">
                           <SelectValue placeholder="Select user" />
@@ -1006,7 +1045,7 @@ export default function SignageDetail() {
                     <Label>Tags</Label>
                     <TagSelector
                       tags={editedSpot?.tags || []}
-                      onChange={(tags) => setEditedSpot({ ...editedSpot, tags })}
+                      onChange={(tags) => editedSpot && setEditedSpot({ ...editedSpot, tags })}
                       disabled={!isEditMode}
                     />
                   </div>
@@ -1029,7 +1068,7 @@ export default function SignageDetail() {
               {/* Campaign Linking Card */}
               <CampaignLinker
                 signageSpotId={id!}
-                linkedCampaigns={campaigns}
+                linkedCampaigns={campaigns.filter(c => c.campaigns) as unknown as { id: string; campaign_id: string; campaigns: Database['public']['Tables']['campaigns']['Row'] }[]}
                 onUpdate={() => {
                   fetchCampaigns();
                   fetchSpot();
@@ -1050,8 +1089,8 @@ export default function SignageDetail() {
                     <Input
                       id="width"
                       type="number"
-                      value={editedSpot.width_cm || ""}
-                      onChange={(e) => setEditedSpot({ ...editedSpot, width_cm: e.target.value ? parseFloat(e.target.value) : null })}
+                      value={editedSpot?.width_cm || ""}
+                      onChange={(e) => editedSpot && setEditedSpot({ ...editedSpot, width_cm: e.target.value ? parseFloat(e.target.value) : null })}
                     />
                   ) : (
                     <p>{spot.width_cm ? `${spot.width_cm} cm` : "Not set"}</p>
@@ -1064,8 +1103,8 @@ export default function SignageDetail() {
                     <Input
                       id="height"
                       type="number"
-                      value={editedSpot.height_cm || ""}
-                      onChange={(e) => setEditedSpot({ ...editedSpot, height_cm: e.target.value ? parseFloat(e.target.value) : null })}
+                      value={editedSpot?.height_cm || ""}
+                      onChange={(e) => editedSpot && setEditedSpot({ ...editedSpot, height_cm: e.target.value ? parseFloat(e.target.value) : null })}
                     />
                   ) : (
                     <p>{spot.height_cm ? `${spot.height_cm} cm` : "Not set"}</p>
@@ -1078,8 +1117,8 @@ export default function SignageDetail() {
                     <Input
                       id="depth"
                       type="number"
-                      value={editedSpot.depth_cm || ""}
-                      onChange={(e) => setEditedSpot({ ...editedSpot, depth_cm: e.target.value ? parseFloat(e.target.value) : null })}
+                      value={editedSpot?.depth_cm || ""}
+                      onChange={(e) => editedSpot && setEditedSpot({ ...editedSpot, depth_cm: e.target.value ? parseFloat(e.target.value) : null })}
                     />
                   ) : (
                     <p>{spot.depth_cm ? `${spot.depth_cm} cm` : "Not set"}</p>
@@ -1090,8 +1129,8 @@ export default function SignageDetail() {
                   <Label htmlFor="orientation">Orientation</Label>
                   {isEditMode ? (
                     <Select
-                      value={editedSpot.orientation || ""}
-                      onValueChange={(value) => setEditedSpot({ ...editedSpot, orientation: value })}
+                      value={editedSpot?.orientation || ""}
+                      onValueChange={(value) => editedSpot && setEditedSpot({ ...editedSpot, orientation: value as SignageSpot['orientation'] })}
                     >
                       <SelectTrigger id="orientation">
                         <SelectValue placeholder="Select orientation" />
@@ -1112,8 +1151,8 @@ export default function SignageDetail() {
                   {isEditMode ? (
                     <Input
                       id="material"
-                      value={editedSpot.material_type || ""}
-                      onChange={(e) => setEditedSpot({ ...editedSpot, material_type: e.target.value })}
+                      value={editedSpot?.material_type || ""}
+                      onChange={(e) => editedSpot && setEditedSpot({ ...editedSpot, material_type: e.target.value })}
                       placeholder="e.g., Vinyl, Fabric, Acrylic"
                     />
                   ) : (
@@ -1126,8 +1165,8 @@ export default function SignageDetail() {
                   {isEditMode ? (
                     <Input
                       id="mounting"
-                      value={editedSpot.mounting_type || ""}
-                      onChange={(e) => setEditedSpot({ ...editedSpot, mounting_type: e.target.value })}
+                      value={editedSpot?.mounting_type || ""}
+                      onChange={(e) => editedSpot && setEditedSpot({ ...editedSpot, mounting_type: e.target.value })}
                       placeholder="e.g., Wall-mounted, Hanging"
                     />
                   ) : (
@@ -1140,8 +1179,8 @@ export default function SignageDetail() {
                   {isEditMode ? (
                     <Textarea
                       id="specs_notes"
-                      value={editedSpot.specs_notes || ""}
-                      onChange={(e) => setEditedSpot({ ...editedSpot, specs_notes: e.target.value })}
+                      value={editedSpot?.specs_notes || ""}
+                      onChange={(e) => editedSpot && setEditedSpot({ ...editedSpot, specs_notes: e.target.value })}
                       placeholder="Additional specifications or installation notes"
                       rows={2}
                     />
@@ -1170,8 +1209,8 @@ export default function SignageDetail() {
                         type="number"
                         step="0.01"
                         min="0"
-                        value={editedSpot.production_cost || ''}
-                        onChange={(e) => setEditedSpot({...editedSpot, production_cost: e.target.value})}
+                        value={editedSpot?.production_cost || ''}
+                        onChange={(e) => editedSpot && setEditedSpot({ ...editedSpot, production_cost: e.target.value ? parseFloat(e.target.value) : null })}
                         placeholder="0.00"
                       />
                     </div>
@@ -1182,8 +1221,8 @@ export default function SignageDetail() {
                         type="number"
                         step="0.01"
                         min="0"
-                        value={editedSpot.installation_cost || ''}
-                        onChange={(e) => setEditedSpot({...editedSpot, installation_cost: e.target.value})}
+                        value={editedSpot?.installation_cost || ''}
+                        onChange={(e) => editedSpot && setEditedSpot({ ...editedSpot, installation_cost: e.target.value ? parseFloat(e.target.value) : null })}
                         placeholder="0.00"
                       />
                     </div>
@@ -1191,8 +1230,8 @@ export default function SignageDetail() {
                       <Label htmlFor="budget_notes">Budget Notes</Label>
                       <Textarea
                         id="budget_notes"
-                        value={editedSpot.budget_notes || ''}
-                        onChange={(e) => setEditedSpot({...editedSpot, budget_notes: e.target.value})}
+                        value={editedSpot?.budget_notes || ''}
+                        onChange={(e) => editedSpot && setEditedSpot({ ...editedSpot, budget_notes: e.target.value })}
                         placeholder="Optional notes about costs..."
                         rows={2}
                       />
@@ -1241,8 +1280,8 @@ export default function SignageDetail() {
                   <Label htmlFor="expiry_behavior">Expiry Behavior</Label>
                   {isEditMode ? (
                     <Select
-                      value={editedSpot.expiry_behavior || "auto_6_months"}
-                      onValueChange={(value) => setEditedSpot({ ...editedSpot, expiry_behavior: value })}
+                      value={editedSpot?.expiry_behavior || "auto_6_months"}
+                      onValueChange={(value) => editedSpot && setEditedSpot({ ...editedSpot, expiry_behavior: value as SignageSpot['expiry_behavior'] })}
                     >
                       <SelectTrigger id="expiry_behavior">
                         <SelectValue />
@@ -1265,8 +1304,8 @@ export default function SignageDetail() {
                     <Input
                       id="expiry_date"
                       type="date"
-                      value={editedSpot.expiry_date || ""}
-                      onChange={(e) => setEditedSpot({ ...editedSpot, expiry_date: e.target.value })}
+                      value={editedSpot?.expiry_date || ""}
+                      onChange={(e) => editedSpot && setEditedSpot({ ...editedSpot, expiry_date: e.target.value })}
                     />
                   ) : (
                     <p>{spot.expiry_date ? new Date(spot.expiry_date).toLocaleDateString() : "Auto-calculated"}</p>
@@ -1296,8 +1335,8 @@ export default function SignageDetail() {
                   {isEditMode ? (
                     <Input
                       id="supplier"
-                      value={editedSpot.supplier_vendor || ""}
-                      onChange={(e) => setEditedSpot({ ...editedSpot, supplier_vendor: e.target.value })}
+                      value={editedSpot?.supplier_vendor || ""}
+                      onChange={(e) => editedSpot && setEditedSpot({ ...editedSpot, supplier_vendor: e.target.value })}
                       placeholder="Supplier or vendor name"
                     />
                   ) : (
@@ -1310,8 +1349,8 @@ export default function SignageDetail() {
                   {isEditMode ? (
                     <Textarea
                       id="creative_brief"
-                      value={editedSpot.creative_brief || ""}
-                      onChange={(e) => setEditedSpot({ ...editedSpot, creative_brief: e.target.value })}
+                      value={editedSpot?.creative_brief || ""}
+                      onChange={(e) => editedSpot && setEditedSpot({ ...editedSpot, creative_brief: e.target.value })}
                       placeholder="Creative direction and ideas"
                       rows={3}
                     />
@@ -1325,8 +1364,8 @@ export default function SignageDetail() {
                   {isEditMode ? (
                     <Textarea
                       id="recommendations"
-                      value={editedSpot.recommendations || ""}
-                      onChange={(e) => setEditedSpot({ ...editedSpot, recommendations: e.target.value })}
+                      value={editedSpot?.recommendations || ""}
+                      onChange={(e) => editedSpot && setEditedSpot({ ...editedSpot, recommendations: e.target.value })}
                       placeholder="Recommendations and suggestions"
                       rows={3}
                     />
@@ -1340,8 +1379,8 @@ export default function SignageDetail() {
                   {isEditMode ? (
                     <Textarea
                       id="notes"
-                      value={editedSpot.notes || ""}
-                      onChange={(e) => setEditedSpot({ ...editedSpot, notes: e.target.value })}
+                      value={editedSpot?.notes || ""}
+                      onChange={(e) => editedSpot && setEditedSpot({ ...editedSpot, notes: e.target.value })}
                       placeholder="Additional notes and comments"
                       rows={3}
                     />
@@ -1409,7 +1448,7 @@ export default function SignageDetail() {
               <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="imageType">Image Type</Label>
-                  <Select value={imageType} onValueChange={(value: any) => setImageType(value)}>
+                  <Select value={imageType} onValueChange={(value) => setImageType(value as "current" | "before" | "after" | "reference" | "planned" | "location")}>
                     <SelectTrigger id="imageType">
                       <SelectValue />
                     </SelectTrigger>
@@ -1599,7 +1638,7 @@ export default function SignageDetail() {
                         after: { color: 'bg-gray-400', label: 'AFTER' },
                       };
                       const config = statusConfig[photo.image_type] || statusConfig.reference;
-                      
+
                       return (
                         <Card key={photo.id} className="overflow-hidden group">
                           <div className="relative bg-muted min-h-[200px] flex items-center justify-center">
@@ -1627,20 +1666,20 @@ export default function SignageDetail() {
                                 <p className="text-sm font-semibold">
                                   Uploaded {format(new Date(photo.upload_date), 'MMM d, yyyy')}
                                 </p>
-                                
+
                                 {photo.image_type === 'planned' && photo.scheduled_date && (
                                   <p className="text-xs text-blue-600 font-semibold mt-1">
                                     📅 Scheduled: {format(new Date(photo.scheduled_date), 'MMM d, yyyy')}
                                   </p>
                                 )}
-                                
+
                                 {photo.print_status && photo.print_status !== 'not_required' && (
                                   <div className="mt-2">
                                     <Badge className={
                                       photo.print_status === 'pending' ? 'bg-gray-500' :
-                                      photo.print_status === 'ordered' ? 'bg-blue-500' :
-                                      photo.print_status === 'in_production' ? 'bg-yellow-500' :
-                                      'bg-green-500'
+                                        photo.print_status === 'ordered' ? 'bg-blue-500' :
+                                          photo.print_status === 'in_production' ? 'bg-yellow-500' :
+                                            'bg-green-500'
                                     }>
                                       <Printer className="w-3 h-3 mr-1" />
                                       {photo.print_status.replace('_', ' ').toUpperCase()}
@@ -1649,7 +1688,7 @@ export default function SignageDetail() {
                                   </div>
                                 )}
                               </div>
-                              
+
                               <div className="flex gap-1">
                                 {photo.image_type === 'planned' && canPromote && (
                                   <Button
@@ -1661,7 +1700,7 @@ export default function SignageDetail() {
                                     <CheckCircle2 className="w-4 h-4 text-green-600" />
                                   </Button>
                                 )}
-                                
+
                                 <Button
                                   variant="ghost"
                                   size="icon"
@@ -1671,7 +1710,7 @@ export default function SignageDetail() {
                                 </Button>
                               </div>
                             </div>
-                            
+
                             {photo.caption && (
                               <p className="text-sm text-muted-foreground">{photo.caption}</p>
                             )}
@@ -1705,7 +1744,7 @@ export default function SignageDetail() {
                       includeMargin={true}
                     />
                   </div>
-                  
+
                   <div className="text-center space-y-2">
                     <p className="font-medium">{spot?.location_name}</p>
                     <p className="text-xs text-muted-foreground font-mono break-all max-w-md">
@@ -1721,12 +1760,12 @@ export default function SignageDetail() {
                         const canvas = document.createElement('canvas');
                         const ctx = canvas.getContext('2d');
                         const img = new Image();
-                        
+
                         img.onload = () => {
                           canvas.width = img.width;
                           canvas.height = img.height;
                           ctx?.drawImage(img, 0, 0);
-                          
+
                           canvas.toBlob((blob) => {
                             if (blob) {
                               const url = URL.createObjectURL(blob);
@@ -1739,7 +1778,7 @@ export default function SignageDetail() {
                             }
                           });
                         };
-                        
+
                         img.src = 'data:image/svg+xml;base64,' + btoa(svgData);
                       }
                     }}
@@ -1766,7 +1805,7 @@ export default function SignageDetail() {
 
         {/* Full Image Viewer Dialog */}
         {expandedImage && (
-          <div 
+          <div
             className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
             onClick={() => setExpandedImage(null)}
           >

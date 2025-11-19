@@ -1,7 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Calendar as BigCalendar, momentLocalizer, View } from "react-big-calendar";
 import moment from "moment-timezone";
 import { supabase } from "@/integrations/supabase/client";
+import { Database } from "@/integrations/supabase/types";
 import { useToast } from "@/hooks/use-toast";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -18,6 +19,21 @@ import "react-big-calendar/lib/css/react-big-calendar.css";
 moment.tz.setDefault("Australia/Sydney");
 const localizer = momentLocalizer(moment);
 
+type CalendarSettings = Database['public']['Tables']['calendar_settings']['Row'];
+
+interface CalendarEventMetadata {
+  signage_spots?: {
+    location_name?: string | null;
+    venues?: { name?: string | null } | null;
+  } | null;
+  caption?: string | null;
+  scheduled_date?: string | null;
+  print_due_date?: string | null;
+  print_vendor?: string | null;
+  print_status?: string | null;
+  [key: string]: unknown;
+}
+
 interface CalendarEvent {
   id: string;
   title: string;
@@ -27,17 +43,7 @@ interface CalendarEvent {
   spotId?: string;
   campaignId?: string;
   photoId?: string;
-  metadata?: any;
-}
-
-interface CalendarSettings {
-  show_scheduled_promotions: boolean;
-  show_print_jobs: boolean;
-  show_campaigns: boolean;
-  show_expiry_dates: boolean;
-  show_stale_warnings: boolean;
-  show_recurring_events: boolean;
-  default_view: string;
+  metadata?: CalendarEventMetadata;
 }
 
 export default function Calendar() {
@@ -53,8 +59,8 @@ export default function Calendar() {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [showDayDetail, setShowDayDetail] = useState(false);
   const [emptySpotCount, setEmptySpotCount] = useState(0);
-  
-  const [settings, setSettings] = useState<CalendarSettings>({
+
+  const [settings, setSettings] = useState<Partial<CalendarSettings>>({
     show_scheduled_promotions: true,
     show_print_jobs: true,
     show_campaigns: true,
@@ -65,26 +71,16 @@ export default function Calendar() {
   });
 
   // Load user settings
-  useEffect(() => {
-    loadSettings();
-    loadEmptySpotCount();
-  }, []);
-
-  // Load events when settings change
-  useEffect(() => {
-    loadEvents();
-  }, [settings]);
-
-  const loadEmptySpotCount = async () => {
+  const loadEmptySpotCount = useCallback(async () => {
     const { count } = await supabase
       .from('signage_spots')
       .select('*', { count: 'exact', head: true })
       .eq('status', 'empty');
-    
-    setEmptySpotCount(count || 0);
-  };
 
-  const loadSettings = async () => {
+    setEmptySpotCount(count || 0);
+  }, []);
+
+  const loadSettings = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
@@ -100,18 +96,199 @@ export default function Calendar() {
     }
 
     if (data) {
-      setSettings({
-        show_scheduled_promotions: data.show_scheduled_promotions,
-        show_print_jobs: data.show_print_jobs,
-        show_campaigns: data.show_campaigns,
-        show_expiry_dates: data.show_expiry_dates,
-        show_stale_warnings: data.show_stale_warnings,
-        show_recurring_events: data.show_recurring_events,
-        default_view: data.default_view,
-      });
-      setView(data.default_view as View);
+      setSettings(data);
+      if (data.default_view) {
+        setView(data.default_view as View);
+      }
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    loadSettings();
+    loadEmptySpotCount();
+  }, [loadSettings, loadEmptySpotCount]);
+
+  // Load events when settings change
+  const loadEvents = useCallback(async () => {
+    setIsLoading(true);
+    const allEvents: CalendarEvent[] = [];
+
+    try {
+      // Scheduled promotions
+      if (settings.show_scheduled_promotions) {
+        const { data: promotions } = await supabase
+          .from('photo_history')
+          .select(`
+            id,
+            scheduled_date,
+            caption,
+            signage_spot_id,
+            signage_spots (location_name, venues (name))
+          `)
+          .eq('image_type', 'planned')
+          .not('scheduled_date', 'is', null);
+
+        if (promotions) {
+          promotions.forEach(p => {
+            if (!p.scheduled_date) return;
+            allEvents.push({
+              id: p.id,
+              title: `📸 ${p.signage_spots?.location_name || 'Photo Update'}`,
+              start: new Date(p.scheduled_date),
+              end: new Date(p.scheduled_date),
+              type: 'scheduled_promotion',
+              spotId: p.signage_spot_id ?? undefined,
+              photoId: p.id,
+              metadata: p as CalendarEventMetadata,
+            });
+          });
+        }
+      }
+
+      // Print jobs
+      if (settings.show_print_jobs) {
+        const { data: printJobs } = await supabase
+          .from('photo_history')
+          .select(`
+            id,
+            print_due_date,
+            print_vendor,
+            print_status,
+            signage_spot_id,
+            signage_spots (location_name, venues (name))
+          `)
+          .not('print_due_date', 'is', null)
+          .in('print_status', ['pending', 'ordered', 'in_production']);
+
+        if (printJobs) {
+          printJobs.forEach(j => {
+            if (!j.print_due_date) return;
+            allEvents.push({
+              id: `${j.id}_print`,
+              title: `🖨️ Print: ${j.signage_spots?.location_name || 'Unknown'}`,
+              start: new Date(j.print_due_date),
+              end: new Date(j.print_due_date),
+              type: 'print_job',
+              spotId: j.signage_spot_id ?? undefined,
+              photoId: j.id,
+              metadata: j as CalendarEventMetadata,
+            });
+          });
+        }
+      }
+
+      // Campaigns
+      if (settings.show_campaigns) {
+        const { data: campaigns } = await supabase
+          .from('campaigns')
+          .select('*')
+          .eq('is_active', true);
+
+        if (campaigns) {
+          campaigns.forEach((c) => {
+            if (c.start_date && c.end_date) {
+              allEvents.push({
+                id: `${c.id}_campaign`,
+                title: `📊 ${c.name}`,
+                start: new Date(c.start_date),
+                end: new Date(c.end_date),
+                type: 'campaign_start',
+                campaignId: c.id,
+                metadata: c as CalendarEventMetadata
+              });
+            } else if (c.start_date) {
+              allEvents.push({
+                id: `${c.id}_start`,
+                title: `🚀 ${c.name} (Start)`,
+                start: new Date(c.start_date),
+                end: new Date(c.start_date),
+                type: 'campaign_start',
+                campaignId: c.id,
+                metadata: c as CalendarEventMetadata
+              });
+            }
+            if (c.end_date) {
+              allEvents.push({
+                id: `${c.id}_end`,
+                title: `🏁 ${c.name} (End)`,
+                start: new Date(c.end_date),
+                end: new Date(c.end_date),
+                type: 'campaign_end',
+                campaignId: c.id,
+                metadata: c as CalendarEventMetadata
+              });
+            }
+          });
+        }
+      }
+
+      // Expiry dates
+      if (settings.show_expiry_dates) {
+        const { data: expiring } = await supabase
+          .from('signage_spots')
+          .select('id, location_name, expiry_date, venues (name)')
+          .not('expiry_date', 'is', null)
+          .gte('expiry_date', new Date().toISOString().split('T')[0]);
+
+        if (expiring) {
+          expiring.forEach((s) => {
+            if (!s.expiry_date) return;
+            allEvents.push({
+              id: `${s.id}_expiry`,
+              title: `⏰ Expiry: ${s.location_name}`,
+              start: new Date(s.expiry_date),
+              end: new Date(s.expiry_date),
+              type: 'expiry',
+              spotId: s.id,
+              metadata: s as CalendarEventMetadata
+            });
+          });
+        }
+      }
+
+      // Stale warnings
+      if (settings.show_stale_warnings) {
+        const sixMonthsAgo = moment().subtract(6, 'months').format('YYYY-MM-DD');
+        const { data: stale } = await supabase
+          .from('signage_spots')
+          .select('id, location_name, last_update_date, venues (name)')
+          .not('last_update_date', 'is', null)
+          .lt('last_update_date', sixMonthsAgo)
+          .is('next_planned_image_url', null)
+          .neq('status', 'empty');
+
+        if (stale) {
+          stale.forEach((s) => {
+            if (!s.last_update_date) return;
+            allEvents.push({
+              id: `${s.id}_stale`,
+              title: `⚠️ Stale: ${s.location_name}`,
+              start: new Date(s.last_update_date),
+              end: new Date(s.last_update_date),
+              type: 'stale_warning',
+              spotId: s.id,
+              metadata: s as CalendarEventMetadata
+            });
+          });
+        }
+      }
+
+      setEvents(allEvents);
+    } catch (error) {
+      console.error('Error loading events:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load calendar events",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  }, [settings, toast]);
+
+  useEffect(() => {
+    loadEvents();
+  }, [loadEvents]);
 
   const saveSettings = async (newSettings: Partial<CalendarSettings>) => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -136,180 +313,6 @@ export default function Calendar() {
         description: "Failed to save calendar settings",
         variant: "destructive",
       });
-    }
-  };
-
-  const loadEvents = async () => {
-    setIsLoading(true);
-    const allEvents: CalendarEvent[] = [];
-
-    try {
-      // Scheduled promotions
-      if (settings.show_scheduled_promotions) {
-        const { data: promotions } = await supabase
-          .from('photo_history')
-          .select(`
-            id,
-            scheduled_date,
-            caption,
-            signage_spot_id,
-            signage_spots (location_name, venues (name))
-          `)
-          .eq('image_type', 'planned')
-          .not('scheduled_date', 'is', null);
-
-        if (promotions) {
-          promotions.forEach(p => {
-            allEvents.push({
-              id: p.id,
-              title: `📸 ${p.signage_spots?.location_name || 'Photo Update'}`,
-              start: new Date(p.scheduled_date!),
-              end: new Date(p.scheduled_date!),
-              type: 'scheduled_promotion',
-              spotId: p.signage_spot_id,
-              photoId: p.id,
-              metadata: p,
-            });
-          });
-        }
-      }
-
-      // Print jobs
-      if (settings.show_print_jobs) {
-        const { data: printJobs } = await supabase
-          .from('photo_history')
-          .select(`
-            id,
-            print_due_date,
-            print_vendor,
-            print_status,
-            signage_spot_id,
-            signage_spots (location_name, venues (name))
-          `)
-          .not('print_due_date', 'is', null)
-          .in('print_status', ['pending', 'ordered', 'in_production']);
-
-        if (printJobs) {
-          printJobs.forEach(j => {
-            allEvents.push({
-              id: j.id + '_print',
-              title: `🖨️ Print: ${j.signage_spots?.location_name || 'Unknown'}`,
-              start: new Date(j.print_due_date!),
-              end: new Date(j.print_due_date!),
-              type: 'print_job',
-              spotId: j.signage_spot_id,
-              photoId: j.id,
-              metadata: j,
-            });
-          });
-        }
-      }
-
-      // Campaigns - show as bars spanning dates
-      if (settings.show_campaigns) {
-        const { data: campaigns } = await supabase
-          .from('campaigns')
-          .select('*')
-          .eq('is_active', true);
-
-        if (campaigns) {
-          campaigns.forEach(c => {
-            if (c.start_date && c.end_date) {
-              // Campaign as a bar spanning the dates
-              allEvents.push({
-                id: c.id + '_campaign',
-                title: `📊 ${c.name}`,
-                start: new Date(c.start_date),
-                end: new Date(c.end_date),
-                type: 'campaign_start',
-                campaignId: c.id,
-                metadata: c,
-              });
-            } else if (c.start_date) {
-              allEvents.push({
-                id: c.id + '_start',
-                title: `🚀 ${c.name} (Start)`,
-                start: new Date(c.start_date),
-                end: new Date(c.start_date),
-                type: 'campaign_start',
-                campaignId: c.id,
-                metadata: c,
-              });
-            }
-            if (c.end_date && !c.start_date) {
-              allEvents.push({
-                id: c.id + '_end',
-                title: `🏁 ${c.name} (End)`,
-                start: new Date(c.end_date),
-                end: new Date(c.end_date),
-                type: 'campaign_end',
-                campaignId: c.id,
-                metadata: c,
-              });
-            }
-          });
-        }
-      }
-
-      // Expiry dates
-      if (settings.show_expiry_dates) {
-        const { data: expiring } = await supabase
-          .from('signage_spots')
-          .select('id, location_name, expiry_date, venues (name)')
-          .not('expiry_date', 'is', null)
-          .gte('expiry_date', new Date().toISOString().split('T')[0]);
-
-        if (expiring) {
-          expiring.forEach(s => {
-            allEvents.push({
-              id: s.id + '_expiry',
-              title: `⏰ Expiry: ${s.location_name}`,
-              start: new Date(s.expiry_date!),
-              end: new Date(s.expiry_date!),
-              type: 'expiry',
-              spotId: s.id,
-              metadata: s,
-            });
-          });
-        }
-      }
-
-      // Stale warnings
-      if (settings.show_stale_warnings) {
-        const sixMonthsAgo = moment().subtract(6, 'months').format('YYYY-MM-DD');
-        const { data: stale } = await supabase
-          .from('signage_spots')
-          .select('id, location_name, last_update_date, venues (name)')
-          .not('last_update_date', 'is', null)
-          .lt('last_update_date', sixMonthsAgo)
-          .is('next_planned_image_url', null)
-          .neq('status', 'empty');
-
-        if (stale) {
-          stale.forEach(s => {
-            allEvents.push({
-              id: s.id + '_stale',
-              title: `⚠️ Stale: ${s.location_name}`,
-              start: new Date(s.last_update_date!),
-              end: new Date(s.last_update_date!),
-              type: 'stale_warning',
-              spotId: s.id,
-              metadata: s,
-            });
-          });
-        }
-      }
-
-      setEvents(allEvents);
-    } catch (error) {
-      console.error('Error loading events:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load calendar events",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -383,11 +386,12 @@ export default function Calendar() {
         description: "Event rescheduled successfully",
       });
       loadEvents();
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Failed to reschedule event";
       console.error('Error rescheduling event:', error);
       toast({
         title: "Error",
-        description: error.message || "Failed to reschedule event",
+        description: message,
         variant: "destructive",
       });
     }
@@ -398,7 +402,7 @@ export default function Calendar() {
       if ((event.type === 'campaign_start' || event.type === 'campaign_end') && event.campaignId) {
         const { error } = await supabase
           .from('campaigns')
-          .update({ 
+          .update({
             start_date: start.toISOString().split('T')[0],
             end_date: end.toISOString().split('T')[0]
           })
@@ -411,11 +415,12 @@ export default function Calendar() {
         });
         loadEvents();
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Failed to resize event";
       console.error('Error resizing event:', error);
       toast({
         title: "Error",
-        description: error.message || "Failed to resize event",
+        description: message,
         variant: "destructive",
       });
     }
@@ -469,7 +474,7 @@ export default function Calendar() {
                 <p className="text-sm text-muted-foreground">Click to fill empty signage spots</p>
               </div>
             </div>
-            <Button 
+            <Button
               variant="destructive"
               onClick={() => navigate('/dashboard?filter=empty')}
             >

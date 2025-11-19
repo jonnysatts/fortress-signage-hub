@@ -10,12 +10,12 @@ import {
 import { Button } from "@/components/ui/button";
 import { FileText, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import type { Database } from "@/integrations/supabase/types";
 
-interface Template {
-  id: string;
-  name: string;
-  description: string | null;
-  template_config: any;
+type CampaignTemplate = Database["public"]["Tables"]["campaign_templates"]["Row"];
+interface TemplateConfig {
+  groups?: string[] | null;
+  tags?: string[] | null;
 }
 
 interface TemplateSelectorProps {
@@ -24,7 +24,7 @@ interface TemplateSelectorProps {
 }
 
 export function TemplateSelector({ onTemplateSelect, userRole }: TemplateSelectorProps) {
-  const [templates, setTemplates] = useState<Template[]>([]);
+  const [templates, setTemplates] = useState<CampaignTemplate[]>([]);
   const [selectedTemplate, setSelectedTemplate] = useState<string>("");
   const [isLoading, setIsLoading] = useState(true);
 
@@ -44,7 +44,7 @@ export function TemplateSelector({ onTemplateSelect, userRole }: TemplateSelecto
 
       if (error) throw error;
       setTemplates(data || []);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.error("Failed to load templates");
       console.error(error);
     } finally {
@@ -56,9 +56,10 @@ export function TemplateSelector({ onTemplateSelect, userRole }: TemplateSelecto
     setSelectedTemplate(templateId);
     const template = templates.find(t => t.id === templateId);
     if (template) {
+      const config = template.template_config as TemplateConfig;
       onTemplateSelect(
-        template.template_config.groups || [],
-        template.template_config.tags || []
+        config.groups || [],
+        config.tags || []
       );
       toast.success(`Applied template: ${template.name}`);
     }
@@ -78,7 +79,7 @@ export function TemplateSelector({ onTemplateSelect, userRole }: TemplateSelecto
       toast.success("Template deleted");
       setSelectedTemplate("");
       fetchTemplates();
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.error("Failed to delete template");
       console.error(error);
     }

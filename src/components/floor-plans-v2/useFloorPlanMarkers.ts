@@ -8,6 +8,14 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Marker, PointMarker, AreaMarker, LineMarker } from './types';
 import { toast } from 'sonner';
+import type { Database } from '@/integrations/supabase/types';
+
+type SignageSpotRow = Database['public']['Tables']['signage_spots']['Row'];
+type SignageSpotUpdate = Database['public']['Tables']['signage_spots']['Update'];
+type FloorPlanRow = Database['public']['Tables']['floor_plans']['Row'];
+type MarkerRow = SignageSpotRow & {
+  floor_plans?: Pick<FloorPlanRow, 'original_width' | 'original_height'> | null;
+};
 
 interface UseFloorPlanMarkersResult {
   markers: Marker[];
@@ -28,7 +36,7 @@ export function useFloorPlanMarkers(floorPlanId: string): UseFloorPlanMarkersRes
   const [error, setError] = useState<Error | null>(null);
 
   // Convert database row to Marker object
-  const dbToMarker = useCallback((row: any): Marker | null => {
+  const dbToMarker = useCallback((row: MarkerRow): Marker | null => {
     // Use new pixel-based columns if available, otherwise fall back to percentage
     const hasPixelData = row.marker_x_pixels !== null;
 
@@ -56,14 +64,14 @@ export function useFloorPlanMarkers(floorPlanId: string): UseFloorPlanMarkersRes
     };
 
     // Helper to get X coordinate (pixels or converted percentage)
-    const getX = (pixelVal: number | null, percentVal: number | null) => {
+    const getX = (pixelVal: number | null | undefined, percentVal: number | null | undefined) => {
       if (pixelVal !== null) return pixelVal;
       if (percentVal !== null) return (percentVal / 100) * floorWidth;
       return 0;
     };
 
     // Helper to get Y coordinate (pixels or converted percentage)
-    const getY = (pixelVal: number | null, percentVal: number | null) => {
+    const getY = (pixelVal: number | null | undefined, percentVal: number | null | undefined) => {
       if (pixelVal !== null) return pixelVal;
       if (percentVal !== null) return (percentVal / 100) * floorHeight;
       return 0;
@@ -177,12 +185,12 @@ export function useFloorPlanMarkers(floorPlanId: string): UseFloorPlanMarkersRes
   }, [floorPlanId, dbToMarker]);
 
   // Save new marker to database
-  const saveMarker = useCallback(async (marker: Marker): Promise<Marker | null> => {
+  const saveMarker = useCallback(async (marker: Marker): Promise<boolean> => {
     try {
       // Prepare data for Supabase
       // We are updating an existing signage_spot record, not creating a new one
       // The ID is the signage_spot_id
-      const dbRow: any = {
+      const dbRow: SignageSpotUpdate = {
         floor_plan_id: marker.floor_plan_id,
         location_name: marker.location_name,
         marker_type: marker.type,
@@ -213,12 +221,10 @@ export function useFloorPlanMarkers(floorPlanId: string): UseFloorPlanMarkersRes
         });
       }
 
-      const { data, error: saveError } = await supabase
+      const { error: saveError } = await supabase
         .from('signage_spots')
         .update(dbRow)
-        .eq('id', marker.signage_spot_id)
-        .select()
-        .single();
+        .eq('id', marker.signage_spot_id);
 
       if (saveError) {
         throw saveError;
@@ -227,11 +233,7 @@ export function useFloorPlanMarkers(floorPlanId: string): UseFloorPlanMarkersRes
       // Reload to get fresh data including any DB-side triggers/defaults
       await loadMarkers();
 
-      // Return the saved marker (re-constructed from DB data would be ideal, but for now return input with success)
-      // actually better to find it from the reloaded markers if possible, or just return the input marker
-      // but we need to return a Marker object to satisfy the signature.
-      // Let's return the marker we just saved.
-      return marker;
+      return true;
     } catch (err) {
       console.error('Error saving marker:', err);
       console.error('Full error object:', JSON.stringify(err, null, 2));
@@ -241,12 +243,12 @@ export function useFloorPlanMarkers(floorPlanId: string): UseFloorPlanMarkersRes
         errorMessage = err.message;
       } else if (typeof err === 'object' && err !== null) {
         // Try to extract error details from Supabase error object
-        const errObj = err as any;
-        if (errObj.message) errorMessage = errObj.message;
-        else if (errObj.error_description) errorMessage = errObj.error_description;
-        else if (errObj.hint) errorMessage = errObj.hint;
-        else if (errObj.details) errorMessage = errObj.details;
-        else errorMessage = JSON.stringify(err);
+        const errObj = err as Record<string, unknown>;
+        if (typeof errObj.message === 'string') errorMessage = errObj.message;
+        else if (typeof errObj.error_description === 'string') errorMessage = errObj.error_description;
+        else if (typeof errObj.hint === 'string') errorMessage = errObj.hint;
+        else if (typeof errObj.details === 'string') errorMessage = errObj.details;
+        else errorMessage = JSON.stringify(errObj);
       }
 
       toast.error(`Failed to save marker: ${errorMessage}`);
