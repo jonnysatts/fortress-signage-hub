@@ -12,7 +12,9 @@ interface FloorPlanMarkerProps {
   isSelected: boolean;
   isDragging: boolean;
   isDraft?: boolean;
+  dimmed?: boolean;
   onMouseDown?: (event: React.MouseEvent) => void;
+  onResizeStart?: (handle: string, event: React.MouseEvent) => void;
 }
 
 export default function FloorPlanMarker({
@@ -20,14 +22,16 @@ export default function FloorPlanMarker({
   isSelected,
   isDragging,
   isDraft = false,
-  onMouseDown
+  dimmed = false,
+  onMouseDown,
+  onResizeStart
 }: FloorPlanMarkerProps) {
   // Get color based on status
   const baseColor = getMarkerColor(marker as Marker);
   const fill = isDraft ? 'hsl(var(--primary))' : baseColor;
   const stroke = isSelected ? 'hsl(var(--primary))' : 'white';
   const strokeWidth = isSelected ? 5 : 2;
-  const opacity = isDraft ? 0.6 : isDragging ? 0.8 : 1;
+  const opacity = dimmed ? 0.5 : isDraft ? 0.6 : isDragging ? 0.8 : 1;
   const cursor = onMouseDown ? 'move' : 'pointer';
 
   // Common props for all marker types
@@ -36,7 +40,7 @@ export default function FloorPlanMarker({
     stroke,
     strokeWidth,
     opacity,
-    style: { cursor },
+    style: { cursor, pointerEvents: 'all' as const },
     onMouseDown,
     className: `floor-plan-marker ${isSelected ? 'selected' : ''} ${isDragging ? 'dragging' : ''}`
   };
@@ -61,6 +65,8 @@ export default function FloorPlanMarker({
             strokeWidth="3"
             opacity="0.6"
             className="animate-pulse"
+            style={{ cursor, pointerEvents: 'all' as const }}
+            onMouseDown={onMouseDown}
           />
         )}
         <circle
@@ -92,18 +98,68 @@ export default function FloorPlanMarker({
       <>
         {/* Pulsing outline for selected markers */}
         {isSelected && (
-          <rect
-            x={areaMarker.x - halfW - 15}
-            y={areaMarker.y - halfH - 15}
-            width={areaMarker.width + 30}
-            height={areaMarker.height + 30}
-            fill="none"
-            stroke="hsl(var(--primary))"
-            strokeWidth="3"
-            opacity="0.6"
-            className="animate-pulse"
-            transform={rotation !== 0 ? `rotate(${rotation} ${areaMarker.x} ${areaMarker.y})` : undefined}
-          />
+          <>
+            <rect
+              x={areaMarker.x - halfW - 15}
+              y={areaMarker.y - halfH - 15}
+              width={areaMarker.width + 30}
+              height={areaMarker.height + 30}
+              fill="none"
+              stroke="hsl(var(--primary))"
+              strokeWidth="3"
+              opacity="0.6"
+              className="animate-pulse"
+              transform={rotation !== 0 ? `rotate(${rotation} ${areaMarker.x} ${areaMarker.y})` : undefined}
+              style={{ cursor, pointerEvents: 'all' as const }}
+              onMouseDown={onMouseDown}
+            />
+            {/* Resize Handles */}
+            {!isDragging && onResizeStart && (
+              <g transform={rotation !== 0 ? `rotate(${rotation} ${areaMarker.x} ${areaMarker.y})` : undefined}>
+                {/* Corners */}
+                <circle
+                  cx={areaMarker.x - halfW}
+                  cy={areaMarker.y - halfH}
+                  r={6}
+                  fill="white"
+                  stroke="hsl(var(--primary))"
+                  strokeWidth={2}
+                  style={{ cursor: 'nw-resize' }}
+                  onMouseDown={(e) => onResizeStart('nw', e)}
+                />
+                <circle
+                  cx={areaMarker.x + halfW}
+                  cy={areaMarker.y - halfH}
+                  r={6}
+                  fill="white"
+                  stroke="hsl(var(--primary))"
+                  strokeWidth={2}
+                  style={{ cursor: 'ne-resize' }}
+                  onMouseDown={(e) => onResizeStart('ne', e)}
+                />
+                <circle
+                  cx={areaMarker.x + halfW}
+                  cy={areaMarker.y + halfH}
+                  r={6}
+                  fill="white"
+                  stroke="hsl(var(--primary))"
+                  strokeWidth={2}
+                  style={{ cursor: 'se-resize' }}
+                  onMouseDown={(e) => onResizeStart('se', e)}
+                />
+                <circle
+                  cx={areaMarker.x - halfW}
+                  cy={areaMarker.y + halfH}
+                  r={6}
+                  fill="white"
+                  stroke="hsl(var(--primary))"
+                  strokeWidth={2}
+                  style={{ cursor: 'sw-resize' }}
+                  onMouseDown={(e) => onResizeStart('sw', e)}
+                />
+              </g>
+            )}
+          </>
         )}
         <rect
           x={areaMarker.x - halfW}
@@ -132,31 +188,73 @@ export default function FloorPlanMarker({
       <>
         {/* Pulsing outline for selected line markers */}
         {isSelected && (
+          <>
+            <line
+              x1={lineMarker.x}
+              y1={lineMarker.y}
+              x2={lineMarker.x2}
+              y2={lineMarker.y2}
+              stroke="hsl(var(--primary))"
+              strokeWidth={40}
+              strokeLinecap="round"
+              opacity="0.4"
+              className="animate-pulse"
+              style={{ cursor, pointerEvents: 'all' as const }}
+              onMouseDown={onMouseDown}
+            />
+            {/* Endpoint Handles */}
+            {!isDragging && onResizeStart && (
+              <>
+                <circle
+                  cx={lineMarker.x}
+                  cy={lineMarker.y}
+                  r={6}
+                  fill="white"
+                  stroke="hsl(var(--primary))"
+                  strokeWidth={2}
+                  style={{ cursor: 'move' }}
+                  onMouseDown={(e) => onResizeStart('start', e)}
+                />
+                <circle
+                  cx={lineMarker.x2}
+                  cy={lineMarker.y2}
+                  r={6}
+                  fill="white"
+                  stroke="hsl(var(--primary))"
+                  strokeWidth={2}
+                  style={{ cursor: 'move' }}
+                  onMouseDown={(e) => onResizeStart('end', e)}
+                />
+              </>
+            )}
+          </>
+        )}
+        <g className={`floor-plan-marker line ${isSelected ? 'selected' : ''} ${isDragging ? 'dragging' : ''}`}>
+          {/* Invisible thick hit area */}
           <line
             x1={lineMarker.x}
             y1={lineMarker.y}
             x2={lineMarker.x2}
             y2={lineMarker.y2}
-            stroke="hsl(var(--primary))"
-            strokeWidth={20}
+            stroke="transparent"
+            strokeWidth={40}
             strokeLinecap="round"
-            opacity="0.4"
-            className="animate-pulse"
+            style={{ cursor, pointerEvents: 'all' as const }}
+            onMouseDown={onMouseDown}
           />
-        )}
-        <line
-          x1={lineMarker.x}
-          y1={lineMarker.y}
-          x2={lineMarker.x2}
-          y2={lineMarker.y2}
-          stroke={fill}
-          strokeWidth={12}
-          strokeLinecap="round"
-          opacity={opacity}
-          style={{ cursor }}
-          onMouseDown={onMouseDown}
-          className={`floor-plan-marker line ${isSelected ? 'selected' : ''} ${isDragging ? 'dragging' : ''}`}
-        />
+          {/* Visible line */}
+          <line
+            x1={lineMarker.x}
+            y1={lineMarker.y}
+            x2={lineMarker.x2}
+            y2={lineMarker.y2}
+            stroke={fill}
+            strokeWidth={12}
+            strokeLinecap="round"
+            opacity={opacity}
+            style={{ pointerEvents: 'none' }} // Events handled by hit area
+          />
+        </g>
       </>
     );
   }

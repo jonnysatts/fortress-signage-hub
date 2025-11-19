@@ -37,6 +37,11 @@ export function useFloorPlanMarkers(floorPlanId: string): UseFloorPlanMarkersRes
       return null;
     }
 
+    // Get floor plan dimensions for conversion (default to 1920x1080 if missing)
+    // The query now joins floor_plans, so we can access it via row.floor_plans
+    const floorWidth = row.floor_plans?.original_width || 1920;
+    const floorHeight = row.floor_plans?.original_height || 1080;
+
     const baseMarker = {
       id: row.id,
       signage_spot_id: row.id,  // In our schema, marker IS the spot
@@ -50,6 +55,20 @@ export function useFloorPlanMarkers(floorPlanId: string): UseFloorPlanMarkersRes
       show_on_map: row.show_on_map
     };
 
+    // Helper to get X coordinate (pixels or converted percentage)
+    const getX = (pixelVal: number | null, percentVal: number | null) => {
+      if (pixelVal !== null) return pixelVal;
+      if (percentVal !== null) return (percentVal / 100) * floorWidth;
+      return 0;
+    };
+
+    // Helper to get Y coordinate (pixels or converted percentage)
+    const getY = (pixelVal: number | null, percentVal: number | null) => {
+      if (pixelVal !== null) return pixelVal;
+      if (percentVal !== null) return (percentVal / 100) * floorHeight;
+      return 0;
+    };
+
     // Determine marker type and create appropriate object
     const markerType = row.marker_type || 'point';
 
@@ -57,9 +76,9 @@ export function useFloorPlanMarkers(floorPlanId: string): UseFloorPlanMarkersRes
       return {
         ...baseMarker,
         type: 'point',
-        x: hasPixelData ? row.marker_x_pixels : row.marker_x,
-        y: hasPixelData ? row.marker_y_pixels : row.marker_y,
-        radius: row.marker_radius_pixels || row.marker_size / 2 || 15
+        x: getX(row.marker_x_pixels, row.marker_x),
+        y: getY(row.marker_y_pixels, row.marker_y),
+        radius: row.marker_radius_pixels || (row.marker_size ? row.marker_size / 2 : 15)
       } as PointMarker;
     }
 
@@ -67,21 +86,41 @@ export function useFloorPlanMarkers(floorPlanId: string): UseFloorPlanMarkersRes
       return {
         ...baseMarker,
         type: 'area',
-        x: hasPixelData ? row.marker_x_pixels : row.marker_x,
-        y: hasPixelData ? row.marker_y_pixels : row.marker_y,
+        x: getX(row.marker_x_pixels, row.marker_x),
+        y: getY(row.marker_y_pixels, row.marker_y),
         width: row.marker_width_pixels || row.marker_size || 30,
         height: row.marker_height_pixels || row.marker_size || 30
       } as AreaMarker;
     }
 
     if (markerType === 'line') {
+      const x1 = getX(row.marker_x_pixels, row.marker_x);
+      const y1 = getY(row.marker_y_pixels, row.marker_y);
+
+      // For legacy lines, we need to estimate the second point if it doesn't exist
+      // Usually legacy lines were just points, but if we have to render them as lines:
+      let x2, y2;
+
+      if (row.marker_x2_pixels !== null) {
+        x2 = row.marker_x2_pixels;
+      } else {
+        // Default length for converted lines
+        x2 = x1 + 50;
+      }
+
+      if (row.marker_y2_pixels !== null) {
+        y2 = row.marker_y2_pixels;
+      } else {
+        y2 = y1;
+      }
+
       return {
         ...baseMarker,
         type: 'line',
-        x: hasPixelData ? row.marker_x_pixels : row.marker_x,
-        y: hasPixelData ? row.marker_y_pixels : row.marker_y,
-        x2: hasPixelData ? row.marker_x2_pixels : (row.marker_x + 50),
-        y2: hasPixelData ? row.marker_y2_pixels : row.marker_y
+        x: x1,
+        y: y1,
+        x2: x2,
+        y2: y2
       } as LineMarker;
     }
 
@@ -104,7 +143,18 @@ export function useFloorPlanMarkers(floorPlanId: string): UseFloorPlanMarkersRes
 
       const { data, error: fetchError } = await supabase
         .from('signage_spots')
-        .select('id, location_name, floor_plan_id, marker_type, marker_x, marker_y, marker_x_pixels, marker_y_pixels, marker_x2_pixels, marker_y2_pixels, marker_width_pixels, marker_height_pixels, marker_radius_pixels, marker_size, marker_rotation, status, expiry_date, next_planned_date, current_image_url, show_on_map')
+        .select(`
+          id, location_name, floor_plan_id, marker_type, 
+          marker_x, marker_y, marker_x_pixels, marker_y_pixels, 
+          marker_x2_pixels, marker_y2_pixels, marker_width_pixels, 
+          marker_height_pixels, marker_radius_pixels, marker_size, 
+          marker_rotation, status, expiry_date, next_planned_date, 
+          current_image_url, show_on_map,
+          floor_plans (
+            original_width,
+            original_height
+          )
+        `)
         .eq('floor_plan_id', floorPlanId)
         .eq('show_on_map', true)
         // Don't filter out markers without pixel data - we'll handle both old and new
@@ -127,47 +177,61 @@ export function useFloorPlanMarkers(floorPlanId: string): UseFloorPlanMarkersRes
   }, [floorPlanId, dbToMarker]);
 
   // Save new marker to database
-  const saveMarker = useCallback(async (marker: Marker): Promise<boolean> => {
+  const saveMarker = useCallback(async (marker: Marker): Promise<Marker | null> => {
     try {
-      const updateData: any = {
+      // Prepare data for Supabase
+      // We are updating an existing signage_spot record, not creating a new one
+      // The ID is the signage_spot_id
+      const dbRow: any = {
         floor_plan_id: marker.floor_plan_id,
+        location_name: marker.location_name,
         marker_type: marker.type,
         marker_x_pixels: Math.round(marker.x),
         marker_y_pixels: Math.round(marker.y),
         marker_rotation: marker.rotation || 0,
-        show_on_map: true
+        show_on_map: true,
+        status: marker.status || 'empty',
+        // Set legacy fields to null or calculated defaults if strictly required
+        marker_x: null,
+        marker_y: null
       };
 
+      // Add type-specific fields
       if (marker.type === 'point') {
-        updateData.marker_radius_pixels = Math.round(marker.radius);
+        Object.assign(dbRow, {
+          marker_radius_pixels: Math.round((marker as PointMarker).radius)
+        });
       } else if (marker.type === 'area') {
-        updateData.marker_width_pixels = Math.round(marker.width);
-        updateData.marker_height_pixels = Math.round(marker.height);
+        Object.assign(dbRow, {
+          marker_width_pixels: Math.round((marker as AreaMarker).width),
+          marker_height_pixels: Math.round((marker as AreaMarker).height)
+        });
       } else if (marker.type === 'line') {
-        updateData.marker_x2_pixels = Math.round(marker.x2);
-        updateData.marker_y2_pixels = Math.round(marker.y2);
+        Object.assign(dbRow, {
+          marker_x2_pixels: Math.round((marker as LineMarker).x2),
+          marker_y2_pixels: Math.round((marker as LineMarker).y2)
+        });
       }
 
-      const { error: saveError, data: updateResult } = await supabase
+      const { data, error: saveError } = await supabase
         .from('signage_spots')
-        .update(updateData)
+        .update(dbRow)
         .eq('id', marker.signage_spot_id)
-        .select();
+        .select()
+        .single();
 
       if (saveError) {
-        console.error('Database error saving marker:', saveError);
-        console.error('Update data:', updateData);
-        console.error('Signage spot ID:', marker.signage_spot_id);
         throw saveError;
       }
 
-      if (!updateResult || updateResult.length === 0) {
-        throw new Error(`Signage spot not found: ${marker.signage_spot_id}`);
-      }
+      // Reload to get fresh data including any DB-side triggers/defaults
+      await loadMarkers();
 
-      await loadMarkers();  // Refresh
-      toast.success('Marker placed successfully');
-      return true;
+      // Return the saved marker (re-constructed from DB data would be ideal, but for now return input with success)
+      // actually better to find it from the reloaded markers if possible, or just return the input marker
+      // but we need to return a Marker object to satisfy the signature.
+      // Let's return the marker we just saved.
+      return marker;
     } catch (err) {
       console.error('Error saving marker:', err);
       console.error('Full error object:', JSON.stringify(err, null, 2));

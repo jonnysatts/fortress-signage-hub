@@ -72,11 +72,17 @@ export interface EditorState {
   placementSpotId: string | null;  // Signage spot being placed
   placementSpotName: string | null;
   draftMarker: Partial<Marker> | null;  // Marker being placed/edited
+  draggedMarkerOverride: Partial<Marker> | null; // Optimistic update for dragged marker
   history: HistoryEntry[];
   historyIndex: number;
   viewBox: ViewBox;
   isDragging: boolean;
-  dragStartPos: { x: number; y: number } | null;
+  dragStartPos: SVGPoint | null;
+  dragOffset: SVGPoint | null; // Offset from mouse position to marker center
+  isResizing: boolean;
+  resizeHandle: string | null;
+  resizeStartMarker: Marker | null; // Original state before resize
+
 }
 
 export interface ViewBox {
@@ -99,6 +105,7 @@ export type EditorAction =
   | { type: 'START_PLACEMENT'; markerType: MarkerType; spotId: string; spotName: string }
   | { type: 'SET_DRAFT_MARKER'; marker: Partial<Marker> }
   | { type: 'COMMIT_DRAFT_MARKER'; marker: Marker }
+  | { type: 'SET_FOCUS_CONTEXT'; spotId: string; spotName: string }
   | { type: 'CANCEL_DRAFT' }
   | { type: 'DELETE_MARKER'; markerId: string }
   | { type: 'UPDATE_MARKER'; marker: Marker }
@@ -108,9 +115,12 @@ export type EditorAction =
   | { type: 'RESET_VIEW' }
   | { type: 'UNDO' }
   | { type: 'REDO' }
-  | { type: 'START_DRAG'; x: number; y: number }
+  | { type: 'START_DRAG'; x: number; y: number; markerId: string; marker: Marker }
   | { type: 'DRAG'; x: number; y: number }
-  | { type: 'END_DRAG' };
+  | { type: 'END_DRAG' }
+  | { type: 'START_RESIZE'; handle: string; markerId: string; marker: Marker }
+  | { type: 'RESIZE'; x: number; y: number }
+  | { type: 'END_RESIZE' };
 
 export interface SVGPoint {
   x: number;

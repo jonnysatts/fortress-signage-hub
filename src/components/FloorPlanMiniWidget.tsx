@@ -62,7 +62,7 @@ export default function FloorPlanMiniWidget({ spotId, spotData }: FloorPlanMiniW
 
   // Check for both new (pixel-based) and old (percentage-based) marker data
   const hasMarkerData = (spotData.marker_x_pixels !== null && spotData.marker_x_pixels !== undefined) ||
-                        (spotData.marker_x !== null && spotData.marker_x !== undefined);
+    (spotData.marker_x !== null && spotData.marker_x !== undefined);
 
   if (!floorPlan || !spotData.show_on_map || !hasMarkerData) {
     return (
@@ -156,7 +156,7 @@ export default function FloorPlanMiniWidget({ spotId, spotData }: FloorPlanMiniW
             Floor Plan Location
           </span>
           <Button
-            variant="ghost"
+            variant="outline"
             size="sm"
             onClick={() => {
               const url = `/floor-plans/${floorPlan.id}/edit?highlightMarker=${spotId}`;
@@ -165,7 +165,8 @@ export default function FloorPlanMiniWidget({ spotId, spotData }: FloorPlanMiniW
             }}
             title="Edit this marker's position"
           >
-            <Edit2 className="w-4 h-4" />
+            <Edit2 className="w-4 h-4 mr-2" />
+            Edit Position
           </Button>
         </CardTitle>
       </CardHeader>
@@ -174,7 +175,7 @@ export default function FloorPlanMiniWidget({ spotId, spotData }: FloorPlanMiniW
           <div className="text-sm">
             <span className="font-medium">Floor Plan:</span> {floorPlan.display_name}
           </div>
-          
+
           <div
             className="relative border rounded-lg overflow-hidden bg-muted cursor-pointer hover:opacity-80 transition-opacity"
             style={{ height: '200px' }}
@@ -253,7 +254,7 @@ export default function FloorPlanMiniWidget({ spotId, spotData }: FloorPlanMiniW
                         fill={markerColor}
                         stroke="white"
                         strokeWidth="3"
-                        transform={`rotate(${spotData.marker_rotation || 0} ${markerX + markerWidth/2} ${markerY + markerHeight/2})`}
+                        transform={`rotate(${spotData.marker_rotation || 0} ${markerX + markerWidth / 2} ${markerY + markerHeight / 2})`}
                         className={markerStatus === 'overdue' ? 'animate-pulse' : ''}
                       />
                     )}

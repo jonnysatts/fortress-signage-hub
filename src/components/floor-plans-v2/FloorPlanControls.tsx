@@ -94,18 +94,22 @@ export default function FloorPlanControls({
               variant={mode === 'view' ? 'default' : 'outline'}
               size="sm"
               onClick={() => onModeChange('view')}
-              title="View mode - read only"
+              title="View mode - Pan and Zoom only"
+              className="gap-2"
             >
               <MousePointer2 className="w-4 h-4" />
+              <span className="hidden lg:inline">View</span>
             </Button>
 
             <Button
               variant={mode === 'select' ? 'default' : 'outline'}
               size="sm"
               onClick={() => onModeChange('select')}
-              title="Select mode - move markers"
+              title="Select mode - Move and Resize markers"
+              className="gap-2"
             >
               <Move className="w-4 h-4" />
+              <span className="hidden lg:inline">Select & Move</span>
             </Button>
 
             {/* Only show placement tools when coming from "Add to Floor Plan" workflow */}
@@ -186,8 +190,10 @@ export default function FloorPlanControls({
           size="sm"
           onClick={onToggleGrid}
           title="Toggle grid overlay"
+          className="gap-2"
         >
           <Grid3x3 className="w-4 h-4" />
+          <span className="hidden xl:inline">Grid</span>
         </Button>
 
         <Separator orientation="vertical" className="h-6" />
