@@ -4,7 +4,7 @@
  * Manages all editor state changes with undo/redo support
  */
 
-import { EditorState, EditorAction, ViewBox, Marker, HistoryEntry, FloorPlan } from './types';
+import { EditorState, EditorAction, ViewBox, Marker, HistoryEntry, FloorPlan, AreaMarker, LineMarker } from './types';
 import { createInitialViewBox, zoomViewBox, panViewBox, constrainViewBox } from './utils';
 
 const MAX_HISTORY = 50;
@@ -21,7 +21,12 @@ export function createInitialEditorState(floorPlan: FloorPlan): EditorState {
     historyIndex: -1,
     viewBox: createInitialViewBox(floorPlan),
     isDragging: false,
-    dragStartPos: null
+    dragStartPos: null,
+    dragOffset: null,
+    isResizing: false,
+    resizeHandle: null,
+    resizeStartMarker: null,
+    draggedMarkerOverride: null
   };
 }
 
@@ -93,12 +98,21 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
       return {
         ...state,
         draftMarker: null,
-        placementType: null,
-        placementSpotId: null,
-        placementSpotName: null,
-        mode: 'view',
+        // Keep context to allow further editing or easy return
+        // placementType: null, // Keep type? Maybe not needed.
+        // placementSpotId: null, // KEEP THIS!
+        // placementSpotName: null, // KEEP THIS!
+        mode: 'select', // Switch to select mode to allow moving/resizing
+        selectedMarkerIds: [action.marker.id], // Auto-select the new marker
         history: newHistory,
         historyIndex: newHistory.length - 1
+      };
+
+    case 'SET_FOCUS_CONTEXT':
+      return {
+        ...state,
+        placementSpotId: action.spotId,
+        placementSpotName: action.spotName
       };
 
     case 'CANCEL_DRAFT':
@@ -191,18 +205,114 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
       return {
         ...state,
         isDragging: true,
-        dragStartPos: { x: action.x, y: action.y }
+        dragStartPos: { x: action.x, y: action.y },
+        // Calculate offset: Mouse Pos - Marker Pos
+        // When dragging, we want: New Marker Pos = New Mouse Pos - Offset
+        dragOffset: {
+          x: action.x - action.marker.x,
+          y: action.y - action.marker.y
+        },
+        draggedMarkerOverride: action.marker
       };
 
     case 'DRAG':
-      // Dragging is handled in component with live SVG updates
-      return state;
+      if (!state.isDragging || !state.draggedMarkerOverride || !state.dragOffset) return state;
+
+      return {
+        ...state,
+        draggedMarkerOverride: {
+          ...state.draggedMarkerOverride,
+          x: action.x - state.dragOffset.x,
+          y: action.y - state.dragOffset.y
+        }
+      };
 
     case 'END_DRAG':
       return {
         ...state,
         isDragging: false,
-        dragStartPos: null
+        dragStartPos: null,
+        dragOffset: null,
+        draggedMarkerOverride: null
+      };
+
+    case 'START_RESIZE':
+      return {
+        ...state,
+        isResizing: true,
+        resizeHandle: action.handle,
+        resizeStartMarker: action.marker,
+        draggedMarkerOverride: action.marker // Initialize override
+      };
+
+    case 'RESIZE':
+      if (!state.isResizing || !state.resizeStartMarker || !state.resizeHandle) return state;
+
+      const original = state.resizeStartMarker;
+      const currentX = action.x;
+      const currentY = action.y;
+      let newMarker = { ...original };
+
+      if (original.type === 'area') {
+        const area = original as AreaMarker;
+        // Calculate new dimensions based on handle
+        // This is a simplified implementation - for rotation support it gets complex
+        // Assuming 0 rotation for now or simple bounding box resizing
+
+        if (state.resizeHandle === 'se') {
+          newMarker = {
+            ...area,
+            width: Math.max(10, currentX - area.x + area.width / 2),
+            height: Math.max(10, currentY - area.y + area.height / 2)
+          };
+        } else if (state.resizeHandle === 'sw') {
+          const newWidth = Math.max(10, area.x + area.width / 2 - currentX);
+          newMarker = {
+            ...area,
+            x: area.x - (newWidth - area.width) / 2, // Adjust center X
+            width: newWidth,
+            height: Math.max(10, currentY - area.y + area.height / 2)
+          };
+        } else if (state.resizeHandle === 'ne') {
+          const newHeight = Math.max(10, area.y + area.height / 2 - currentY);
+          newMarker = {
+            ...area,
+            y: area.y - (newHeight - area.height) / 2, // Adjust center Y
+            width: Math.max(10, currentX - area.x + area.width / 2),
+            height: newHeight
+          };
+        } else if (state.resizeHandle === 'nw') {
+          const newWidth = Math.max(10, area.x + area.width / 2 - currentX);
+          const newHeight = Math.max(10, area.y + area.height / 2 - currentY);
+          newMarker = {
+            ...area,
+            x: area.x - (newWidth - area.width) / 2,
+            y: area.y - (newHeight - area.height) / 2,
+            width: newWidth,
+            height: newHeight
+          };
+        }
+      } else if (original.type === 'line') {
+        const line = original as LineMarker;
+        if (state.resizeHandle === 'start') {
+          newMarker = { ...line, x: currentX, y: currentY };
+        } else if (state.resizeHandle === 'end') {
+          newMarker = { ...line, x2: currentX, y2: currentY };
+        }
+      }
+
+      return {
+        ...state,
+        draggedMarkerOverride: newMarker
+      };
+
+    case 'END_RESIZE':
+      return {
+        ...state,
+        isResizing: false,
+        resizeHandle: null,
+        resizeStartMarker: null,
+        draggedMarkerOverride: null
       };
 
     default:

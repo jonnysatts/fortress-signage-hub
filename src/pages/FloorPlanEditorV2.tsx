@@ -5,7 +5,7 @@
  * Clean, maintainable, and actually works.
  */
 
-import { useState, useEffect, useReducer, useCallback } from 'react';
+import { useState, useEffect, useReducer, useCallback, useRef } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -119,7 +119,7 @@ export default function FloorPlanEditorV2() {
       id: m.id,
       signage_spot_id: m.signage_spot_id,
       type: m.type,
-      name: m.label
+      name: m.location_name
     })));
 
     if (!highlightMarkerId || markers.length === 0 || !floorPlan) {
@@ -132,6 +132,15 @@ export default function FloorPlanEditorV2() {
     if (markerToSelect) {
       // Auto-select the marker
       dispatch({ type: 'SELECT_MARKER', markerId: markerToSelect.id });
+
+      // Set the context so the header and back button work correctly
+      // We use the marker's location_name as the spot name
+      dispatch({
+        type: 'SET_FOCUS_CONTEXT',
+        spotId: markerToSelect.signage_spot_id,
+        spotName: markerToSelect.location_name
+      });
+
       console.log('[Auto-select] SUCCESS! Selected marker:', markerToSelect);
       console.log('[Auto-select] Marker coordinates:', {
         x: markerToSelect.x,
@@ -173,7 +182,26 @@ export default function FloorPlanEditorV2() {
       console.error('[Auto-select] FAILED - Marker not found!');
       console.error('[Auto-select] Looking for signage_spot_id:', highlightMarkerId);
       console.error('[Auto-select] Available signage_spot_ids:', markers.map(m => m.signage_spot_id));
-      toast.error(`Could not find marker for this signage spot. The marker may not exist on this floor plan.`);
+
+      // Even if marker not found, if we have the ID, we should try to fetch the spot name to keep context
+      // This handles the case where the marker might have been deleted but we still want to go back to the spot
+      supabase
+        .from('signage_spots')
+        .select('location_name')
+        .eq('id', highlightMarkerId)
+        .single()
+        .then(({ data }) => {
+          if (data) {
+            dispatch({
+              type: 'SET_FOCUS_CONTEXT',
+              spotId: highlightMarkerId,
+              spotName: data.location_name
+            });
+            toast.error(`Marker not found, but context set to ${data.location_name}`);
+          } else {
+            toast.error(`Could not find marker for this signage spot.`);
+          }
+        });
     }
   }, [searchParams, markers, floorPlan]);
 
@@ -215,16 +243,189 @@ export default function FloorPlanEditorV2() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [state.selectedMarkerIds, deleteMarker]);
 
-  // Canvas click handler
+  // Marker resize handlers
+  const handleResizeStart = useCallback((handle: string, marker: Marker, event: React.MouseEvent) => {
+    event.stopPropagation(); // Prevent drag start
+    dispatch({ type: 'START_RESIZE', handle, markerId: marker.id, marker });
+  }, []);
+
+  const handleResizeEnd = useCallback(async () => {
+    if (state.draggedMarkerOverride) {
+      // Save the final resized state
+      const finalMarker = {
+        ...state.resizeStartMarker,
+        ...state.draggedMarkerOverride
+      } as Marker;
+
+      await updateMarker(finalMarker);
+    }
+    dispatch({ type: 'END_RESIZE' });
+  }, [state.draggedMarkerOverride, state.resizeStartMarker, updateMarker]);
+
+  // Ref to store the start point of a placement drag
+  const placementStartRef = useRef<SVGPoint | null>(null);
+
+  // Canvas mouse down handler (start placement)
+  const handleCanvasMouseDown = useCallback((point: SVGPoint) => {
+    // Store start point for drag calculations
+    placementStartRef.current = point;
+
+    if (state.mode === 'place-area') {
+      dispatch({
+        type: 'SET_DRAFT_MARKER',
+        marker: {
+          id: state.placementSpotId!,
+          signage_spot_id: state.placementSpotId!,
+          floor_plan_id: id!,
+          location_name: state.placementSpotName!,
+          type: 'area',
+          x: point.x,
+          y: point.y,
+          width: 1, // Start with tiny width to be visible
+          height: 1,
+          rotation: 0
+        }
+      });
+    } else if (state.mode === 'place-line') {
+      dispatch({
+        type: 'SET_DRAFT_MARKER',
+        marker: {
+          id: state.placementSpotId!,
+          signage_spot_id: state.placementSpotId!,
+          floor_plan_id: id!,
+          location_name: state.placementSpotName!,
+          type: 'line',
+          x: point.x,
+          y: point.y,
+          x2: point.x, // Start with zero length
+          y2: point.y,
+          rotation: 0
+        }
+      });
+    }
+  }, [state.mode, state.placementSpotId, state.placementSpotName, id]);
+
+  // Canvas mouse move handler (update draft or resize)
+  const handleCanvasMouseMove = useCallback((point: SVGPoint) => {
+    if (state.isResizing) {
+      dispatch({ type: 'RESIZE', x: point.x, y: point.y });
+      return;
+    }
+
+    if (!state.draftMarker) return;
+
+    if (state.mode === 'place-line' && state.draftMarker.type === 'line') {
+      dispatch({
+        type: 'SET_DRAFT_MARKER',
+        marker: {
+          ...state.draftMarker,
+          x2: point.x,
+          y2: point.y
+        }
+      });
+    } else if (state.mode === 'place-area' && state.draftMarker.type === 'area') {
+      const start = placementStartRef.current;
+      if (!start) return;
+
+      // Calculate top-left and dimensions based on drag direction
+      const x = Math.min(start.x, point.x);
+      const y = Math.min(start.y, point.y);
+      const width = Math.abs(point.x - start.x);
+      const height = Math.abs(point.y - start.y);
+
+      dispatch({
+        type: 'SET_DRAFT_MARKER',
+        marker: {
+          ...state.draftMarker,
+          x,
+          y,
+          width,
+          height
+        }
+      });
+    }
+  }, [state.draftMarker, state.mode]);
+
+  // Canvas mouse up handler (finish placement or resize)
+  const handleCanvasMouseUp = useCallback(async (point: SVGPoint) => {
+    if (state.isResizing) {
+      await handleResizeEnd();
+      return;
+    }
+
+    if (!state.draftMarker) return;
+
+    // Clear start ref
+    placementStartRef.current = null;
+
+    if (state.mode === 'place-area' || state.mode === 'place-line') {
+      // Finalize marker
+      let marker = state.draftMarker as Marker;
+
+      // Validate minimum size to prevent accidental clicks creating tiny markers
+      let isValid = true;
+
+      if (marker.type === 'area') {
+        if (marker.width < 20 || marker.height < 20) isValid = false;
+      } else if (marker.type === 'line') {
+        const dx = marker.x2 - marker.x;
+        const dy = marker.y2 - marker.y;
+        const len = Math.sqrt(dx * dx + dy * dy);
+        if (len < 20) isValid = false;
+      }
+
+      if (!isValid) {
+        // If too small (likely just a click), cancel draft and let user try again
+        // OR we could set a default size?
+        // User feedback: "It assumes... and presents a line you didn't create"
+        // So we should NOT create a default. We should just cancel if it's a click.
+        dispatch({ type: 'CANCEL_DRAFT' });
+        toast.info('Click and drag to draw the shape.');
+        return;
+      }
+
+      // Optimistically clear draft immediately to prevent "sticky" visual
+      dispatch({ type: 'CANCEL_DRAFT' });
+
+      const savedMarker = await saveMarker({
+        ...marker,
+        status: 'empty',
+        expiry_date: null,
+        next_planned_date: null,
+        current_image_url: null,
+        show_on_map: true
+      });
+
+      if (savedMarker) {
+        toast.success(
+          <div className="flex flex-col gap-2">
+            <span>{marker.type === 'line' ? 'Line' : 'Rectangle'} placed!</span>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => navigate(`/signage/${state.placementSpotId}`)}
+              className="w-full"
+            >
+              Return to Signage Detail →
+            </Button>
+          </div>,
+          { duration: 5000 }
+        );
+      }
+    }
+  }, [state.draftMarker, state.mode, saveMarker, navigate, state.placementSpotId, handleResizeEnd]);
+
+  // Canvas click handler (only for Point markers now)
   const handleCanvasClick = useCallback(async (point: SVGPoint) => {
     // Validate that we have a spot ID for placement
     if (state.mode.startsWith('place-') && !state.placementSpotId) {
-      toast.error('No signage spot selected. Go to a signage detail page and click "Add to Floor Plan" to place markers.');
+      toast.error('No signage spot selected.');
       dispatch({ type: 'CANCEL_DRAFT' });
       dispatch({ type: 'SET_MODE', mode: 'view' });
       return;
     }
 
+    // Only allow click-to-place for POINTS. Areas/Lines must be dragged.
     if (state.mode === 'place-point') {
       // Place point marker
       const marker: PointMarker = {
@@ -247,10 +448,9 @@ export default function FloorPlanEditorV2() {
       const success = await saveMarker(marker);
       if (success) {
         dispatch({ type: 'CANCEL_DRAFT' });
-        // Show success with return button
         toast.success(
           <div className="flex flex-col gap-2">
-            <span>Circle marker placed successfully!</span>
+            <span>Circle marker placed!</span>
             <Button
               size="sm"
               variant="outline"
@@ -263,168 +463,8 @@ export default function FloorPlanEditorV2() {
           { duration: 5000 }
         );
       }
-    } else if (state.mode === 'place-area') {
-      // Start area placement (two-click workflow like line)
-      if (!state.draftMarker) {
-        // First click: set top-left corner
-        dispatch({
-          type: 'SET_DRAFT_MARKER',
-          marker: {
-            id: state.placementSpotId!,
-            signage_spot_id: state.placementSpotId!,
-            floor_plan_id: id!,
-            location_name: state.placementSpotName!,
-            type: 'area',
-            x: point.x,
-            y: point.y,
-            width: 10,  // Small initial size
-            height: 10,
-            rotation: 0
-          }
-        });
-      } else {
-        // Second click: set bottom-right corner and save
-        const draft = state.draftMarker as Partial<AreaMarker>;
-        const width = Math.abs(point.x - draft.x!);
-        const height = Math.abs(point.y - draft.y!);
-        const x = Math.min(point.x, draft.x!);  // Top-left corner
-        const y = Math.min(point.y, draft.y!);
-
-        const marker: AreaMarker = {
-          ...draft,
-          x,
-          y,
-          width: Math.max(width, 20),  // Minimum size
-          height: Math.max(height, 20),
-          rotation: 0,
-          status: 'empty',
-          expiry_date: null,
-          next_planned_date: null,
-          current_image_url: null,
-          show_on_map: true
-        } as AreaMarker;
-
-        const success = await saveMarker(marker);
-        if (success) {
-          dispatch({ type: 'CANCEL_DRAFT' });
-          // Show success with return button
-          toast.success(
-            <div className="flex flex-col gap-2">
-              <span>Rectangle marker placed successfully!</span>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => navigate(`/signage/${state.placementSpotId}`)}
-                className="w-full"
-              >
-                Return to Signage Detail →
-              </Button>
-            </div>,
-            { duration: 5000 }
-          );
-        }
-      }
-    } else if (state.mode === 'place-line') {
-      // Start line placement
-      if (!state.draftMarker) {
-        // First click: set start point
-        dispatch({
-          type: 'SET_DRAFT_MARKER',
-          marker: {
-            id: state.placementSpotId!,
-            signage_spot_id: state.placementSpotId!,
-            floor_plan_id: id!,
-            location_name: state.placementSpotName!,
-            type: 'line',
-            x: point.x,
-            y: point.y,
-            x2: point.x,
-            y2: point.y,
-            rotation: 0
-          }
-        });
-      } else {
-        // Second click: set end point and save
-        const marker: LineMarker = {
-          ...(state.draftMarker as Partial<LineMarker>),
-          x2: point.x,
-          y2: point.y,
-          rotation: 0,
-          status: 'empty',
-          expiry_date: null,
-          next_planned_date: null,
-          current_image_url: null,
-          show_on_map: true
-        } as LineMarker;
-
-        console.log('Saving line marker:', {
-          x: marker.x,
-          y: marker.y,
-          x2: marker.x2,
-          y2: marker.y2,
-          type: marker.type
-        });
-
-        const success = await saveMarker(marker);
-        if (success) {
-          dispatch({ type: 'CANCEL_DRAFT' });
-
-          // Don't auto-navigate - let user see the result
-          // Show success message with option to go back
-          toast.success(
-            <div className="flex flex-col gap-2">
-              <span>Line marker placed successfully!</span>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => navigate(`/signage/${state.placementSpotId}`)}
-                className="w-full"
-              >
-                Return to Signage Detail →
-              </Button>
-            </div>,
-            { duration: 5000 }
-          );
-        }
-      }
     }
-  }, [state, id, saveMarker, navigate, searchParams]);
-
-  // Canvas mouse move handler (for updating draft markers)
-  const handleCanvasMouseMove = useCallback((point: SVGPoint) => {
-    if (!state.draftMarker) return;
-
-    // Update draft marker based on mode
-    if (state.mode === 'place-line' && state.draftMarker.type === 'line') {
-      // Update line endpoint
-      dispatch({
-        type: 'SET_DRAFT_MARKER',
-        marker: {
-          ...state.draftMarker,
-          x2: point.x,
-          y2: point.y
-        }
-      });
-    } else if (state.mode === 'place-area' && state.draftMarker.type === 'area') {
-      // Update area dimensions
-      const draft = state.draftMarker as Partial<AreaMarker>;
-      const width = Math.abs(point.x - draft.x!);
-      const height = Math.abs(point.y - draft.y!);
-      const x = Math.min(point.x, draft.x!);
-      const y = Math.min(point.y, draft.y!);
-
-      dispatch({
-        type: 'SET_DRAFT_MARKER',
-        marker: {
-          ...state.draftMarker,
-          x,
-          y,
-          width: Math.max(width, 10),
-          height: Math.max(height, 10)
-        }
-      });
-    }
-  }, [state.draftMarker, state.mode]);
+  }, [state.mode, state.placementSpotId, state.placementSpotName, id, saveMarker, navigate]);
 
   // Marker click handler
   const handleMarkerClick = useCallback((marker: Marker, event: React.MouseEvent) => {
@@ -439,7 +479,7 @@ export default function FloorPlanEditorV2() {
 
   // Marker drag handlers
   const handleMarkerDragStart = useCallback((marker: Marker, point: SVGPoint) => {
-    dispatch({ type: 'START_DRAG', x: point.x, y: point.y });
+    dispatch({ type: 'START_DRAG', x: point.x, y: point.y, markerId: marker.id, marker });
   }, []);
 
   const handleMarkerDrag = useCallback((marker: Marker, point: SVGPoint) => {
@@ -459,6 +499,8 @@ export default function FloorPlanEditorV2() {
 
     await updateMarker(updatedMarker);
   }, [updateMarker]);
+
+
 
   // Zoom controls
   const handleZoomIn = useCallback(() => {
@@ -485,6 +527,14 @@ export default function FloorPlanEditorV2() {
 
   const zoomLevel = floorPlan ? viewBoxToZoomLevel(state.viewBox, floorPlan) : 1;
 
+  // Merge markers with optimistic updates
+  const displayMarkers = markers.map(m => {
+    if (state.draggedMarkerOverride && state.draggedMarkerOverride.id === m.id) {
+      return { ...m, ...state.draggedMarkerOverride } as Marker;
+    }
+    return m;
+  });
+
   if (loadingFloorPlan) {
     return <div className="flex items-center justify-center h-screen">Loading floor plan...</div>;
   }
@@ -500,18 +550,28 @@ export default function FloorPlanEditorV2() {
         <div className="flex items-center gap-4">
           <Button
             variant="ghost"
-            onClick={() => navigate('/floor-plans')}
+            onClick={() => {
+              if (state.placementSpotId) {
+                navigate(`/signage/${state.placementSpotId}`);
+              } else {
+                navigate('/floor-plans');
+              }
+            }}
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
-            Back
+            {state.placementSpotName ? 'Back to Spot' : 'Back to Floor Plans'}
           </Button>
           <div>
             <h1 className="text-2xl font-bold">
-              {state.placementSpotName ? `Place Marker: ${state.placementSpotName}` : `Manage Markers - ${floorPlan.display_name}`}
+              {state.placementSpotName
+                ? (state.mode.startsWith('place-') ? `Place Marker: ${state.placementSpotName}` : `Editing: ${state.placementSpotName}`)
+                : `Manage Markers - ${floorPlan.display_name}`}
             </h1>
             <p className="text-sm text-muted-foreground">
               {state.placementSpotName
-                ? 'Click to place start point, then click again to finalize'
+                ? state.mode.startsWith('place-')
+                  ? (state.mode === 'place-point' ? 'Click anywhere to place the circle marker' : 'Click and drag to draw the shape')
+                  : 'Adjust position or resize. Click "Back to Spot" when done.'
                 : 'Move or delete existing markers • Cannot add new markers from this page'
               }
             </p>
@@ -563,7 +623,7 @@ export default function FloorPlanEditorV2() {
       <div className="flex-1 overflow-hidden bg-muted">
         <FloorPlanCanvas
           floorPlan={floorPlan}
-          markers={markers}
+          markers={displayMarkers}
           viewBox={state.viewBox}
           mode={state.mode}
           selectedMarkerIds={state.selectedMarkerIds}
@@ -572,10 +632,12 @@ export default function FloorPlanEditorV2() {
           gridSize={50}
           onMarkerClick={handleMarkerClick}
           onCanvasClick={handleCanvasClick}
+          onCanvasMouseDown={handleCanvasMouseDown}
+          onCanvasMouseUp={handleCanvasMouseUp}
           onCanvasMouseMove={handleCanvasMouseMove}
           onMarkerDragStart={handleMarkerDragStart}
-          onMarkerDrag={handleMarkerDrag}
           onMarkerDragEnd={handleMarkerDragEnd}
+          onResizeStart={handleResizeStart}
           onViewBoxChange={handleViewBoxChange}
           className="w-full h-full"
         />
