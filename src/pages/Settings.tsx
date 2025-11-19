@@ -1,6 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
+import { User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { Database } from "@/integrations/supabase/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -10,20 +12,17 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, Bell, Save, Settings2, Users, Tags, MapPin } from "lucide-react";
 import { toast } from "sonner";
 
+type AlertSetting = Database['public']['Tables']['alert_settings']['Row'];
+
 export default function Settings() {
   const navigate = useNavigate();
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
-  const [alertSettings, setAlertSettings] = useState<any[]>([]);
+  const [alertSettings, setAlertSettings] = useState<AlertSetting[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
-  useEffect(() => {
-    checkAuth();
-    fetchAlertSettings();
-  }, []);
-
-  const checkAuth = async () => {
+  const checkAuth = useCallback(async () => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
       navigate("/auth");
@@ -39,9 +38,9 @@ export default function Settings() {
     const roleList = roles?.map(r => r.role) || [];
     const effectiveRole = roleList.includes('admin') ? 'admin' : roleList.includes('manager') ? 'manager' : 'staff';
     setUserRole(effectiveRole);
-  };
+  }, [navigate]);
 
-  const fetchAlertSettings = async () => {
+  const fetchAlertSettings = useCallback(async () => {
     setIsLoading(true);
     try {
       const { data, error } = await supabase
@@ -54,9 +53,9 @@ export default function Settings() {
       // Ensure we have settings for all alert types
       const alertTypes = ['overdue_signage', 'expiring_soon', 'empty_signage', 'campaign_ended'];
       const existingTypes = data?.map(s => s.alert_type) || [];
-      
-      const settings = [...(data || [])];
-      
+
+      const settings: AlertSetting[] = [...(data || [])];
+
       // Create missing alert settings
       for (const type of alertTypes) {
         if (!existingTypes.includes(type)) {
@@ -74,13 +73,18 @@ export default function Settings() {
       }
 
       setAlertSettings(settings);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.error("Failed to load alert settings");
       console.error(error);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    checkAuth();
+    fetchAlertSettings();
+  }, [checkAuth, fetchAlertSettings]);
 
   const handleSaveSettings = async () => {
     setIsSaving(true);
@@ -97,7 +101,7 @@ export default function Settings() {
               slack_webhook_url: setting.slack_webhook_url,
               alert_triggers: setting.alert_triggers,
             });
-          
+
           if (error) throw error;
         } else {
           // Update existing setting
@@ -110,21 +114,22 @@ export default function Settings() {
               alert_triggers: setting.alert_triggers,
             })
             .eq('id', setting.id);
-          
+
           if (error) throw error;
         }
       }
 
       toast.success("Alert settings saved successfully!");
       fetchAlertSettings();
-    } catch (error: any) {
-      toast.error("Failed to save settings: " + error.message);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      toast.error("Failed to save settings: " + errorMessage);
     } finally {
       setIsSaving(false);
     }
   };
 
-  const updateSetting = (index: number, field: string, value: any) => {
+  const updateSetting = (index: number, field: keyof AlertSetting, value: unknown) => {
     const updated = [...alertSettings];
     updated[index] = { ...updated[index], [field]: value };
     setAlertSettings(updated);

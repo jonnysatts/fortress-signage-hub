@@ -45,8 +45,9 @@ export default function Auth() {
 
       toast.success("Account created! Please check your email to verify.");
       navigate("/");
-    } catch (error: any) {
-      toast.error(error.message || "Failed to create account");
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Failed to create account";
+      toast.error(message);
     } finally {
       setIsLoading(false);
     }
@@ -66,8 +67,9 @@ export default function Auth() {
 
       toast.success("Signed in successfully!");
       navigate("/");
-    } catch (error: any) {
-      toast.error(error.message || "Failed to sign in");
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Failed to sign in";
+      toast.error(message);
     } finally {
       setIsLoading(false);
     }

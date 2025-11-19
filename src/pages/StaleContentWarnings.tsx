@@ -31,7 +31,7 @@ export default function StaleContentWarnings() {
 
       if (error) throw error;
       setStaleSpots(data || []);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Failed to load stale spots:", error);
       toast.error("Failed to load stale content warnings");
     } finally {

@@ -82,6 +82,7 @@ export interface EditorState {
   isResizing: boolean;
   resizeHandle: string | null;
   resizeStartMarker: Marker | null; // Original state before resize
+  dragStartMarker: Marker | null;
 
 }
 
@@ -106,7 +107,7 @@ export type EditorAction =
   | { type: 'SET_DRAFT_MARKER'; marker: Partial<Marker> }
   | { type: 'COMMIT_DRAFT_MARKER'; marker: Marker }
   | { type: 'SET_FOCUS_CONTEXT'; spotId: string; spotName: string }
-  | { type: 'CANCEL_DRAFT' }
+  | { type: 'CANCEL_DRAFT'; preserveContext?: boolean }
   | { type: 'DELETE_MARKER'; markerId: string }
   | { type: 'UPDATE_MARKER'; marker: Marker }
   | { type: 'SET_VIEW_BOX'; viewBox: ViewBox }

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -20,11 +20,13 @@ import {
 } from "@/components/ui/select";
 import { MapPin, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
+import type { FloorPlan } from "@/components/floor-plans-v2/types";
 
 interface AddToFloorPlanDialogProps {
   spotId: string;
   spotName: string;
   venueId: string;
+  currentFloorPlanId?: string | null;
   children: React.ReactNode;
 }
 
@@ -32,22 +34,17 @@ export default function AddToFloorPlanDialog({
   spotId,
   spotName,
   venueId,
+  currentFloorPlanId,
   children
 }: AddToFloorPlanDialogProps) {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
-  const [floorPlans, setFloorPlans] = useState<any[]>([]);
+  const [floorPlans, setFloorPlans] = useState<FloorPlan[]>([]);
   const [selectedPlanId, setSelectedPlanId] = useState<string>("");
   const [markerType, setMarkerType] = useState<string>("circle");
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    if (open) {
-      loadFloorPlans();
-    }
-  }, [open, venueId]);
-
-  const loadFloorPlans = async () => {
+  const loadFloorPlans = useCallback(async () => {
     try {
       // Get venue name first
       const { data: venue, error: venueError } = await supabase
@@ -66,16 +63,29 @@ export default function AddToFloorPlanDialog({
         .order('display_order');
 
       if (error) throw error;
-      setFloorPlans(data || []);
+      const plans = (data || []) as FloorPlan[];
+      setFloorPlans(plans);
       
-      if (data && data.length > 0) {
-        setSelectedPlanId(data[0].id);
+      if (plans.length > 0) {
+        if (currentFloorPlanId && plans.some(plan => plan.id === currentFloorPlanId)) {
+          setSelectedPlanId(currentFloorPlanId);
+        } else {
+          setSelectedPlanId(plans[0].id);
+        }
+      } else {
+        setSelectedPlanId('');
       }
     } catch (error) {
       console.error('Error loading floor plans:', error);
       toast.error('Failed to load floor plans');
     }
-  };
+  }, [venueId, currentFloorPlanId]);
+
+  useEffect(() => {
+    if (open) {
+      loadFloorPlans();
+    }
+  }, [open, loadFloorPlans]);
 
   const handleContinue = () => {
     if (!selectedPlanId) {

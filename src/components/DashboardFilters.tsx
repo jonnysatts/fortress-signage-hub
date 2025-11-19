@@ -5,6 +5,11 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Search, Grid3x3, List } from "lucide-react";
 import { BulkScheduleDialog } from "@/components/BulkScheduleDialog";
 
+interface VenueOption {
+  id: string;
+  name: string;
+}
+
 interface DashboardFiltersProps {
   searchQuery: string;
   setSearchQuery: (value: string) => void;
@@ -14,7 +19,7 @@ interface DashboardFiltersProps {
   setSelectedPriority: (value: string) => void;
   selectedCategory: string;
   setSelectedCategory: (value: string) => void;
-  venues: any[];
+  venues: VenueOption[];
   viewMode: "grid" | "list";
   setViewMode: (mode: "grid" | "list") => void;
   isMultiSelectMode: boolean;

@@ -143,12 +143,12 @@ export function constrainViewBox(
   const maxHeight = floorPlan.original_height || 1080;
 
   // Don't allow zooming out past full image
-  let width = Math.min(viewBox.width, maxWidth);
-  let height = Math.min(viewBox.height, maxHeight);
+  const width = Math.min(viewBox.width, maxWidth);
+  const height = Math.min(viewBox.height, maxHeight);
 
   // Don't allow panning outside image bounds
-  let x = Math.max(0, Math.min(viewBox.x, maxWidth - width));
-  let y = Math.max(0, Math.min(viewBox.y, maxHeight - height));
+  const x = Math.max(0, Math.min(viewBox.x, maxWidth - width));
+  const y = Math.max(0, Math.min(viewBox.y, maxHeight - height));
 
   return { x, y, width, height };
 }

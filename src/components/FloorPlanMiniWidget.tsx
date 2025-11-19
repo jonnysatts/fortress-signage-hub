@@ -1,28 +1,43 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { MapPin, Edit2 } from "lucide-react";
 import { getMarkerColor, getMarkerStatus } from "@/utils/markerUtils";
-import { percentToPixel } from "@/utils/coordinateUtils";
 import { useNavigate } from "react-router-dom";
 import AddToFloorPlanDialog from "./AddToFloorPlanDialog";
+import type { FloorPlan } from "@/components/floor-plans-v2/types";
 
 interface FloorPlanMiniWidgetProps {
   spotId: string;
-  spotData: any;
+  spotData: FloorPlanSpotData;
+}
+
+interface FloorPlanSpotData {
+  location_name: string;
+  venue_id: string;
+  floor_plan_id: string | null;
+  show_on_map: boolean;
+  marker_x_pixels: number | null;
+  marker_y_pixels: number | null;
+  marker_x2_pixels: number | null;
+  marker_y2_pixels: number | null;
+  marker_width_pixels: number | null;
+  marker_height_pixels: number | null;
+  marker_radius_pixels: number | null;
+  marker_x: number | null;
+  marker_y: number | null;
+  marker_size: number | null;
+  marker_rotation: number | null;
+  marker_type: string | null;
 }
 
 export default function FloorPlanMiniWidget({ spotId, spotData }: FloorPlanMiniWidgetProps) {
-  const [floorPlan, setFloorPlan] = useState<any>(null);
+  const [floorPlan, setFloorPlan] = useState<FloorPlan | null>(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    loadFloorPlan();
-  }, [spotId, spotData.floor_plan_id]);
-
-  const loadFloorPlan = async () => {
+  const loadFloorPlan = useCallback(async () => {
     if (!spotData.floor_plan_id) {
       setLoading(false);
       return;
@@ -42,7 +57,11 @@ export default function FloorPlanMiniWidget({ spotId, spotData }: FloorPlanMiniW
     } finally {
       setLoading(false);
     }
-  };
+  }, [spotData.floor_plan_id]);
+
+  useEffect(() => {
+    loadFloorPlan();
+  }, [loadFloorPlan]);
 
   if (loading) {
     return (
@@ -81,6 +100,7 @@ export default function FloorPlanMiniWidget({ spotId, spotData }: FloorPlanMiniW
             spotId={spotId}
             spotName={spotData.location_name}
             venueId={spotData.venue_id}
+            currentFloorPlanId={spotData.floor_plan_id}
           >
             <Button variant="outline" size="sm">
               <MapPin className="w-4 h-4 mr-2" />
@@ -179,7 +199,7 @@ export default function FloorPlanMiniWidget({ spotId, spotData }: FloorPlanMiniW
           <div
             className="relative border rounded-lg overflow-hidden bg-muted cursor-pointer hover:opacity-80 transition-opacity"
             style={{ height: '200px' }}
-            onClick={() => navigate(`/floor-plans?plan=${floorPlan.id}&spot=${spotId}`)}
+            onClick={() => navigate(`/floor-plans?plan=${floorPlan.id}&highlightMarker=${spotId}`)}
           >
             <svg
               className="w-full h-full"
@@ -197,34 +217,40 @@ export default function FloorPlanMiniWidget({ spotId, spotData }: FloorPlanMiniW
               />
 
               {(() => {
-                // Get marker coordinates in pixels
-                let markerX, markerY, markerX2, markerY2, markerWidth, markerHeight, markerRadius;
+                let markerCenterX = 0;
+                let markerCenterY = 0;
+                let markerX2: number | null = null;
+                let markerY2: number | null = null;
+                let markerWidth = spotData.marker_width_pixels || spotData.marker_size || 30;
+                let markerHeight = spotData.marker_height_pixels || spotData.marker_size || 30;
+                let markerRadius = spotData.marker_radius_pixels || (spotData.marker_size ? spotData.marker_size / 2 : 15);
 
                 if (usePixelCoords) {
-                  markerX = spotData.marker_x_pixels;
-                  markerY = spotData.marker_y_pixels;
-                  markerX2 = spotData.marker_x2_pixels;
-                  markerY2 = spotData.marker_y2_pixels;
-                  markerWidth = spotData.marker_width_pixels;
-                  markerHeight = spotData.marker_height_pixels;
-                  markerRadius = spotData.marker_radius_pixels || 15;
+                  markerCenterX = spotData.marker_x_pixels ?? 0;
+                  markerCenterY = spotData.marker_y_pixels ?? 0;
+                  markerX2 = spotData.marker_x2_pixels ?? null;
+                  markerY2 = spotData.marker_y2_pixels ?? null;
+                  markerWidth = spotData.marker_width_pixels || (markerRadius ? markerRadius * 2 : markerWidth);
+                  markerHeight = spotData.marker_height_pixels || (markerRadius ? markerRadius * 2 : markerHeight);
                 } else {
-                  // Convert percentage to pixels
-                  markerX = (spotData.marker_x / 100) * floorWidth;
-                  markerY = (spotData.marker_y / 100) * floorHeight;
-                  markerRadius = (spotData.marker_size / 2) || 15;
+                  markerCenterX = (spotData.marker_x / 100) * floorWidth;
+                  markerCenterY = (spotData.marker_y / 100) * floorHeight;
+                  markerX2 = null;
+                  markerY2 = null;
                   markerWidth = spotData.marker_size || 30;
                   markerHeight = spotData.marker_size || 30;
+                  markerRadius = (spotData.marker_size / 2) || 15;
                 }
 
                 const markerType = spotData.marker_type || 'circle';
+                const rectX = markerCenterX - markerWidth / 2;
+                const rectY = markerCenterY - markerHeight / 2;
 
                 return (
                   <>
-                    {/* Highlight pulse around marker */}
                     <circle
-                      cx={markerX}
-                      cy={markerY}
+                      cx={markerCenterX}
+                      cy={markerCenterY}
                       r={30}
                       fill="none"
                       stroke="hsl(var(--primary))"
@@ -233,11 +259,10 @@ export default function FloorPlanMiniWidget({ spotId, spotData }: FloorPlanMiniW
                       opacity="0.4"
                     />
 
-                    {/* Actual marker */}
                     {(markerType === 'circle' || markerType === 'point') && (
                       <circle
-                        cx={markerX}
-                        cy={markerY}
+                        cx={markerCenterX}
+                        cy={markerCenterY}
                         r={markerRadius}
                         fill={markerColor}
                         stroke="white"
@@ -247,21 +272,21 @@ export default function FloorPlanMiniWidget({ spotId, spotData }: FloorPlanMiniW
                     )}
                     {(markerType === 'rectangle' || markerType === 'area') && (
                       <rect
-                        x={markerX}
-                        y={markerY}
+                        x={rectX}
+                        y={rectY}
                         width={markerWidth}
                         height={markerHeight}
                         fill={markerColor}
                         stroke="white"
                         strokeWidth="3"
-                        transform={`rotate(${spotData.marker_rotation || 0} ${markerX + markerWidth / 2} ${markerY + markerHeight / 2})`}
+                        transform={`rotate(${spotData.marker_rotation || 0} ${markerCenterX} ${markerCenterY})`}
                         className={markerStatus === 'overdue' ? 'animate-pulse' : ''}
                       />
                     )}
-                    {markerType === 'line' && markerX2 && markerY2 && (
+                    {markerType === 'line' && markerX2 !== null && markerY2 !== null && (
                       <line
-                        x1={markerX}
-                        y1={markerY}
+                        x1={markerCenterX}
+                        y1={markerCenterY}
                         x2={markerX2}
                         y2={markerY2}
                         stroke={markerColor}

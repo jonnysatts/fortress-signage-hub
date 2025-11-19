@@ -1,16 +1,17 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { Database } from "@/integrations/supabase/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CampaignDialog } from "@/components/CampaignDialog";
-import { 
-  Plus, 
-  Calendar as CalendarIcon, 
-  Edit2, 
+import {
+  Plus,
+  Calendar as CalendarIcon,
+  Edit2,
   Trash2,
   BarChart3,
   Search,
@@ -28,31 +29,30 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
+type Campaign = Database['public']['Tables']['campaigns']['Row'] & {
+  signage_campaigns?: { count: number }[];
+};
+
 export default function Campaigns() {
   const navigate = useNavigate();
-  const [campaigns, setCampaigns] = useState<any[]>([]);
+  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
 
-  useEffect(() => {
-    checkAuth();
-    fetchCampaigns();
-  }, []);
-
-  const checkAuth = async () => {
+  const checkAuth = useCallback(async () => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
       navigate("/auth");
     }
-  };
+  }, [navigate]);
 
-  const fetchCampaigns = async () => {
+  const fetchCampaigns = useCallback(async () => {
     setIsLoading(true);
     try {
       const { data, error } = await supabase
-        .from("campaigns" as any)
+        .from("campaigns")
         .select(`
           *,
           signage_campaigns(count)
@@ -60,36 +60,50 @@ export default function Campaigns() {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      setCampaigns(data || []);
-    } catch (error: any) {
-      toast.error("Failed to load campaigns: " + error.message);
+
+      // Transform data to match Campaign type
+      const campaignsData = data?.map(item => ({
+        ...item,
+        signage_campaigns: item.signage_campaigns || []
+      })) as unknown as Campaign[];
+
+      setCampaigns(campaignsData || []);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      toast.error("Failed to load campaigns: " + errorMessage);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    checkAuth();
+    fetchCampaigns();
+  }, [checkAuth, fetchCampaigns]);
 
   const handleDelete = async () => {
     if (!deleteId) return;
 
     try {
       const { error } = await supabase
-        .from("campaigns" as any)
+        .from("campaigns")
         .delete()
         .eq("id", deleteId);
 
       if (error) throw error;
       toast.success("Campaign deleted successfully");
       fetchCampaigns();
-    } catch (error: any) {
-      toast.error("Failed to delete campaign: " + error.message);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      toast.error("Failed to delete campaign: " + errorMessage);
     } finally {
       setDeleteId(null);
     }
   };
 
-  const getCampaignStatus = (campaign: any) => {
+  const getCampaignStatus = (campaign: Campaign) => {
     if (!campaign.start_date || !campaign.end_date) return "draft";
-    
+
     const now = new Date();
     const start = new Date(campaign.start_date);
     const end = new Date(campaign.end_date);
@@ -115,7 +129,7 @@ export default function Campaigns() {
     if (searchQuery && !campaign.name.toLowerCase().includes(searchQuery.toLowerCase())) {
       return false;
     }
-    
+
     // Status filter
     if (statusFilter !== "all") {
       const status = getCampaignStatus(campaign);
@@ -123,7 +137,7 @@ export default function Campaigns() {
         return false;
       }
     }
-    
+
     return true;
   });
 
@@ -190,7 +204,7 @@ export default function Campaigns() {
                 {campaigns.length === 0 ? "No campaigns yet" : "No campaigns found"}
               </h3>
               <p className="text-muted-foreground mb-4">
-                {campaigns.length === 0 
+                {campaigns.length === 0
                   ? "Get started by creating your first campaign"
                   : "Try adjusting your search or filters"
                 }
@@ -205,8 +219,8 @@ export default function Campaigns() {
               const signageCount = campaign.signage_campaigns?.[0]?.count || 0;
 
               return (
-                <Card 
-                  key={campaign.id} 
+                <Card
+                  key={campaign.id}
                   className="border-0 shadow-md hover:shadow-lg transition-shadow cursor-pointer"
                   onClick={() => navigate(`/campaigns/${campaign.id}`)}
                 >

@@ -17,7 +17,14 @@ interface CalendarEvent {
   spotId?: string;
   campaignId?: string;
   photoId?: string;
-  metadata?: any;
+  metadata?: CalendarEventMetadata;
+}
+
+interface CalendarEventMetadata {
+  venues?: { name?: string | null } | null;
+  print_vendor?: string | null;
+  print_status?: string | null;
+  [key: string]: unknown;
 }
 
 interface CalendarEventDialogProps {
@@ -68,11 +75,12 @@ export function CalendarEventDialog({ event, open, onClose, onReschedule, onComp
       onComplete(event);
       onRefresh();
       onClose();
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Failed to promote image";
       console.error('Error promoting image:', error);
       toast({
         title: "Error",
-        description: error.message || "Failed to promote image",
+        description: message,
         variant: "destructive",
       });
     } finally {
@@ -100,11 +108,12 @@ export function CalendarEventDialog({ event, open, onClose, onReschedule, onComp
       onComplete(event);
       onRefresh();
       onClose();
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Failed to update print job";
       console.error('Error updating print job:', error);
       toast({
         title: "Error",
-        description: error.message || "Failed to update print job",
+        description: message,
         variant: "destructive",
       });
     } finally {

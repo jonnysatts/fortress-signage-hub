@@ -6,15 +6,39 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Calendar, ImageIcon, AlertCircle, Upload, ExternalLink, MapPin, Image, ChevronLeft, ChevronRight } from "lucide-react";
 
+interface SpotVenue {
+  name?: string | null;
+}
+
+interface SignageSpotSummary {
+  id: string;
+  location_name: string;
+  width_cm: number | null;
+  height_cm: number | null;
+  current_image_url: string | null;
+  location_photo_url: string | null;
+  status: string;
+  priority_level: string | null;
+  last_update_date: string | null;
+  venues?: SpotVenue | null;
+}
+
+interface ActiveCampaignSummary {
+  campaigns: {
+    id: string;
+    name: string;
+  };
+}
+
 interface SignageCardProps {
-  spot: any;
+  spot: SignageSpotSummary;
   isMultiSelectMode: boolean;
   isSelected: boolean;
   onToggleSelection: () => void;
   onClick: () => void;
   daysSinceUpdate: number | null;
   needsUpdate: boolean;
-  activeCampaign: any;
+  activeCampaign?: ActiveCampaignSummary | null;
   getPriorityBadgeVariant: (priority: string) => "destructive" | "default" | "secondary" | "outline";
   onQuickUpload?: () => void;
   onViewDetails?: () => void;

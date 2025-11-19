@@ -1,10 +1,18 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BarChart, Bar, PieChart, Pie, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from "recharts";
 import { TrendingUp, TrendingDown, LayoutDashboard, Calendar as CalendarIcon, Image, AlertCircle } from "lucide-react";
+import type { Database } from "@/integrations/supabase/types";
+
+type SignageSpot = Database["public"]["Tables"]["signage_spots"]["Row"];
+type CampaignRow = Database["public"]["Tables"]["campaigns"]["Row"];
+type SignageCampaignRow = Database["public"]["Tables"]["signage_campaigns"]["Row"];
+type CampaignWithLinks = CampaignRow & { signage_campaigns?: SignageCampaignRow[] | null };
+type VenueRow = Database["public"]["Tables"]["venues"]["Row"];
+type PhotoHistoryRow = Database["public"]["Tables"]["photo_history"]["Row"];
 
 const COLORS = {
   current: 'hsl(var(--chart-1))',
@@ -19,24 +27,24 @@ const COLORS = {
 
 export default function Analytics() {
   const navigate = useNavigate();
-  const [signageSpots, setSignageSpots] = useState<any[]>([]);
-  const [campaigns, setCampaigns] = useState<any[]>([]);
-  const [venues, setVenues] = useState<any[]>([]);
-  const [photoHistory, setPhotoHistory] = useState<any[]>([]);
+  const [signageSpots, setSignageSpots] = useState<SignageSpot[]>([]);
+  const [campaigns, setCampaigns] = useState<CampaignWithLinks[]>([]);
+  const [venues, setVenues] = useState<VenueRow[]>([]);
+  const [photoHistory, setPhotoHistory] = useState<PhotoHistoryRow[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    checkAuth();
-    fetchData();
-  }, []);
-
-  const checkAuth = async () => {
+  const checkAuth = useCallback(async () => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
       navigate("/auth");
       return;
     }
-  };
+  }, [navigate]);
+
+  useEffect(() => {
+    checkAuth();
+    fetchData();
+  }, [checkAuth]);
 
   const fetchData = async () => {
     setIsLoading(true);
@@ -49,7 +57,7 @@ export default function Analytics() {
       ]);
 
       setSignageSpots(spotsRes.data || []);
-      setCampaigns(campaignsRes.data || []);
+      setCampaigns((campaignsRes.data as CampaignWithLinks[] | null) || []);
       setVenues(venuesRes.data || []);
       setPhotoHistory(photosRes.data || []);
     } catch (error) {
@@ -96,7 +104,7 @@ export default function Analytics() {
 
   // Monthly update trend (last 6 months)
   const getMonthlyUpdates = () => {
-    const monthlyData: any = {};
+    const monthlyData: Record<string, number> = {};
     const now = new Date();
     
     for (let i = 5; i >= 0; i--) {

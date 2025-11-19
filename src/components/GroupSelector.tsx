@@ -11,13 +11,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
+import type { Database } from "@/integrations/supabase/types";
 
-interface Group {
-  id: string;
-  name: string;
-  color: string;
-  icon: string;
-}
+type Group = Database["public"]["Tables"]["signage_groups"]["Row"];
 
 interface GroupSelectorProps {
   signageSpotId: string;
@@ -35,6 +31,10 @@ export function GroupSelector({
   const [allGroups, setAllGroups] = useState<Group[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  const isPostgrestError = (error: unknown): error is { code?: string } => {
+    return Boolean(error) && typeof error === 'object' && 'code' in error;
+  };
+
   useEffect(() => {
     fetchGroups();
   }, []);
@@ -48,7 +48,7 @@ export function GroupSelector({
 
       if (error) throw error;
       setAllGroups(data || []);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.error("Failed to load groups");
       console.error(error);
     } finally {
@@ -68,8 +68,8 @@ export function GroupSelector({
       if (error) throw error;
       toast.success("Group added");
       onChange();
-    } catch (error: any) {
-      if (error.code === '23505') {
+    } catch (error: unknown) {
+      if (isPostgrestError(error) && error.code === '23505') {
         toast.error("This group is already assigned");
       } else {
         toast.error("Failed to add group");
@@ -89,7 +89,7 @@ export function GroupSelector({
       if (error) throw error;
       toast.success("Group removed");
       onChange();
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.error("Failed to remove group");
       console.error(error);
     }
@@ -107,7 +107,7 @@ export function GroupSelector({
             key={group.id}
             variant="secondary"
             className="gap-1"
-            style={{ backgroundColor: group.color + '20', borderColor: group.color }}
+            style={{ backgroundColor: (group.color || '#000') + '20', borderColor: group.color || undefined }}
           >
             {group.name}
             {!disabled && (

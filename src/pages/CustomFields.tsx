@@ -1,6 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
+import { User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { Database } from "@/integrations/supabase/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -21,33 +23,21 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
-interface CustomField {
-  id?: string;
-  field_name: string;
-  field_label: string;
-  field_type: string;
-  field_options?: any;
-  is_required: boolean;
-  is_visible: boolean;
-  field_order?: number;
-}
+type CustomField = Database['public']['Tables']['custom_fields']['Row'];
+type CustomFieldInsert = Database['public']['Tables']['custom_fields']['Insert'];
+type CustomFieldUpdate = Database['public']['Tables']['custom_fields']['Update'];
 
 export default function CustomFields() {
   const navigate = useNavigate();
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [customFields, setCustomFields] = useState<CustomField[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [editingField, setEditingField] = useState<CustomField | null>(null);
+  const [editingField, setEditingField] = useState<CustomFieldInsert | CustomFieldUpdate | null>(null);
   const [isCreating, setIsCreating] = useState(false);
 
-  useEffect(() => {
-    checkAuth();
-    fetchCustomFields();
-  }, []);
-
-  const checkAuth = async () => {
+  const checkAuth = useCallback(async () => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
       navigate("/auth");
@@ -63,9 +53,9 @@ export default function CustomFields() {
     const roleList = roles?.map(r => r.role) || [];
     const effectiveRole = roleList.includes('admin') ? 'admin' : roleList.includes('manager') ? 'manager' : 'staff';
     setUserRole(effectiveRole);
-  };
+  }, [navigate]);
 
-  const fetchCustomFields = async () => {
+  const fetchCustomFields = useCallback(async () => {
     setIsLoading(true);
     try {
       const { data, error } = await supabase
@@ -75,13 +65,18 @@ export default function CustomFields() {
 
       if (error) throw error;
       setCustomFields(data || []);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.error("Failed to load custom fields");
       console.error(error);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    checkAuth();
+    fetchCustomFields();
+  }, [checkAuth, fetchCustomFields]);
 
   const handleCreateField = () => {
     setEditingField({
@@ -105,17 +100,20 @@ export default function CustomFields() {
 
     setIsSaving(true);
     try {
-      if (editingField.id) {
+      // Check if editingField has an ID to determine if it's an update
+      const fieldId = (editingField as CustomField).id;
+
+      if (fieldId) {
         const { error } = await supabase
           .from('custom_fields')
           .update({
             field_label: editingField.field_label,
-            field_type: editingField.field_type as any,
+            field_type: editingField.field_type as Database['public']['Enums']['field_type'],
             field_options: editingField.field_options,
             is_required: editingField.is_required,
             is_visible: editingField.is_visible,
           })
-          .eq('id', editingField.id);
+          .eq('id', fieldId);
 
         if (error) throw error;
         toast.success("Field updated successfully!");
@@ -123,9 +121,9 @@ export default function CustomFields() {
         const { error } = await supabase
           .from('custom_fields')
           .insert([{
-            field_name: editingField.field_name,
-            field_label: editingField.field_label,
-            field_type: editingField.field_type as any,
+            field_name: editingField.field_name!,
+            field_label: editingField.field_label!,
+            field_type: editingField.field_type as Database['public']['Enums']['field_type'],
             field_options: editingField.field_options,
             is_required: editingField.is_required,
             is_visible: editingField.is_visible,
@@ -140,8 +138,9 @@ export default function CustomFields() {
       setEditingField(null);
       setIsCreating(false);
       fetchCustomFields();
-    } catch (error: any) {
-      toast.error("Failed to save field: " + error.message);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      toast.error("Failed to save field: " + errorMessage);
     } finally {
       setIsSaving(false);
     }
@@ -157,8 +156,9 @@ export default function CustomFields() {
       if (error) throw error;
       toast.success("Field deleted successfully!");
       fetchCustomFields();
-    } catch (error: any) {
-      toast.error("Failed to delete field: " + error.message);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      toast.error("Failed to delete field: " + errorMessage);
     }
   };
 
@@ -225,7 +225,7 @@ export default function CustomFields() {
                   <Label>Field Type</Label>
                   <Select
                     value={editingField.field_type}
-                    onValueChange={(value: any) => setEditingField({ ...editingField, field_type: value })}
+                    onValueChange={(value) => setEditingField({ ...editingField, field_type: value as Database['public']['Enums']['field_type'] })}
                   >
                     <SelectTrigger>
                       <SelectValue />
@@ -298,7 +298,7 @@ export default function CustomFields() {
                 <CardContent className="py-4">
                   <div className="flex items-center gap-4">
                     <GripVertical className="w-4 h-4 text-muted-foreground" />
-                    
+
                     <div className="flex-1">
                       <h3 className="font-semibold">{field.field_label}</h3>
                       <p className="text-sm text-muted-foreground">

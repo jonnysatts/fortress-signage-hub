@@ -26,7 +26,8 @@ export function createInitialEditorState(floorPlan: FloorPlan): EditorState {
     isResizing: false,
     resizeHandle: null,
     resizeStartMarker: null,
-    draggedMarkerOverride: null
+    draggedMarkerOverride: null,
+    dragStartMarker: null
   };
 }
 
@@ -67,16 +68,18 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
         mode: 'view'
       };
 
-    case 'START_PLACEMENT':
+    case 'START_PLACEMENT': {
+      const placementMode = `place-${action.markerType}` as EditorMode;
       return {
         ...state,
-        mode: `place-${action.markerType}` as any,
+        mode: placementMode,
         placementType: action.markerType,
         placementSpotId: action.spotId,
         placementSpotName: action.spotName,
         selectedMarkerIds: [],
         draftMarker: null
       };
+    }
 
     case 'SET_DRAFT_MARKER':
       return {
@@ -84,7 +87,7 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
         draftMarker: action.marker
       };
 
-    case 'COMMIT_DRAFT_MARKER':
+    case 'COMMIT_DRAFT_MARKER': {
       // Add to history
       const newHistory: HistoryEntry[] = [
         ...state.history.slice(0, state.historyIndex + 1),
@@ -98,15 +101,12 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
       return {
         ...state,
         draftMarker: null,
-        // Keep context to allow further editing or easy return
-        // placementType: null, // Keep type? Maybe not needed.
-        // placementSpotId: null, // KEEP THIS!
-        // placementSpotName: null, // KEEP THIS!
         mode: 'select', // Switch to select mode to allow moving/resizing
         selectedMarkerIds: [action.marker.id], // Auto-select the new marker
         history: newHistory,
         historyIndex: newHistory.length - 1
       };
+    }
 
     case 'SET_FOCUS_CONTEXT':
       return {
@@ -115,22 +115,24 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
         placementSpotName: action.spotName
       };
 
-    case 'CANCEL_DRAFT':
+    case 'CANCEL_DRAFT': {
+      const preserveContext = action.preserveContext;
       return {
         ...state,
         draftMarker: null,
         placementType: null,
-        placementSpotId: null,
-        placementSpotName: null,
-        mode: 'view'
+        placementSpotId: preserveContext ? state.placementSpotId : null,
+        placementSpotName: preserveContext ? state.placementSpotName : null,
+        mode: preserveContext ? state.mode : 'view'
       };
+    }
 
     case 'DELETE_MARKER':
       // This is handled at component level with database delete
       // But we track it in history
       return state;
 
-    case 'UPDATE_MARKER':
+    case 'UPDATE_MARKER': {
       // Track in history
       const updateHistory: HistoryEntry[] = [
         ...state.history.slice(0, state.historyIndex + 1),
@@ -146,6 +148,7 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
         history: updateHistory,
         historyIndex: updateHistory.length - 1
       };
+    }
 
     case 'SET_VIEW_BOX':
       return {
@@ -212,20 +215,46 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
           x: action.x - action.marker.x,
           y: action.y - action.marker.y
         },
-        draggedMarkerOverride: action.marker
+        draggedMarkerOverride: action.marker,
+        dragStartMarker: action.marker
       };
 
-    case 'DRAG':
-      if (!state.isDragging || !state.draggedMarkerOverride || !state.dragOffset) return state;
+    case 'DRAG': {
+      if (
+        !state.isDragging ||
+        !state.draggedMarkerOverride ||
+        !state.dragOffset ||
+        !state.dragStartMarker
+      ) {
+        return state;
+      }
+
+      const nextX = action.x - state.dragOffset.x;
+      const nextY = action.y - state.dragOffset.y;
+      const startMarker = state.dragStartMarker;
+      const deltaX = nextX - startMarker.x;
+      const deltaY = nextY - startMarker.y;
+
+      let updatedMarker: Marker = {
+        ...state.draggedMarkerOverride,
+        x: nextX,
+        y: nextY
+      };
+
+      if (startMarker.type === 'line') {
+        const lineStart = startMarker as LineMarker;
+        updatedMarker = {
+          ...updatedMarker,
+          x2: lineStart.x2 + deltaX,
+          y2: lineStart.y2 + deltaY
+        };
+      }
 
       return {
         ...state,
-        draggedMarkerOverride: {
-          ...state.draggedMarkerOverride,
-          x: action.x - state.dragOffset.x,
-          y: action.y - state.dragOffset.y
-        }
+        draggedMarkerOverride: updatedMarker
       };
+    }
 
     case 'END_DRAG':
       return {
@@ -233,7 +262,8 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
         isDragging: false,
         dragStartPos: null,
         dragOffset: null,
-        draggedMarkerOverride: null
+        draggedMarkerOverride: null,
+        dragStartMarker: null
       };
 
     case 'START_RESIZE':
@@ -245,7 +275,7 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
         draggedMarkerOverride: action.marker // Initialize override
       };
 
-    case 'RESIZE':
+    case 'RESIZE': {
       if (!state.isResizing || !state.resizeStartMarker || !state.resizeHandle) return state;
 
       const original = state.resizeStartMarker;
@@ -305,6 +335,7 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
         ...state,
         draggedMarkerOverride: newMarker
       };
+    }
 
     case 'END_RESIZE':
       return {

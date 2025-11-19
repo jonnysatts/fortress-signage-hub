@@ -82,11 +82,12 @@ export function CreateEventDialog({ open, onClose, onEventCreated }: CreateEvent
       resetForm();
       onEventCreated();
       onClose();
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Failed to create event";
       console.error('Error creating event:', error);
       toast({
         title: "Error",
-        description: error.message || "Failed to create event",
+        description: message,
         variant: "destructive",
       });
     } finally {

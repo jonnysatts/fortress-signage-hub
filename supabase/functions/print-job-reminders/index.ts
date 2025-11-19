@@ -51,7 +51,7 @@ Deno.serve(async (req) => {
     // Send reminders for each job
     for (const job of urgentJobs || []) {
       console.log(`Reminder: Print job for ${job.signage_spots?.location_name} due ${job.print_due_date}`);
-      
+
       // Log activity
       await supabase.from('activity_log').insert({
         action_type: 'alert',
@@ -73,10 +73,11 @@ Deno.serve(async (req) => {
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Print job reminders error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: errorMessage }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }

@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { Database } from "@/integrations/supabase/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -38,35 +39,36 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
+type Campaign = Database['public']['Tables']['campaigns']['Row'];
+type SignageSpot = Database['public']['Tables']['signage_spots']['Row'] & {
+  venues?: Database['public']['Tables']['venues']['Row'] | null;
+};
+
 export default function CampaignDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [campaign, setCampaign] = useState<any>(null);
-  const [linkedSpots, setLinkedSpots] = useState<any[]>([]);
-  const [availableSpots, setAvailableSpots] = useState<any[]>([]);
+  const [campaign, setCampaign] = useState<Campaign | null>(null);
+  const [linkedSpots, setLinkedSpots] = useState<SignageSpot[]>([]);
+  const [availableSpots, setAvailableSpots] = useState<SignageSpot[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showLinkDialog, setShowLinkDialog] = useState(false);
   const [selectedSpots, setSelectedSpots] = useState<Set<string>>(new Set());
 
-  useEffect(() => {
-    checkAuth();
-    fetchCampaignData();
-  }, [id]);
-
-  const checkAuth = async () => {
+  const checkAuth = useCallback(async () => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
       navigate("/auth");
     }
-  };
+  }, [navigate]);
 
-  const fetchCampaignData = async () => {
+  const fetchCampaignData = useCallback(async () => {
+    if (!id) return;
     setIsLoading(true);
     try {
       // Fetch campaign details
       const { data: campaignData, error: campaignError } = await supabase
-        .from("campaigns" as any)
+        .from("campaigns")
         .select("*")
         .eq("id", id)
         .single();
@@ -76,7 +78,7 @@ export default function CampaignDetail() {
 
       // Fetch linked signage spots
       const { data: linkedData, error: linkedError } = await supabase
-        .from("signage_campaigns" as any)
+        .from("signage_campaigns")
         .select(`
           signage_spot_id,
           signage_spots(*, venues(*))
@@ -84,12 +86,15 @@ export default function CampaignDetail() {
         .eq("campaign_id", id);
 
       if (linkedError) throw linkedError;
-      setLinkedSpots(linkedData?.map((item: any) => item.signage_spots) || []);
+
+      // Transform the data to match SignageSpot type
+      const spots = linkedData?.map((item) => item.signage_spots) as unknown as SignageSpot[];
+      setLinkedSpots(spots || []);
 
       // Fetch available spots (not linked to this campaign)
-      const linkedIds = linkedData?.map((item: any) => item.signage_spot_id) || [];
+      const linkedIds = linkedData?.map((item) => item.signage_spot_id) || [];
       let query = supabase
-        .from("signage_spots" as any)
+        .from("signage_spots")
         .select("*, venues(*)");
 
       if (linkedIds.length > 0) {
@@ -98,33 +103,43 @@ export default function CampaignDetail() {
 
       const { data: availableData, error: availableError } = await query;
       if (availableError) throw availableError;
-      setAvailableSpots(availableData || []);
-    } catch (error: any) {
-      toast.error("Failed to load campaign: " + error.message);
+
+      // Cast available data
+      const available = availableData as unknown as SignageSpot[];
+      setAvailableSpots(available || []);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      toast.error("Failed to load campaign: " + errorMessage);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [id]);
+
+  useEffect(() => {
+    checkAuth();
+    fetchCampaignData();
+  }, [id, checkAuth, fetchCampaignData]);
 
   const handleDelete = async () => {
     try {
       const { error } = await supabase
-        .from("campaigns" as any)
+        .from("campaigns")
         .delete()
         .eq("id", id);
 
       if (error) throw error;
       toast.success("Campaign deleted successfully");
       navigate("/campaigns");
-    } catch (error: any) {
-      toast.error("Failed to delete campaign: " + error.message);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      toast.error("Failed to delete campaign: " + errorMessage);
     }
   };
 
   const handleUnlinkSpot = async (spotId: string) => {
     try {
       const { error } = await supabase
-        .from("signage_campaigns" as any)
+        .from("signage_campaigns")
         .delete()
         .eq("campaign_id", id)
         .eq("signage_spot_id", spotId);
@@ -132,8 +147,9 @@ export default function CampaignDetail() {
       if (error) throw error;
       toast.success("Signage spot unlinked");
       fetchCampaignData();
-    } catch (error: any) {
-      toast.error("Failed to unlink spot: " + error.message);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      toast.error("Failed to unlink spot: " + errorMessage);
     }
   };
 
@@ -147,7 +163,7 @@ export default function CampaignDetail() {
       }));
 
       const { error } = await supabase
-        .from("signage_campaigns" as any)
+        .from("signage_campaigns")
         .insert(links);
 
       if (error) throw error;
@@ -155,14 +171,15 @@ export default function CampaignDetail() {
       setSelectedSpots(new Set());
       setShowLinkDialog(false);
       fetchCampaignData();
-    } catch (error: any) {
-      toast.error("Failed to link spots: " + error.message);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      toast.error("Failed to link spots: " + errorMessage);
     }
   };
 
   const getCampaignStatus = () => {
     if (!campaign?.start_date || !campaign?.end_date) return "draft";
-    
+
     const now = new Date();
     const start = new Date(campaign.start_date);
     const end = new Date(campaign.end_date);
@@ -335,11 +352,10 @@ export default function CampaignDetail() {
                 {campaign.budget_allocated && (
                   <div className="pt-2 border-t">
                     <p className="text-sm text-muted-foreground">Budget Remaining</p>
-                    <p className={`text-lg font-semibold ${
-                      (Number(campaign.budget_allocated) - estimatedCost) >= 0 
-                        ? 'text-green-600' 
-                        : 'text-red-600'
-                    }`}>
+                    <p className={`text-lg font-semibold ${(Number(campaign.budget_allocated) - estimatedCost) >= 0
+                      ? 'text-green-600'
+                      : 'text-red-600'
+                      }`}>
                       ${(Number(campaign.budget_allocated) - estimatedCost).toFixed(2)} AUD
                     </p>
                   </div>
@@ -444,9 +460,8 @@ export default function CampaignDetail() {
                   {availableSpots.map((spot) => (
                     <Card
                       key={spot.id}
-                      className={`cursor-pointer transition-all ${
-                        selectedSpots.has(spot.id) ? "ring-2 ring-primary" : ""
-                      }`}
+                      className={`cursor-pointer transition-all ${selectedSpots.has(spot.id) ? "ring-2 ring-primary" : ""
+                        }`}
                       onClick={() => {
                         const newSelected = new Set(selectedSpots);
                         if (newSelected.has(spot.id)) {

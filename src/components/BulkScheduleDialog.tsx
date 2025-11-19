@@ -94,8 +94,9 @@ export function BulkScheduleDialog({ selectedSpotIds, onSuccess }: BulkScheduleD
       setScheduledDate("");
       setAutoPromote(true);
       setPrintRequired(false);
-    } catch (error: any) {
-      toast.error("Failed to bulk schedule: " + error.message);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Failed to bulk schedule";
+      toast.error("Failed to bulk schedule: " + message);
       console.error(error);
     } finally {
       setIsUploading(false);
