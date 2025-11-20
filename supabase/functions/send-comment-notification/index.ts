@@ -11,6 +11,8 @@ interface CommentNotificationRequest {
   body: string;
   author_id: string;
   mentions: string[];
+  resolved?: boolean;
+  resolved_by?: string;
 }
 
 Deno.serve(async (req) => {
@@ -24,7 +26,7 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    const { comment_id, signage_spot_id, body, author_id, mentions }: CommentNotificationRequest = await req.json();
+    const { comment_id, signage_spot_id, body, author_id, mentions, resolved, resolved_by }: CommentNotificationRequest = await req.json();
 
     // Get author details
     const { data: author } = await supabase
@@ -32,6 +34,17 @@ Deno.serve(async (req) => {
       .select('full_name, email')
       .eq('id', author_id)
       .single();
+
+    // Get resolver details if this is a resolution notification
+    let resolver = null;
+    if (resolved && resolved_by) {
+      const { data: resolverData } = await supabase
+        .from('profiles')
+        .select('full_name, email')
+        .eq('id', resolved_by)
+        .single();
+      resolver = resolverData;
+    }
 
     // Get signage spot details
     const { data: spot } = await supabase
@@ -82,7 +95,62 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_URL')?.replace('.supabase.co', '.lovableproject.com') || '';
     const spotUrl = `${appUrl}/signage/${signage_spot_id}`;
 
-    const blocks = [
+    // Build blocks based on whether this is a report or resolution
+    const blocks = resolved ? [
+      {
+        type: 'header',
+        text: {
+          type: 'plain_text',
+          text: '✅ Issue Resolved',
+          emoji: true
+        }
+      },
+      {
+        type: 'section',
+        text: {
+          type: 'mrkdwn',
+          text: `${slackMentions ? slackMentions + '\n' : ''}*${resolver?.full_name || 'Someone'}* resolved an issue on *${spot.location_name}* at ${venueName}:`
+        }
+      },
+      {
+        type: 'section',
+        text: {
+          type: 'mrkdwn',
+          text: `> ${body}\n\n_Issue has been marked as resolved._`
+        },
+        ...(spot.current_image_url && {
+          accessory: {
+            type: 'image',
+            image_url: spot.current_image_url,
+            alt_text: spot.location_name
+          }
+        })
+      },
+      {
+        type: 'actions',
+        elements: [
+          {
+            type: 'button',
+            text: {
+              type: 'plain_text',
+              text: 'View Details',
+              emoji: true
+            },
+            url: spotUrl,
+            style: 'primary'
+          }
+        ]
+      },
+      {
+        type: 'context',
+        elements: [
+          {
+            type: 'mrkdwn',
+            text: `Fortress Signage Management | ${new Date().toLocaleString()}`
+          }
+        ]
+      }
+    ] : [
       {
         type: 'header',
         text: {
@@ -138,11 +206,15 @@ Deno.serve(async (req) => {
       }
     ];
 
+    const slackText = resolved 
+      ? `${slackMentions}Issue resolved by ${resolver?.full_name || 'Someone'} on ${spot.location_name}`
+      : `${slackMentions}New issue reported by ${author?.full_name || 'Someone'} on ${spot.location_name}`;
+
     const slackResponse = await fetch(slackWebhookUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        text: `${slackMentions}New comment from ${author?.full_name || 'Someone'} on ${spot.location_name}`,
+        text: slackText,
         blocks
       }),
     });

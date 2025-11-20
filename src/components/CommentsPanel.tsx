@@ -212,6 +212,10 @@ export function CommentsPanel({ signageSpotId }: CommentsPanelProps) {
 
   const handleResolve = async (commentId: string) => {
     try {
+      // Get the comment data before updating
+      const comment = comments.find(c => c.id === commentId);
+      if (!comment) return;
+
       const { error } = await supabase
         .from('comments')
         .update({
@@ -223,7 +227,25 @@ export function CommentsPanel({ signageSpotId }: CommentsPanelProps) {
 
       if (error) throw error;
 
-      toast.success("Issue resolved");
+      // Send Slack notification about resolution
+      try {
+        await supabase.functions.invoke('send-comment-notification', {
+          body: {
+            comment_id: commentId,
+            signage_spot_id: signageSpotId,
+            body: comment.body,
+            author_id: comment.author_id,
+            mentions: comment.mentions || [],
+            resolved: true,
+            resolved_by: currentUser,
+          }
+        });
+      } catch (slackError) {
+        console.error('Failed to send resolution notification:', slackError);
+        // Don't fail the resolution if Slack notification fails
+      }
+
+      toast.success("Issue resolved and team notified");
       fetchComments();
     } catch (error: any) {
       console.error('Error resolving issue:', error);
