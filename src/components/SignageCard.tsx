@@ -216,38 +216,38 @@ export function SignageCard({
             <Button
               variant="outline"
               size="sm"
-              className="flex-1 min-w-[80px]"
+              className="flex-1 sm:min-w-[100px]"
               onClick={(e) => {
                 e.stopPropagation();
                 onQuickUpload?.();
               }}
             >
-              <Upload className="w-4 h-4 sm:mr-1" />
-              <span className="hidden sm:inline">Upload</span>
+              <Upload className="w-4 h-4" />
+              <span className="hidden sm:inline sm:ml-1">Upload</span>
             </Button>
             <Button
               variant="outline"
               size="sm"
-              className="flex-1 min-w-[80px]"
+              className="flex-1 sm:min-w-[100px]"
               onClick={(e) => {
                 e.stopPropagation();
                 onViewDetails?.();
               }}
             >
-              <ExternalLink className="w-4 h-4 sm:mr-1" />
-              <span className="hidden sm:inline">Details</span>
+              <ExternalLink className="w-4 h-4" />
+              <span className="hidden sm:inline sm:ml-1">Details</span>
             </Button>
             <Button
               variant="outline"
               size="sm"
-              className="flex-1 min-w-[80px]"
+              className="flex-1 sm:min-w-[100px] border-destructive/50 text-destructive hover:bg-destructive hover:text-destructive-foreground"
               onClick={(e) => {
                 e.stopPropagation();
                 onReportIssue?.();
               }}
             >
-              <AlertCircle className="w-4 h-4 sm:mr-1" />
-              <span className="hidden sm:inline">Report</span>
+              <AlertCircle className="w-4 h-4" />
+              <span className="hidden sm:inline sm:ml-1">Report</span>
             </Button>
           </div>
         )}
