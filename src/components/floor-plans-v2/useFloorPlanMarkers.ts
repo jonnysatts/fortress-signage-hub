@@ -5,6 +5,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Marker, PointMarker, AreaMarker, LineMarker } from './types';
 import { toast } from 'sonner';
@@ -31,6 +32,7 @@ interface UseFloorPlanMarkersResult {
  * Hook to manage floor plan markers with database sync
  */
 export function useFloorPlanMarkers(floorPlanId: string): UseFloorPlanMarkersResult {
+  const queryClient = useQueryClient();
   const [markers, setMarkers] = useState<Marker[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
@@ -230,6 +232,10 @@ export function useFloorPlanMarkers(floorPlanId: string): UseFloorPlanMarkersRes
         throw saveError;
       }
 
+      // Invalidate React Query cache to refresh other components
+      queryClient.invalidateQueries({ queryKey: ['signage-spot', marker.signage_spot_id] });
+      queryClient.invalidateQueries({ queryKey: ['floor-plan-spots', marker.floor_plan_id] });
+
       // Reload to get fresh data including any DB-side triggers/defaults
       await loadMarkers();
 
@@ -254,7 +260,7 @@ export function useFloorPlanMarkers(floorPlanId: string): UseFloorPlanMarkersRes
       toast.error(`Failed to save marker: ${errorMessage}`);
       return false;
     }
-  }, [loadMarkers]);
+  }, [loadMarkers, queryClient]);
 
   // Update existing marker
   const updateMarker = useCallback(async (marker: Marker): Promise<boolean> => {
@@ -280,6 +286,10 @@ export function useFloorPlanMarkers(floorPlanId: string): UseFloorPlanMarkersRes
 
       if (deleteError) throw deleteError;
 
+      // Invalidate React Query cache
+      queryClient.invalidateQueries({ queryKey: ['signage-spot', markerId] });
+      queryClient.invalidateQueries({ queryKey: ['floor-plan-spots', floorPlanId] });
+
       await loadMarkers();  // Refresh
       toast.success('Marker removed');
       return true;
@@ -288,7 +298,7 @@ export function useFloorPlanMarkers(floorPlanId: string): UseFloorPlanMarkersRes
       toast.error('Failed to remove marker');
       return false;
     }
-  }, [loadMarkers]);
+  }, [loadMarkers, queryClient, floorPlanId]);
 
   // Load on mount and when floor plan changes
   useEffect(() => {

@@ -285,43 +285,60 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
 
       if (original.type === 'area') {
         const area = original as AreaMarker;
-        // Calculate new dimensions based on handle
-        // This is a simplified implementation - for rotation support it gets complex
-        // Assuming 0 rotation for now or simple bounding box resizing
+        const rotation = area.rotation || 0;
 
-        if (state.resizeHandle === 'se') {
-          newMarker = {
-            ...area,
-            width: Math.max(10, currentX - area.x + area.width / 2),
-            height: Math.max(10, currentY - area.y + area.height / 2)
-          };
-        } else if (state.resizeHandle === 'sw') {
-          const newWidth = Math.max(10, area.x + area.width / 2 - currentX);
-          newMarker = {
-            ...area,
-            x: area.x - (newWidth - area.width) / 2, // Adjust center X
-            width: newWidth,
-            height: Math.max(10, currentY - area.y + area.height / 2)
-          };
+        // Calculate original corner positions (without rotation for simplicity)
+        // When we support rotation, we'll need to rotate these points
+        const halfW = area.width / 2;
+        const halfH = area.height / 2;
+
+        // Define the four corners (relative to center)
+        const corners = {
+          nw: { x: area.x - halfW, y: area.y - halfH },
+          ne: { x: area.x + halfW, y: area.y - halfH },
+          se: { x: area.x + halfW, y: area.y + halfH },
+          sw: { x: area.x - halfW, y: area.y + halfH }
+        };
+
+        // Determine which corner stays fixed (opposite of the handle being dragged)
+        let fixedCorner: { x: number; y: number };
+        let movingCorner: { x: number; y: number };
+
+        if (state.resizeHandle === 'nw') {
+          fixedCorner = corners.se;
+          movingCorner = { x: currentX, y: currentY };
         } else if (state.resizeHandle === 'ne') {
-          const newHeight = Math.max(10, area.y + area.height / 2 - currentY);
-          newMarker = {
-            ...area,
-            y: area.y - (newHeight - area.height) / 2, // Adjust center Y
-            width: Math.max(10, currentX - area.x + area.width / 2),
-            height: newHeight
-          };
-        } else if (state.resizeHandle === 'nw') {
-          const newWidth = Math.max(10, area.x + area.width / 2 - currentX);
-          const newHeight = Math.max(10, area.y + area.height / 2 - currentY);
-          newMarker = {
-            ...area,
-            x: area.x - (newWidth - area.width) / 2,
-            y: area.y - (newHeight - area.height) / 2,
-            width: newWidth,
-            height: newHeight
-          };
+          fixedCorner = corners.sw;
+          movingCorner = { x: currentX, y: currentY };
+        } else if (state.resizeHandle === 'se') {
+          fixedCorner = corners.nw;
+          movingCorner = { x: currentX, y: currentY };
+        } else if (state.resizeHandle === 'sw') {
+          fixedCorner = corners.ne;
+          movingCorner = { x: currentX, y: currentY };
+        } else {
+          return state;
         }
+
+        // Calculate new dimensions and center
+        const newWidth = Math.abs(movingCorner.x - fixedCorner.x);
+        const newHeight = Math.abs(movingCorner.y - fixedCorner.y);
+        const newCenterX = (fixedCorner.x + movingCorner.x) / 2;
+        const newCenterY = (fixedCorner.y + movingCorner.y) / 2;
+
+        // Enforce minimum size
+        const MIN_SIZE = 20;
+        if (newWidth < MIN_SIZE || newHeight < MIN_SIZE) {
+          return state; // Don't update if too small
+        }
+
+        newMarker = {
+          ...area,
+          x: newCenterX,
+          y: newCenterY,
+          width: newWidth,
+          height: newHeight
+        };
       } else if (original.type === 'line') {
         const line = original as LineMarker;
         if (state.resizeHandle === 'start') {

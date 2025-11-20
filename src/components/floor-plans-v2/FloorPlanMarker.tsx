@@ -187,13 +187,6 @@ export default function FloorPlanMarker({
       return null;
     }
 
-    console.log('[FloorPlanMarker] Line marker:',
-      'isSelected:', isSelected,
-      'isDragging:', isDragging,
-      'hasOnResizeStart:', !!onResizeStart,
-      'showHandles:', isSelected && !isDragging && !!onResizeStart
-    );
-
     return (
       <>
         {/* Pulsing outline for selected line markers */}

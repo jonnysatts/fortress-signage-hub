@@ -20,10 +20,27 @@ import { createInitialViewBox, constrainViewBox, viewBoxToZoomLevel } from '@/co
 import FloorPlanCanvas from '@/components/floor-plans-v2/FloorPlanCanvas';
 import FloorPlanControls from '@/components/floor-plans-v2/FloorPlanControls';
 
-export default function FloorPlanEditorV2() {
-  const { id } = useParams<{ id: string }>();
+interface FloorPlanEditorV2Props {
+  embeddedMode?: boolean;
+  floorPlanId?: string;
+  highlightMarkerId?: string;
+  onHasChanges?: (hasChanges: boolean) => void;
+  onRequestClose?: () => void;
+}
+
+export default function FloorPlanEditorV2({
+  embeddedMode = false,
+  floorPlanId,
+  highlightMarkerId,
+  onHasChanges,
+  onRequestClose
+}: FloorPlanEditorV2Props = {}) {
+  const { id: urlId } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+
+  // Use prop ID if in embedded mode, otherwise use URL param
+  const id = embeddedMode ? floorPlanId : urlId;
 
   const [floorPlan, setFloorPlan] = useState<FloorPlan | null>(null);
   const [loadingFloorPlan, setLoadingFloorPlan] = useState(true);
@@ -52,7 +69,9 @@ export default function FloorPlanEditorV2() {
   useEffect(() => {
     if (!id) {
       toast.error('Floor plan ID is missing. Please select a floor plan first.');
-      navigate('/floor-plans');
+      if (!embeddedMode) {
+        navigate('/floor-plans');
+      }
       return;
     }
 
@@ -75,14 +94,16 @@ export default function FloorPlanEditorV2() {
       } catch (error) {
         console.error('Error loading floor plan:', error);
         toast.error('Failed to load floor plan');
-        navigate('/floor-plans');
+        if (!embeddedMode) {
+          navigate('/floor-plans');
+        }
       } finally {
         setLoadingFloorPlan(false);
       }
     };
 
     loadFloorPlan();
-  }, [id, navigate]);
+  }, [id, navigate, embeddedMode]);
 
   useEffect(() => {
     if (floorPlan) {
@@ -119,25 +140,17 @@ export default function FloorPlanEditorV2() {
     }
   }, [searchParams]);
 
-  // Handle highlighting/selecting a specific marker from URL
+  // Handle highlighting/selecting a specific marker from URL or props
   useEffect(() => {
-    const highlightMarkerId = searchParams.get('highlightMarker');
-    console.log('[Auto-select] highlightMarkerId from URL:', highlightMarkerId);
-    console.log('[Auto-select] Total markers loaded:', markers.length);
-    console.log('[Auto-select] All markers:', markers.map(m => ({
-      id: m.id,
-      signage_spot_id: m.signage_spot_id,
-      type: m.type,
-      name: m.location_name
-    })));
+    // Use prop highlightMarkerId if in embedded mode, otherwise use URL param
+    const highlightMarkerIdToUse = embeddedMode ? highlightMarkerId : searchParams.get('highlightMarker');
 
-    if (!highlightMarkerId || markers.length === 0 || !floorPlan) {
-      console.warn('[Auto-select] Skipping - no highlightMarkerId or no markers loaded');
+    if (!highlightMarkerIdToUse || markers.length === 0 || !floorPlan) {
       return;
     }
 
     // Find the marker to select
-    const markerToSelect = markers.find(m => m.signage_spot_id === highlightMarkerId);
+    const markerToSelect = markers.find(m => m.signage_spot_id === highlightMarkerIdToUse);
     if (markerToSelect) {
       // Auto-select the marker
       dispatch({ type: 'SELECT_MARKER', markerId: markerToSelect.id });
@@ -148,14 +161,6 @@ export default function FloorPlanEditorV2() {
         type: 'SET_FOCUS_CONTEXT',
         spotId: markerToSelect.signage_spot_id,
         spotName: markerToSelect.location_name
-      });
-
-      console.log('[Auto-select] SUCCESS! Selected marker:', markerToSelect);
-      console.log('[Auto-select] Marker coordinates:', {
-        x: markerToSelect.x,
-        y: markerToSelect.y,
-        type: markerToSelect.type,
-        signage_spot_id: markerToSelect.signage_spot_id
       });
 
       // Auto-zoom to the selected marker (show 600px area around it)
@@ -177,42 +182,33 @@ export default function FloorPlanEditorV2() {
         height: zoomHeight
       };
 
-      console.log('[Auto-select] Calculated viewBox:', newViewBox);
-      console.log('[Auto-select] Floor dimensions:', { floorWidth, floorHeight });
-
       dispatch({
         type: 'SET_VIEW_BOX',
         viewBox: newViewBox
       });
 
-      console.log('[Auto-select] Dispatched SET_VIEW_BOX action');
       toast.info('Marker selected and zoomed. You can drag to move it or press Delete to remove it.');
     } else {
-      console.error('[Auto-select] FAILED - Marker not found!');
-      console.error('[Auto-select] Looking for signage_spot_id:', highlightMarkerId);
-      console.error('[Auto-select] Available signage_spot_ids:', markers.map(m => m.signage_spot_id));
-
-      // Even if marker not found, if we have the ID, we should try to fetch the spot name to keep context
-      // This handles the case where the marker might have been deleted but we still want to go back to the spot
+      // Marker not found - try to fetch the spot name to keep context
       supabase
         .from('signage_spots')
         .select('location_name')
-        .eq('id', highlightMarkerId)
+        .eq('id', highlightMarkerIdToUse)
         .single()
         .then(({ data }) => {
           if (data) {
             dispatch({
               type: 'SET_FOCUS_CONTEXT',
-              spotId: highlightMarkerId,
+              spotId: highlightMarkerIdToUse,
               spotName: data.location_name
             });
-            toast.error(`Marker not found, but context set to ${data.location_name}`);
+            toast.warning(`Marker for "${data.location_name}" not found on this floor plan. It may have been removed.`);
           } else {
-            toast.error(`Could not find marker for this signage spot.`);
+            toast.error('Could not find the requested marker. Please try selecting it from the floor plan view.');
           }
         });
     }
-  }, [searchParams, markers, floorPlan]);
+  }, [searchParams, markers, floorPlan, embeddedMode, highlightMarkerId]);
 
   // Handle keyboard shortcuts
   useEffect(() => {
@@ -554,54 +550,58 @@ export default function FloorPlanEditorV2() {
 
   return (
     <div className="flex flex-col h-screen bg-background">
-      {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b bg-background">
-        <div className="flex items-center gap-4">
-          <Button
-            variant="ghost"
-            onClick={() => {
-              if (state.placementSpotId) {
-                navigate(`/signage/${state.placementSpotId}`);
-              } else {
-                navigate('/floor-plans');
-              }
-            }}
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            {state.placementSpotName ? 'Back to Spot' : 'Back to Floor Plans'}
-          </Button>
-          <div>
-            <h1 className="text-2xl font-bold">
-              {state.placementSpotName
-                ? (state.mode.startsWith('place-') ? `Place Marker: ${state.placementSpotName}` : `Editing: ${state.placementSpotName}`)
-                : `Manage Markers - ${floorPlan.display_name}`}
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              {state.placementSpotName
-                ? state.mode.startsWith('place-')
-                  ? (state.mode === 'place-point' ? 'Click anywhere to place the circle marker' : 'Click and drag to draw the shape')
-                  : 'Adjust position or resize. Click "Back to Spot" when done.'
-                : 'Move or delete existing markers • Cannot add new markers from this page'
-              }
-            </p>
-          </div>
-        </div>
-
-        {/* Show helpful banner when not in placement mode */}
-        {!state.placementSpotName && (
-          <div className="px-4 py-3 bg-amber-50 dark:bg-amber-950 border-y border-amber-200 dark:border-amber-800 text-sm">
-            <div className="flex items-start gap-2">
-              <span className="text-lg">💡</span>
-              <div>
-                <strong className="text-amber-900 dark:text-amber-100">To add new markers:</strong>
-                <span className="text-amber-800 dark:text-amber-200 ml-2">
-                  Navigate to a signage spot's detail page → Click "Add to Floor Plan" button → Choose marker type
-                </span>
-              </div>
+      {/* Header - hidden in embedded mode */}
+      {!embeddedMode && (
+        <div className="flex items-center justify-between p-4 border-b bg-background">
+          <div className="flex items-center gap-4">
+            <Button
+              variant="ghost"
+              onClick={() => {
+                if (embeddedMode && onRequestClose) {
+                  onRequestClose();
+                } else if (state.placementSpotId) {
+                  navigate(`/signage/${state.placementSpotId}`);
+                } else {
+                  navigate('/floor-plans');
+                }
+              }}
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              {state.placementSpotName ? 'Back to Spot' : 'Back to Floor Plans'}
+            </Button>
+            <div>
+              <h1 className="text-2xl font-bold">
+                {state.placementSpotName
+                  ? (state.mode.startsWith('place-') ? `Place Marker: ${state.placementSpotName}` : `Editing: ${state.placementSpotName}`)
+                  : `Manage Markers - ${floorPlan.display_name}`}
+              </h1>
+              <p className="text-sm text-muted-foreground">
+                {state.placementSpotName
+                  ? state.mode.startsWith('place-')
+                    ? (state.mode === 'place-point' ? 'Click anywhere to place the circle marker' : 'Click and drag to draw the shape')
+                    : 'Adjust position or resize. Click "Back to Spot" when done.'
+                  : 'Move or delete existing markers • Cannot add new markers from this page'
+                }
+              </p>
             </div>
           </div>
-        )}
-      </div>
+
+          {/* Show helpful banner when not in placement mode */}
+          {!state.placementSpotName && (
+            <div className="px-4 py-3 bg-amber-50 dark:bg-amber-950 border-y border-amber-200 dark:border-amber-800 text-sm">
+              <div className="flex items-start gap-2">
+                <span className="text-lg">💡</span>
+                <div>
+                  <strong className="text-amber-900 dark:text-amber-100">To add new markers:</strong>
+                  <span className="text-amber-800 dark:text-amber-200 ml-2">
+                    Navigate to a signage spot's detail page → Click "Add to Floor Plan" button → Choose marker type
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Controls */}
       <FloorPlanControls

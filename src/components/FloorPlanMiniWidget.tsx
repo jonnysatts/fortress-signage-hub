@@ -1,4 +1,5 @@
-import { useEffect, useState, useCallback } from "react";
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,6 +7,8 @@ import { MapPin, Edit2 } from "lucide-react";
 import { getMarkerColor, getMarkerStatus } from "@/utils/markerUtils";
 import { useNavigate } from "react-router-dom";
 import AddToFloorPlanDialog from "./AddToFloorPlanDialog";
+import FloorPlanEditorSheet from "./FloorPlanEditorSheet";
+import { useSignageSpot } from "@/hooks/useSignageSpot";
 import type { FloorPlan } from "@/components/floor-plans-v2/types";
 
 interface FloorPlanMiniWidgetProps {
@@ -32,18 +35,22 @@ interface FloorPlanSpotData {
   marker_type: string | null;
 }
 
-export default function FloorPlanMiniWidget({ spotId, spotData }: FloorPlanMiniWidgetProps) {
-  const [floorPlan, setFloorPlan] = useState<FloorPlan | null>(null);
-  const [loading, setLoading] = useState(true);
+export default function FloorPlanMiniWidget({ spotId, spotData: initialSpotData }: FloorPlanMiniWidgetProps) {
+  const [editorOpen, setEditorOpen] = useState(false);
   const navigate = useNavigate();
 
-  const loadFloorPlan = useCallback(async () => {
-    if (!spotData.floor_plan_id) {
-      setLoading(false);
-      return;
-    }
+  // Use React Query to fetch fresh spot data (will auto-refresh when marker is updated)
+  const { data: freshSpotData } = useSignageSpot(spotId);
 
-    try {
+  // Use the fresh data if available, otherwise fall back to prop data
+  const spotData = freshSpotData || initialSpotData;
+
+  // Use React Query to fetch floor plan data
+  const { data: floorPlan, isLoading: loading } = useQuery({
+    queryKey: ['floor-plan', spotData.floor_plan_id],
+    queryFn: async () => {
+      if (!spotData.floor_plan_id) return null;
+
       const { data, error } = await supabase
         .from('floor_plans')
         .select('*')
@@ -51,17 +58,10 @@ export default function FloorPlanMiniWidget({ spotId, spotData }: FloorPlanMiniW
         .single();
 
       if (error) throw error;
-      setFloorPlan(data);
-    } catch (error) {
-      console.error('Error loading floor plan:', error);
-    } finally {
-      setLoading(false);
-    }
-  }, [spotData.floor_plan_id]);
-
-  useEffect(() => {
-    loadFloorPlan();
-  }, [loadFloorPlan]);
+      return data as FloorPlan;
+    },
+    enabled: !!spotData.floor_plan_id,
+  });
 
   if (loading) {
     return (
@@ -115,18 +115,6 @@ export default function FloorPlanMiniWidget({ spotId, spotData }: FloorPlanMiniW
   const markerColor = getMarkerColor(spotData);
   const markerStatus = getMarkerStatus(spotData);
 
-  console.log('[FloorPlanMiniWidget] Rendering for spot:', {
-    spotId,
-    spotName: spotData.location_name,
-    floorPlanId: floorPlan.id,
-    floorPlanName: floorPlan.display_name,
-    marker_x_pixels: spotData.marker_x_pixels,
-    marker_y_pixels: spotData.marker_y_pixels,
-    marker_type: spotData.marker_type,
-    marker_x_percent: spotData.marker_x,
-    marker_y_percent: spotData.marker_y
-  });
-
   // Determine if using new pixel-based or old percentage-based coordinates
   const usePixelCoords = spotData.marker_x_pixels !== null && spotData.marker_x_pixels !== undefined;
 
@@ -168,6 +156,7 @@ export default function FloorPlanMiniWidget({ spotId, spotData }: FloorPlanMiniW
   const viewBox = calculateViewBox();
 
   return (
+    <>
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
@@ -178,11 +167,7 @@ export default function FloorPlanMiniWidget({ spotId, spotData }: FloorPlanMiniW
           <Button
             variant="outline"
             size="sm"
-            onClick={() => {
-              const url = `/floor-plans/${floorPlan.id}/edit?highlightMarker=${spotId}`;
-              console.log('[FloorPlanMiniWidget] Navigating to edit marker:', url);
-              navigate(url);
-            }}
+            onClick={() => setEditorOpen(true)}
             title="Edit this marker's position"
           >
             <Edit2 className="w-4 h-4 mr-2" />
@@ -330,5 +315,17 @@ export default function FloorPlanMiniWidget({ spotId, spotData }: FloorPlanMiniW
         </div>
       </CardContent>
     </Card>
+
+    {/* Floor Plan Editor Sheet */}
+    {floorPlan && (
+      <FloorPlanEditorSheet
+        open={editorOpen}
+        onOpenChange={setEditorOpen}
+        floorPlanId={floorPlan.id}
+        spotId={spotId}
+        spotName={spotData.location_name}
+      />
+    )}
+    </>
   );
 }
