@@ -1,0 +1,48 @@
+URGENT: Floor Plan Marker Placement is Broken
+==============================================
+
+PROBLEM:
+The floor_plans table is missing original_width and original_height values.
+Console shows: "⚠ Floor plan missing dimensions, using defaults (1920x1080)"
+This breaks marker placement completely because the coordinate system is wrong.
+
+SOLUTION:
+I've created tools to fix this automatically. Follow these steps:
+
+STEP 1: Pull latest code from GitHub
+- This includes all the marker fixes and the dimension detection tools
+
+STEP 2: Deploy the Edge Function
+```
+supabase functions deploy fix-floor-plan-dimensions
+```
+
+STEP 3: Run the Edge Function
+Invoke the function with an empty request body {} to automatically:
+- Detect all floor plans with missing dimensions
+- Download each image
+- Extract the real dimensions
+- Update the database
+
+OR manually check and fix:
+```sql
+-- Check which floor plans need fixing
+SELECT id, display_name, original_width, original_height, image_url
+FROM floor_plans
+WHERE original_width IS NULL OR original_height IS NULL;
+
+-- Then manually update with real dimensions:
+UPDATE floor_plans
+SET original_width = [actual width], original_height = [actual height]
+WHERE id = '[floor-plan-id]';
+```
+
+STEP 4: Verify
+```sql
+SELECT id, display_name, original_width, original_height
+FROM floor_plans;
+```
+
+All floor plans should now have dimensions set.
+
+FULL DETAILS: See LOVABLE_INSTRUCTIONS.md in the repo
