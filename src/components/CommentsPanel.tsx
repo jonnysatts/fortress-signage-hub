@@ -39,6 +39,7 @@ export function CommentsPanel({ signageSpotId }: CommentsPanelProps) {
   const [currentUser, setCurrentUser] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showMentionPicker, setShowMentionPicker] = useState(false);
+  const [selectedMentionUserIds, setSelectedMentionUserIds] = useState<string[]>([]);
 
   useEffect(() => {
     fetchComments();
@@ -143,7 +144,9 @@ export function CommentsPanel({ signageSpotId }: CommentsPanelProps) {
 
     setIsSubmitting(true);
     try {
-      const mentions = extractMentions(newComment);
+      const mentions = selectedMentionUserIds.length > 0
+        ? selectedMentionUserIds
+        : extractMentions(newComment);
 
       const { data: comment, error: insertError } = await supabase
         .from('comments')
@@ -183,6 +186,7 @@ export function CommentsPanel({ signageSpotId }: CommentsPanelProps) {
       }
 
       setNewComment("");
+      setSelectedMentionUserIds([]);
       fetchComments();
     } catch (error: any) {
       console.error('Error adding comment:', error);
@@ -209,8 +213,11 @@ export function CommentsPanel({ signageSpotId }: CommentsPanelProps) {
     }
   };
 
-  const handleMentionClick = (userName: string) => {
-    setNewComment(prev => prev + `@${userName} `);
+  const handleMentionClick = (user: User) => {
+    setNewComment(prev => prev + `@${user.full_name || user.email} `);
+    setSelectedMentionUserIds(prev =>
+      prev.includes(user.id) ? prev : [...prev, user.id]
+    );
     setShowMentionPicker(false);
   };
 
@@ -242,7 +249,7 @@ export function CommentsPanel({ signageSpotId }: CommentsPanelProps) {
                     key={user.id}
                     variant="outline"
                     size="sm"
-                    onClick={() => handleMentionClick(user.full_name || user.email)}
+                    onClick={() => handleMentionClick(user)}
                     className="text-xs"
                   >
                     @{user.full_name || user.email}
