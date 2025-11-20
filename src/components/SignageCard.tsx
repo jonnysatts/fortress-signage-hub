@@ -212,42 +212,42 @@ export function SignageCard({
         
         {/* Quick Action Buttons */}
         {!isMultiSelectMode && (
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Button
               variant="outline"
               size="sm"
-              className="flex-1"
+              className="flex-1 min-w-[80px]"
               onClick={(e) => {
                 e.stopPropagation();
                 onQuickUpload?.();
               }}
             >
-              <Upload className="w-4 h-4 mr-1" />
-              Upload
+              <Upload className="w-4 h-4 sm:mr-1" />
+              <span className="hidden sm:inline">Upload</span>
             </Button>
             <Button
               variant="outline"
               size="sm"
-              className="flex-1"
+              className="flex-1 min-w-[80px]"
               onClick={(e) => {
                 e.stopPropagation();
                 onViewDetails?.();
               }}
             >
-              <ExternalLink className="w-4 h-4 mr-1" />
-              Details
+              <ExternalLink className="w-4 h-4 sm:mr-1" />
+              <span className="hidden sm:inline">Details</span>
             </Button>
             <Button
               variant="outline"
               size="sm"
-              className="flex-1"
+              className="flex-1 min-w-[80px]"
               onClick={(e) => {
                 e.stopPropagation();
                 onReportIssue?.();
               }}
             >
-              <AlertCircle className="w-4 h-4 mr-1" />
-              Report
+              <AlertCircle className="w-4 h-4 sm:mr-1" />
+              <span className="hidden sm:inline">Report</span>
             </Button>
           </div>
         )}
