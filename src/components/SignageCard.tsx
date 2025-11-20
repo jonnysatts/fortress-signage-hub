@@ -42,6 +42,7 @@ interface SignageCardProps {
   getPriorityBadgeVariant: (priority: string) => "destructive" | "default" | "secondary" | "outline";
   onQuickUpload?: () => void;
   onViewDetails?: () => void;
+  onReportIssue?: () => void;
 }
 
 export function SignageCard({
@@ -56,6 +57,7 @@ export function SignageCard({
   getPriorityBadgeVariant,
   onQuickUpload,
   onViewDetails,
+  onReportIssue,
 }: SignageCardProps) {
   const [showLocation, setShowLocation] = useState(false);
   
@@ -234,6 +236,18 @@ export function SignageCard({
             >
               <ExternalLink className="w-4 h-4 mr-1" />
               Details
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex-1"
+              onClick={(e) => {
+                e.stopPropagation();
+                onReportIssue?.();
+              }}
+            >
+              <AlertCircle className="w-4 h-4 mr-1" />
+              Report
             </Button>
           </div>
         )}
