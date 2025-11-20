@@ -9,6 +9,7 @@ import { SignageCard } from "@/components/SignageCard";
 import { DashboardFilters } from "@/components/DashboardFilters";
 import { OnboardingTour } from "@/components/OnboardingTour";
 import { CreateSignageDialog } from "@/components/CreateSignageDialog";
+import { QuickIssueDialog } from "@/components/QuickIssueDialog";
 import { useOnboarding } from "@/hooks/useOnboarding";
 import {
   CheckCircle2,
@@ -54,6 +55,8 @@ export default function Dashboard() {
   const [selectedSpots, setSelectedSpots] = useState<Set<string>>(new Set());
   const [isMultiSelectMode, setIsMultiSelectMode] = useState(false);
   const [showUpcomingOnly, setShowUpcomingOnly] = useState(false);
+  const [showQuickIssueDialog, setShowQuickIssueDialog] = useState(false);
+  const [selectedSpotForIssue, setSelectedSpotForIssue] = useState<SignageSpot | null>(null);
 
   const checkAuth = useCallback(async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -210,6 +213,28 @@ export default function Dashboard() {
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : "Unknown error";
       toast.error("Failed to delete spots: " + errorMessage);
+    }
+  };
+
+  const handleQuickIssueSubmit = async (issueText: string) => {
+    if (!user || !selectedSpotForIssue) return;
+
+    try {
+      const { error } = await supabase
+        .from("comments")
+        .insert({
+          signage_spot_id: selectedSpotForIssue.id,
+          author_id: user.id,
+          body: issueText,
+          status: 'open',
+        });
+
+      if (error) throw error;
+
+      toast.success("Issue reported successfully");
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      toast.error("Failed to report issue: " + errorMessage);
     }
   };
 
@@ -416,12 +441,24 @@ export default function Dashboard() {
                   getPriorityBadgeVariant={getPriorityBadgeVariant}
                   onQuickUpload={() => navigate(`/signage/${spot.id}?tab=upload`)}
                   onViewDetails={() => navigate(`/signage/${spot.id}`)}
+                  onReportIssue={() => {
+                    setSelectedSpotForIssue(spot);
+                    setShowQuickIssueDialog(true);
+                  }}
                 />
               );
             })}
           </div>
         )}
       </main>
+
+      {/* Quick Issue Dialog */}
+      <QuickIssueDialog
+        open={showQuickIssueDialog}
+        onOpenChange={setShowQuickIssueDialog}
+        onSubmit={handleQuickIssueSubmit}
+        locationName={selectedSpotForIssue?.location_name || ""}
+      />
     </div>
   );
 }
