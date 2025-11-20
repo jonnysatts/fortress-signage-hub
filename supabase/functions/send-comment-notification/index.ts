@@ -72,17 +72,28 @@ Deno.serve(async (req) => {
 
     console.log('Slack settings:', slackSettings);
 
-    // Match Supabase user IDs to Slack IDs
+    // Match Supabase user IDs to Slack IDs with flexible name matching
     const slackMentions = mentionedUsers
       ?.map(user => {
-        const setting = slackSettings?.find(s => s.user_name === user.full_name);
+        // Try multiple matching strategies:
+        // 1. Exact match
+        // 2. Slack name contained in full name (e.g., "Jon" in "Jon Satterley")
+        // 3. Full name contained in Slack name
+        const setting = slackSettings?.find(s => {
+          const slackName = s.user_name.toLowerCase();
+          const fullName = (user.full_name || '').toLowerCase();
+          return slackName === fullName || 
+                 fullName.includes(slackName) || 
+                 slackName.includes(fullName);
+        });
+        
         const rawSlackId = setting?.slack_user_id;
         // Support both raw IDs (U123...) and preformatted mentions like <@U123> or @handle
         let mention: string | null = null;
         if (rawSlackId) {
           if (rawSlackId.startsWith('<@') && rawSlackId.endsWith('>')) {
             mention = rawSlackId; // already in correct format
-          } else if (rawSlackId.startsWith('U')) {
+          } else if (rawSlackId.startsWith('U') || rawSlackId.startsWith('W')) {
             mention = `<@${rawSlackId}>`; // user ID, wrap it
           } else if (rawSlackId.startsWith('@')) {
             mention = rawSlackId; // handle-style mention, send as-is
