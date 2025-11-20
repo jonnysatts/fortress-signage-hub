@@ -15,7 +15,7 @@ verify_jwt = false
 [functions.send-alerts]
 verify_jwt = false
 
-[functions.test-slack-alert]
+[functions.send-comment-notification]
 verify_jwt = false
 
 # Cron job configurations for automated edge function execution

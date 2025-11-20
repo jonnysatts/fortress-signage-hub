@@ -21,6 +21,7 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { ApprovalWorkflow } from "@/components/ApprovalWorkflow";
 import FloorPlanMiniWidget from "@/components/FloorPlanMiniWidget";
+import { CommentsPanel } from "@/components/CommentsPanel";
 import { format } from "date-fns";
 import { QRCodeSVG } from "qrcode.react";
 import { toast } from "sonner";
@@ -625,6 +626,7 @@ export default function SignageDetail() {
             <TabsTrigger value="details">Details</TabsTrigger>
             <TabsTrigger value="upload">Upload Image</TabsTrigger>
             <TabsTrigger value="history">Photo History ({photoHistory.length})</TabsTrigger>
+            <TabsTrigger value="comments">Comments</TabsTrigger>
             <TabsTrigger value="qrcode">
               <QrCode className="w-4 h-4 mr-2" />
               QR Code
@@ -1722,6 +1724,10 @@ export default function SignageDetail() {
                 )}
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="comments">
+            <CommentsPanel signageSpotId={id!} />
           </TabsContent>
 
           <TabsContent value="qrcode">

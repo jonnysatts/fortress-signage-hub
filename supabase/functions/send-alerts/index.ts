@@ -166,9 +166,20 @@ Deno.serve(async (req) => {
             .from('slack_mention_settings')
             .select('*');
           
-          const usersToMention = mentionSettings?.filter(setting => 
-            setting.mention_for_severities.includes(alert.severity)
-          ) || [];
+          const usersToMention = mentionSettings?.filter(setting => {
+            if (!setting.mention_for_severities.includes(alert.severity)) {
+              return false;
+            }
+            
+            // If there are spots, filter by venue
+            if (alert.spots && alert.spots.length > 0) {
+              return setting.venues.some((venue: string) => 
+                alert.spots!.some((spot: any) => spot.venues?.name === venue)
+              );
+            }
+            
+            return true;
+          }) || [];
           
           const mentions = usersToMention.length > 0 
             ? usersToMention.map(u => `<@${u.slack_user_id}>`).join(' ') + ' '

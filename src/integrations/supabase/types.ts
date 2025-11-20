@@ -275,6 +275,47 @@ export type Database = {
           },
         ]
       }
+      comments: {
+        Row: {
+          author_id: string
+          body: string
+          created_at: string | null
+          id: string
+          mentions: string[] | null
+          needs_attention: boolean | null
+          signage_spot_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          author_id: string
+          body: string
+          created_at?: string | null
+          id?: string
+          mentions?: string[] | null
+          needs_attention?: boolean | null
+          signage_spot_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          author_id?: string
+          body?: string
+          created_at?: string | null
+          id?: string
+          mentions?: string[] | null
+          needs_attention?: boolean | null
+          signage_spot_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comments_signage_spot_id_fkey"
+            columns: ["signage_spot_id"]
+            isOneToOne: false
+            referencedRelation: "signage_spots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       custom_fields: {
         Row: {
           applies_to_categories: string[] | null
@@ -931,6 +972,7 @@ export type Database = {
           slack_user_id: string
           updated_at: string | null
           user_name: string
+          venues: string[]
         }
         Insert: {
           created_at?: string | null
@@ -939,6 +981,7 @@ export type Database = {
           slack_user_id: string
           updated_at?: string | null
           user_name: string
+          venues?: string[]
         }
         Update: {
           created_at?: string | null
@@ -947,6 +990,7 @@ export type Database = {
           slack_user_id?: string
           updated_at?: string | null
           user_name?: string
+          venues?: string[]
         }
         Relationships: []
       }
