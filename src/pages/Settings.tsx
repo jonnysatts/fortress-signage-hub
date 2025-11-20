@@ -12,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, Bell, Save, Settings2, Users, Tags, MapPin } from "lucide-react";
 import { toast } from "sonner";
 import { UserManagementPanel } from "@/components/UserManagementPanel";
+import { CategoryTagManagement } from "@/components/CategoryTagManagement";
 
 type AlertSetting = Database['public']['Tables']['alert_settings']['Row'];
 
@@ -350,19 +351,7 @@ export default function Settings() {
           </TabsContent>
 
           <TabsContent value="categories">
-            <Card>
-              <CardHeader>
-                <CardTitle>Categories & Tags</CardTitle>
-                <CardDescription>
-                  Manage groups and tag taxonomies for signage spots
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground">
-                  Category management features coming soon. Groups can currently be viewed in the dashboard filters.
-                </p>
-              </CardContent>
-            </Card>
+            <CategoryTagManagement canEdit={canEdit} />
           </TabsContent>
         </Tabs>
       </div>
