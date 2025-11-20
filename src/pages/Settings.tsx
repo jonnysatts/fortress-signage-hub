@@ -13,6 +13,7 @@ import { ArrowLeft, Bell, Save, Settings2, Users, Tags, MapPin } from "lucide-re
 import { toast } from "sonner";
 import { UserManagementPanel } from "@/components/UserManagementPanel";
 import { CategoryTagManagement } from "@/components/CategoryTagManagement";
+import { SlackMentionManagement } from "@/components/SlackMentionManagement";
 
 type AlertSetting = Omit<Database['public']['Tables']['alert_settings']['Row'], 'slack_webhook_url'> & {
   slack_webhook_url?: string | null;
@@ -220,8 +221,22 @@ export default function Settings() {
             </TabsList>
           </div>
 
-          <TabsContent value="alerts" className="space-y-4">
-            {alertSettings.map((setting, index) => (
+          <TabsContent value="alerts" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Slack User Mentions</CardTitle>
+                <CardDescription>
+                  Configure which users should be @mentioned in Slack alerts based on severity
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <SlackMentionManagement canEdit={canEdit} />
+              </CardContent>
+            </Card>
+
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold">Alert Types</h3>
+              {alertSettings.map((setting, index) => (
               <Card key={setting.id || setting.alert_type}>
                 <CardHeader>
                   <div className="flex items-center justify-between">
@@ -272,7 +287,8 @@ export default function Settings() {
                   </div>
                 </CardContent>
               </Card>
-            ))}
+              ))}
+            </div>
 
             {canEdit && (
               <div className="flex justify-end">
