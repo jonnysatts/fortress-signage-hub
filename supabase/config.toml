@@ -18,6 +18,9 @@ verify_jwt = false
 [functions.send-comment-notification]
 verify_jwt = false
 
+[functions.fix-floor-plan-dimensions]
+verify_jwt = false
+
 # Cron job configurations for automated edge function execution
 # Schedule format: "minute hour day month weekday"
 # See https://crontab.guru/ for help with cron syntax
