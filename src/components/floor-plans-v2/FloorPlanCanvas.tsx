@@ -141,7 +141,6 @@ const FloorPlanCanvas = React.memo(function FloorPlanCanvas({
       const clampedPoint = clampToFloorPlan(svgPoint, floorPlan);
 
       if (isDraggingRef.current && draggedMarkerRef.current && onMarkerDrag) {
-        console.log('[FloorPlanCanvas] Dragging marker:', { marker: draggedMarkerRef.current.id, point: clampedPoint });
         onMarkerDrag(draggedMarkerRef.current, clampedPoint);
       } else if (isPanningRef.current && panStartRef.current && onViewBoxChange) {
         const deltaX = panStartRef.current.x - clampedPoint.x;
@@ -222,12 +221,9 @@ const FloorPlanCanvas = React.memo(function FloorPlanCanvas({
 
   // Handle marker drag start
   const handleMarkerMouseDown = useCallback((marker: Marker, event: React.MouseEvent) => {
-    console.log('[FloorPlanCanvas] handleMarkerMouseDown', { mode, marker: marker.id });
-
     // Allow dragging in any mode except active placement modes with draft markers
     const isPlacingNew = (mode === 'place-point' || mode === 'place-area' || mode === 'place-line') && draftMarker;
     if (isPlacingNew) {
-      console.log('[FloorPlanCanvas] Skipping drag - in placement mode');
       return;
     }
 
@@ -236,11 +232,8 @@ const FloorPlanCanvas = React.memo(function FloorPlanCanvas({
     event.stopPropagation();
     event.preventDefault();
 
-    console.log('[FloorPlanCanvas] Starting drag for marker:', marker.id);
-
     // Select the marker first (needed for dragging to work)
     if (onMarkerClick && !selectedMarkerIds.includes(marker.id)) {
-      console.log('[FloorPlanCanvas] Selecting marker first');
       onMarkerClick(marker, event);
     }
 
@@ -254,7 +247,6 @@ const FloorPlanCanvas = React.memo(function FloorPlanCanvas({
     setIsDraggingState(true);
     setDraggedMarkerState(marker);
 
-    console.log('[FloorPlanCanvas] Calling onMarkerDragStart', { svgPoint, onMarkerDragStart: !!onMarkerDragStart });
     if (onMarkerDragStart) {
       onMarkerDragStart(marker, svgPoint);
     }
