@@ -104,7 +104,7 @@ const FloorPlanCanvas = React.memo(function FloorPlanCanvas({
     const clampedPoint = clampToFloorPlan(svgPoint, floorPlan);
 
     // Start panning if not in a placement mode and not clicking a marker
-    const isPlacingNew = (mode === 'place-point' || mode === 'place-area' || mode === 'place-line') && draftMarker;
+    const isPlacingNew = (mode === 'place-point' || mode === 'place-area' || mode === 'place-line');
     const clickedMarker = findMarkerAtPoint(clampedPoint, markers);
 
     if (!isPlacingNew && !clickedMarker && onViewBoxChange && event.button === 0) { // Left click to pan
