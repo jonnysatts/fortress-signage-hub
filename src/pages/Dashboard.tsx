@@ -8,6 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { SignageCard } from "@/components/SignageCard";
 import { DashboardFilters } from "@/components/DashboardFilters";
 import { OnboardingTour } from "@/components/OnboardingTour";
+import { CreateSignageDialog } from "@/components/CreateSignageDialog";
 import { useOnboarding } from "@/hooks/useOnboarding";
 import {
   CheckCircle2,
@@ -250,66 +251,73 @@ export default function Dashboard() {
 
       <main className="container mx-auto px-4 py-8">
         {/* Quick Status Filters */}
-        <div className="flex flex-wrap gap-2 mb-6">
-          <Button
-            variant={selectedStatus === "all" ? "default" : "outline"}
-            size="sm"
-            onClick={() => setSelectedStatus("all")}
-          >
-            All ({signageSpots.length})
-          </Button>
-          <Button
-            variant={selectedStatus === "current" ? "default" : "outline"}
-            size="sm"
-            onClick={() => setSelectedStatus("current")}
-            className={selectedStatus === "current" ? "" : "border-status-current/20"}
-          >
-            <CheckCircle2 className="w-3 h-3 mr-1" />
-            Current ({stats.current})
-          </Button>
-          <Button
-            variant={selectedStatus === "expiring_soon" ? "default" : "outline"}
-            size="sm"
-            onClick={() => setSelectedStatus("expiring_soon")}
-            className={selectedStatus === "expiring_soon" ? "" : "border-status-expiring/20"}
-          >
-            <Clock className="w-3 h-3 mr-1" />
-            Expiring ({stats.expiring})
-          </Button>
-          <Button
-            variant={selectedStatus === "overdue" ? "default" : "outline"}
-            size="sm"
-            onClick={() => setSelectedStatus("overdue")}
-            className={selectedStatus === "overdue" ? "" : "border-status-overdue/20"}
-          >
-            <AlertCircle className="w-3 h-3 mr-1" />
-            Overdue ({stats.overdue})
-          </Button>
-          <Button
-            variant={selectedStatus === "empty" ? "default" : "outline"}
-            size="sm"
-            onClick={() => setSelectedStatus("empty")}
-            className={selectedStatus === "empty" ? "" : "border-status-empty/20"}
-          >
-            <Circle className="w-3 h-3 mr-1" />
-            Empty ({stats.empty})
-          </Button>
-          <Button
-            variant={showAssignedToMe ? "default" : "outline"}
-            size="sm"
-            onClick={() => setShowAssignedToMe(!showAssignedToMe)}
-          >
-            <UserIcon className="w-3 h-3 mr-1" />
-            Assigned to Me
-          </Button>
-          <Button
-            variant={showUpcomingOnly ? "default" : "outline"}
-            size="sm"
-            onClick={() => setShowUpcomingOnly(!showUpcomingOnly)}
-          >
-            <Clock className="w-3 h-3 mr-1" />
-            Upcoming Changes ({upcomingCount})
-          </Button>
+        <div className="flex flex-wrap gap-2 mb-6 items-center justify-between">
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant={selectedStatus === "all" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setSelectedStatus("all")}
+            >
+              All ({signageSpots.length})
+            </Button>
+            <Button
+              variant={selectedStatus === "current" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setSelectedStatus("current")}
+              className={selectedStatus === "current" ? "" : "border-status-current/20"}
+            >
+              <CheckCircle2 className="w-3 h-3 mr-1" />
+              Current ({stats.current})
+            </Button>
+            <Button
+              variant={selectedStatus === "expiring_soon" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setSelectedStatus("expiring_soon")}
+              className={selectedStatus === "expiring_soon" ? "" : "border-status-expiring/20"}
+            >
+              <Clock className="w-3 h-3 mr-1" />
+              Expiring ({stats.expiring})
+            </Button>
+            <Button
+              variant={selectedStatus === "overdue" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setSelectedStatus("overdue")}
+              className={selectedStatus === "overdue" ? "" : "border-status-overdue/20"}
+            >
+              <AlertCircle className="w-3 h-3 mr-1" />
+              Overdue ({stats.overdue})
+            </Button>
+            <Button
+              variant={selectedStatus === "empty" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setSelectedStatus("empty")}
+              className={selectedStatus === "empty" ? "" : "border-status-empty/20"}
+            >
+              <Circle className="w-3 h-3 mr-1" />
+              Empty ({stats.empty})
+            </Button>
+            <Button
+              variant={showAssignedToMe ? "default" : "outline"}
+              size="sm"
+              onClick={() => setShowAssignedToMe(!showAssignedToMe)}
+            >
+              <UserIcon className="w-3 h-3 mr-1" />
+              Assigned to Me
+            </Button>
+            <Button
+              variant={showUpcomingOnly ? "default" : "outline"}
+              size="sm"
+              onClick={() => setShowUpcomingOnly(!showUpcomingOnly)}
+            >
+              <Clock className="w-3 h-3 mr-1" />
+              Upcoming Changes ({upcomingCount})
+            </Button>
+          </div>
+          
+          {/* Create Button - Only for Admins and Managers */}
+          {(profile?.role === 'admin' || profile?.role === 'manager') && (
+            <CreateSignageDialog onSuccess={fetchData} />
+          )}
         </div>
 
         {/* Filters */}
