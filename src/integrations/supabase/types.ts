@@ -1084,6 +1084,14 @@ export type Database = {
         }
         Returns: string
       }
+      calculate_spot_status: {
+        Args: {
+          p_current_image_url: string
+          p_expiry_date: string
+          p_next_planned_date: string
+        }
+        Returns: Database["public"]["Enums"]["signage_status"]
+      }
       get_signage_timeline: {
         Args: { spot_id: string }
         Returns: {
