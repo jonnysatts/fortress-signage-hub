@@ -8,7 +8,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { UserPlus, Edit2, Ban, CheckCircle, Mail } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { UserPlus, Edit2, Ban, CheckCircle, Mail, Info, Shield, Users as UsersIcon, User } from "lucide-react";
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -175,6 +177,30 @@ export function UserManagementPanel({ currentUserId, userRole }: UserManagementP
     }
   };
 
+  const getRoleIcon = (role: AppRole) => {
+    switch (role) {
+      case 'admin':
+        return <Shield className="w-3 h-3 mr-1" />;
+      case 'manager':
+        return <UsersIcon className="w-3 h-3 mr-1" />;
+      default:
+        return <User className="w-3 h-3 mr-1" />;
+    }
+  };
+
+  const getRoleDescription = (role: AppRole) => {
+    switch (role) {
+      case 'admin':
+        return 'Full system access: manage users, settings, all signage, campaigns, and floor plans';
+      case 'manager':
+        return 'Elevated access: create/edit campaigns, manage signage, approve changes, and view analytics';
+      case 'staff':
+        return 'Basic access: view signage, upload images, update assigned spots, and create drafts';
+      default:
+        return '';
+    }
+  };
+
   if (!canManage) {
     return (
       <Card>
@@ -249,13 +275,31 @@ export function UserManagementPanel({ currentUserId, userRole }: UserManagementP
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="staff">Staff</SelectItem>
-                      <SelectItem value="manager">Manager</SelectItem>
+                      <SelectItem value="staff">
+                        <div className="flex flex-col items-start">
+                          <span className="font-medium">Staff</span>
+                          <span className="text-xs text-muted-foreground">Basic access to assigned signage</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="manager">
+                        <div className="flex flex-col items-start">
+                          <span className="font-medium">Manager</span>
+                          <span className="text-xs text-muted-foreground">Manage campaigns and all signage</span>
+                        </div>
+                      </SelectItem>
                       {userRole === 'admin' && (
-                        <SelectItem value="admin">Admin</SelectItem>
+                        <SelectItem value="admin">
+                          <div className="flex flex-col items-start">
+                            <span className="font-medium">Admin</span>
+                            <span className="text-xs text-muted-foreground">Full system access</span>
+                          </div>
+                        </SelectItem>
                       )}
                     </SelectContent>
                   </Select>
+                  <p className="text-xs text-muted-foreground">
+                    {getRoleDescription(inviteRole)}
+                  </p>
                 </div>
                 <div className="flex justify-end gap-2">
                   <Button type="button" variant="outline" onClick={() => setInviteOpen(false)}>
@@ -271,7 +315,35 @@ export function UserManagementPanel({ currentUserId, userRole }: UserManagementP
           </Dialog>
         </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="space-y-4">
+        <Alert>
+          <Info className="h-4 w-4" />
+          <AlertTitle>Role Permissions Overview</AlertTitle>
+          <AlertDescription className="space-y-2 mt-2">
+            <div className="flex items-start gap-2">
+              <Badge className="bg-red-500/10 text-red-500 border-red-500/20 mt-0.5">
+                <Shield className="w-3 h-3 mr-1" />
+                Admin
+              </Badge>
+              <span className="text-sm">Full system access including user management, all settings, signage, campaigns, and floor plans</span>
+            </div>
+            <div className="flex items-start gap-2">
+              <Badge className="bg-blue-500/10 text-blue-500 border-blue-500/20 mt-0.5">
+                <UsersIcon className="w-3 h-3 mr-1" />
+                Manager
+              </Badge>
+              <span className="text-sm">Create/edit campaigns, manage all signage spots, approve changes, and view analytics</span>
+            </div>
+            <div className="flex items-start gap-2">
+              <Badge className="bg-gray-500/10 text-gray-500 border-gray-500/20 mt-0.5">
+                <User className="w-3 h-3 mr-1" />
+                Staff
+              </Badge>
+              <span className="text-sm">View signage, upload images for assigned spots, and create drafts for approval</span>
+            </div>
+          </AlertDescription>
+        </Alert>
+
         <Table>
           <TableHeader>
             <TableRow>
@@ -294,9 +366,19 @@ export function UserManagementPanel({ currentUserId, userRole }: UserManagementP
                 </TableCell>
                 <TableCell>{user.email}</TableCell>
                 <TableCell>
-                  <Badge className={getRoleBadgeColor(user.role)}>
-                    {user.role}
-                  </Badge>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Badge className={getRoleBadgeColor(user.role)}>
+                          {getRoleIcon(user.role)}
+                          {user.role}
+                        </Badge>
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-xs">
+                        <p>{getRoleDescription(user.role)}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 </TableCell>
                 <TableCell>
                   {user.is_active ? (
@@ -338,6 +420,12 @@ export function UserManagementPanel({ currentUserId, userRole }: UserManagementP
                           </DialogDescription>
                         </DialogHeader>
                         <div className="space-y-4">
+                          <Alert>
+                            <Info className="h-4 w-4" />
+                            <AlertDescription className="text-sm">
+                              Changing a user's role will immediately update their access permissions across the entire system.
+                            </AlertDescription>
+                          </Alert>
                           <div className="space-y-2">
                             <Label>Role</Label>
                             <Select value={editRole} onValueChange={(v) => setEditRole(v as AppRole)}>
@@ -345,13 +433,31 @@ export function UserManagementPanel({ currentUserId, userRole }: UserManagementP
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="staff">Staff</SelectItem>
-                                <SelectItem value="manager">Manager</SelectItem>
+                                <SelectItem value="staff">
+                                  <div className="flex flex-col items-start">
+                                    <span className="font-medium">Staff</span>
+                                    <span className="text-xs text-muted-foreground">Basic access to assigned signage</span>
+                                  </div>
+                                </SelectItem>
+                                <SelectItem value="manager">
+                                  <div className="flex flex-col items-start">
+                                    <span className="font-medium">Manager</span>
+                                    <span className="text-xs text-muted-foreground">Manage campaigns and all signage</span>
+                                  </div>
+                                </SelectItem>
                                 {userRole === 'admin' && (
-                                  <SelectItem value="admin">Admin</SelectItem>
+                                  <SelectItem value="admin">
+                                    <div className="flex flex-col items-start">
+                                      <span className="font-medium">Admin</span>
+                                      <span className="text-xs text-muted-foreground">Full system access</span>
+                                    </div>
+                                  </SelectItem>
                                 )}
                               </SelectContent>
                             </Select>
+                            <p className="text-xs text-muted-foreground">
+                              {getRoleDescription(editRole)}
+                            </p>
                           </div>
                           <div className="flex justify-end gap-2">
                             <Button variant="outline" onClick={() => setEditingUser(null)}>
