@@ -232,6 +232,11 @@ const FloorPlanCanvas = React.memo(function FloorPlanCanvas({
     event.stopPropagation();
     event.preventDefault();
 
+    // Select the marker first (needed for dragging to work)
+    if (onMarkerClick && !selectedMarkerIds.includes(marker.id)) {
+      onMarkerClick(marker, event);
+    }
+
     const svgPoint = screenToSVG(svgRef.current, event.clientX, event.clientY);
 
     // Set refs immediately
@@ -245,7 +250,7 @@ const FloorPlanCanvas = React.memo(function FloorPlanCanvas({
     if (onMarkerDragStart) {
       onMarkerDragStart(marker, svgPoint);
     }
-  }, [mode, draftMarker, onMarkerDragStart]);
+  }, [mode, draftMarker, onMarkerDragStart, onMarkerClick, selectedMarkerIds]);
 
   // Local mouse move for hover effects (when not dragging)
   const handleSvgMouseMove = useCallback((event: React.MouseEvent<SVGSVGElement>) => {
@@ -329,7 +334,7 @@ const FloorPlanCanvas = React.memo(function FloorPlanCanvas({
 
   const handleMarkerClickWrapper = useCallback((marker: Marker, event: React.MouseEvent) => {
     event.stopPropagation();
-    event.preventDefault();
+    // Don't preventDefault - it blocks mouseDown for dragging
     if (onMarkerClick) {
       onMarkerClick(marker, event);
     }
