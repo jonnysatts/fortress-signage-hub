@@ -1159,7 +1159,13 @@ export type Database = {
         | "checkbox"
         | "multiselect"
         | "image"
-      image_type: "before" | "after" | "current" | "reference" | "planned"
+      image_type:
+        | "before"
+        | "after"
+        | "current"
+        | "reference"
+        | "planned"
+        | "location"
       orientation_type: "portrait" | "landscape" | "square" | "other"
       priority_level: "critical" | "high" | "medium" | "low"
       signage_status:
@@ -1325,7 +1331,14 @@ export const Constants = {
         "multiselect",
         "image",
       ],
-      image_type: ["before", "after", "current", "reference", "planned"],
+      image_type: [
+        "before",
+        "after",
+        "current",
+        "reference",
+        "planned",
+        "location",
+      ],
       orientation_type: ["portrait", "landscape", "square", "other"],
       priority_level: ["critical", "high", "medium", "low"],
       signage_status: [
