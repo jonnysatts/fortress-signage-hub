@@ -77,7 +77,9 @@ Deno.serve(async (req) => {
       ? (spot.venues as any).name
       : 'Unknown Venue';
 
-    const appUrl = Deno.env.get('SUPABASE_URL')?.replace('supabase.co', 'lovableproject.com') || '';
+    // Use custom app URL from env, or construct from Supabase URL
+    const appUrl = Deno.env.get('APP_URL') || 
+      Deno.env.get('SUPABASE_URL')?.replace('.supabase.co', '.lovableproject.com') || '';
     const spotUrl = `${appUrl}/signage/${signage_spot_id}`;
 
     const blocks = [
