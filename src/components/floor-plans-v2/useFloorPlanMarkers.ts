@@ -14,8 +14,28 @@ import type { Database } from '@/integrations/supabase/types';
 type SignageSpotRow = Database['public']['Tables']['signage_spots']['Row'];
 type SignageSpotUpdate = Database['public']['Tables']['signage_spots']['Update'];
 type FloorPlanRow = Database['public']['Tables']['floor_plans']['Row'];
-type MarkerRow = SignageSpotRow & {
-  floor_plans?: Pick<FloorPlanRow, 'original_width' | 'original_height'> | null;
+type MarkerRow = {
+  id: string;
+  location_name: string;
+  marker_type: string | null;
+  marker_x_pixels: number | null;
+  marker_y_pixels: number | null;
+  marker_x2_pixels: number | null;
+  marker_y2_pixels: number | null;
+  marker_width_pixels: number | null;
+  marker_height_pixels: number | null;
+  marker_radius_pixels: number | null;
+  marker_rotation: number | null;
+  marker_x: number | null;
+  marker_y: number | null;
+  marker_size: number | null;
+  floor_plan_id: string | null;
+  current_image_url: string | null;
+  status: string | null;
+  expiry_date: string | null;
+  next_planned_date: string | null;
+  show_on_map: boolean | null;
+  floor_plans?: { original_width: number; original_height: number; } | null;
 };
 
 interface UseFloorPlanMarkersResult {
@@ -58,7 +78,7 @@ export function useFloorPlanMarkers(floorPlanId: string): UseFloorPlanMarkersRes
       floor_plan_id: row.floor_plan_id,
       location_name: row.location_name,
       rotation: row.marker_rotation || 0,
-      status: row.status,
+      status: (row.status as 'current' | 'empty' | 'expiring_soon' | 'overdue' | 'planned') || 'empty',
       expiry_date: row.expiry_date,
       next_planned_date: row.next_planned_date,
       current_image_url: row.current_image_url,
@@ -200,7 +220,7 @@ export function useFloorPlanMarkers(floorPlanId: string): UseFloorPlanMarkersRes
         marker_y_pixels: Math.round(marker.y),
         marker_rotation: marker.rotation || 0,
         show_on_map: true,
-        status: marker.status || 'empty',
+        status: (marker.status as 'current' | 'empty' | 'expiring_soon' | 'overdue' | 'planned') || 'empty',
         // Set legacy fields to null or calculated defaults if strictly required
         marker_x: null,
         marker_y: null

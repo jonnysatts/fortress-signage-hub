@@ -69,7 +69,7 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
       };
 
     case 'START_PLACEMENT': {
-      const placementMode = `place-${action.markerType}` as EditorMode;
+      const placementMode = `place-${action.markerType}` as 'place-point' | 'place-area' | 'place-line';
       return {
         ...state,
         mode: placementMode,
@@ -235,19 +235,23 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
       const deltaX = nextX - startMarker.x;
       const deltaY = nextY - startMarker.y;
 
-      let updatedMarker: Marker = {
-        ...state.draggedMarkerOverride,
-        x: nextX,
-        y: nextY
-      };
+      let updatedMarker: Marker;
 
       if (startMarker.type === 'line') {
         const lineStart = startMarker as LineMarker;
         updatedMarker = {
-          ...updatedMarker,
+          ...state.draggedMarkerOverride,
+          x: nextX,
+          y: nextY,
           x2: lineStart.x2 + deltaX,
           y2: lineStart.y2 + deltaY
-        };
+        } as LineMarker;
+      } else {
+        updatedMarker = {
+          ...state.draggedMarkerOverride,
+          x: nextX,
+          y: nextY
+        } as Marker;
       }
 
       return {

@@ -33,6 +33,10 @@ interface FloorPlanSpotData {
   marker_size: number | null;
   marker_rotation: number | null;
   marker_type: string | null;
+  status: string | null;
+  expiry_date: string | null;
+  next_planned_date: string | null;
+  current_image_url: string | null;
 }
 
 export default function FloorPlanMiniWidget({ spotId, spotData: initialSpotData }: FloorPlanMiniWidgetProps) {
