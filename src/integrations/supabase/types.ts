@@ -1064,7 +1064,7 @@ export type Database = {
         | "multiselect"
         | "image"
       image_type: "before" | "after" | "current" | "reference" | "planned"
-      orientation_type: "portrait" | "landscape" | "square"
+      orientation_type: "portrait" | "landscape" | "square" | "other"
       priority_level: "critical" | "high" | "medium" | "low"
       signage_status:
         | "current"
@@ -1229,7 +1229,7 @@ export const Constants = {
         "image",
       ],
       image_type: ["before", "after", "current", "reference", "planned"],
-      orientation_type: ["portrait", "landscape", "square"],
+      orientation_type: ["portrait", "landscape", "square", "other"],
       priority_level: ["critical", "high", "medium", "low"],
       signage_status: [
         "current",
