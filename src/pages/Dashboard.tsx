@@ -216,6 +216,28 @@ export default function Dashboard() {
     }
   };
 
+  const handleQuickIssueSubmit = async (issueText: string) => {
+    if (!user || !selectedSpotForIssue) return;
+
+    try {
+      const { error } = await supabase
+        .from("comments")
+        .insert({
+          signage_spot_id: selectedSpotForIssue.id,
+          author_id: user.id,
+          body: issueText,
+          status: 'open',
+        });
+
+      if (error) throw error;
+
+      toast.success("Issue reported successfully");
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      toast.error("Failed to report issue: " + errorMessage);
+    }
+  };
+
   const getDaysSinceUpdate = (lastUpdateDate: string | null) => {
     if (!lastUpdateDate) return null;
     const daysDiff = Math.floor((Date.now() - new Date(lastUpdateDate).getTime()) / (1000 * 60 * 60 * 24));
