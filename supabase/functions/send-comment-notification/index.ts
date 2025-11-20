@@ -63,18 +63,26 @@ Deno.serve(async (req) => {
       .select('id, full_name')
       .in('id', mentions);
 
+    console.log('Mentioned user IDs:', mentions);
+    console.log('Mentioned users from profiles:', mentionedUsers);
+
     const { data: slackSettings } = await supabase
       .from('slack_mention_settings')
       .select('*');
+
+    console.log('Slack settings:', slackSettings);
 
     // Match Supabase user IDs to Slack IDs
     const slackMentions = mentionedUsers
       ?.map(user => {
         const setting = slackSettings?.find(s => s.user_name === user.full_name);
+        console.log(`Matching ${user.full_name} to Slack ID:`, setting?.slack_user_id);
         return setting ? `<@${setting.slack_user_id}>` : null;
       })
       .filter(Boolean)
       .join(' ') || '';
+
+    console.log('Final Slack mentions string:', slackMentions);
 
     const slackWebhookUrl = Deno.env.get('SLACK_WEBHOOK_URL');
     
