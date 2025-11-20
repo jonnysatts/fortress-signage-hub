@@ -15,6 +15,9 @@ verify_jwt = false
 [functions.send-alerts]
 verify_jwt = false
 
+[functions.test-slack-alert]
+verify_jwt = false
+
 # Cron job configurations for automated edge function execution
 # Schedule format: "minute hour day month weekday"
 # See https://crontab.guru/ for help with cron syntax
