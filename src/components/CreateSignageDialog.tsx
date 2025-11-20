@@ -250,6 +250,7 @@ export function CreateSignageDialog({ onSuccess, trigger }: CreateSignageDialogP
                   <SelectItem value="portrait">Portrait</SelectItem>
                   <SelectItem value="landscape">Landscape</SelectItem>
                   <SelectItem value="square">Square</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
                 </SelectContent>
               </Select>
             </div>
