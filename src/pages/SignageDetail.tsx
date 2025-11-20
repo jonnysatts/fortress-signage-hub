@@ -353,16 +353,28 @@ export default function SignageDetail() {
         .from('signage')
         .getPublicUrl(fileName);
 
-      // Update signage spot with location photo
-      const { error: updateError } = await supabase
+      // Add to photo history as location type
+      const { error: historyError } = await supabase
+        .from('photo_history')
+        .insert({
+          signage_spot_id: id,
+          image_url: publicUrl,
+          image_type: 'location',
+          uploaded_by: user?.id,
+          approval_status: 'approved',
+        });
+
+      if (historyError) throw historyError;
+
+      // Also update signage spot for backward compatibility
+      await supabase
         .from('signage_spots')
         .update({ location_photo_url: publicUrl })
         .eq('id', id);
 
-      if (updateError) throw updateError;
-
       toast.success("Location photo uploaded successfully!");
       fetchSpot();
+      fetchPhotoHistory();
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : "Unknown error";
       toast.error("Failed to upload location photo: " + errorMessage);
@@ -701,30 +713,36 @@ export default function SignageDetail() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    <div className="relative bg-muted rounded-lg flex items-center justify-center overflow-hidden min-h-[200px]">
-                      {spot.location_photo_url ? (
-                        <>
-                          <img
-                            src={spot.location_photo_url}
-                            alt={`${spot.location_name} location`}
-                            className="max-w-full max-h-[400px] w-auto h-auto object-contain cursor-pointer"
-                            onClick={() => setExpandedImage(spot.location_photo_url)}
-                          />
-                          <Button
-                            variant="secondary"
-                            size="icon"
-                            className="absolute top-2 right-2"
-                            onClick={() => setExpandedImage(spot.location_photo_url)}
-                          >
-                            <Maximize2 className="w-4 h-4" />
-                          </Button>
-                        </>
-                      ) : (
-                        <div className="text-center text-muted-foreground">
-                          <MapPin className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                          <p>No location photo</p>
-                        </div>
-                      )}
+                     <div className="relative bg-muted rounded-lg flex items-center justify-center overflow-hidden min-h-[200px]">
+                      {(() => {
+                        // Get latest location photo from photo history
+                        const locationPhoto = photoHistory.find(p => p.image_type === 'location');
+                        const locationPhotoUrl = locationPhoto?.image_url || spot.location_photo_url;
+                        
+                        return locationPhotoUrl ? (
+                          <>
+                            <img
+                              src={locationPhotoUrl}
+                              alt={`${spot.location_name} location`}
+                              className="max-w-full max-h-[400px] w-auto h-auto object-contain cursor-pointer"
+                              onClick={() => setExpandedImage(locationPhotoUrl)}
+                            />
+                            <Button
+                              variant="secondary"
+                              size="icon"
+                              className="absolute top-2 right-2"
+                              onClick={() => setExpandedImage(locationPhotoUrl)}
+                            >
+                              <Maximize2 className="w-4 h-4" />
+                            </Button>
+                          </>
+                        ) : (
+                          <div className="text-center text-muted-foreground">
+                            <MapPin className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                            <p>No location photo</p>
+                          </div>
+                        );
+                      })()}
                     </div>
                     {canEdit && (
                       <div>
@@ -742,7 +760,9 @@ export default function SignageDetail() {
                           className="w-full"
                         >
                           <Upload className="w-4 h-4 mr-2" />
-                          {isUploadingLocationPhoto ? "Uploading..." : spot.location_photo_url ? "Replace Location Photo" : "Upload Location Photo"}
+                          {isUploadingLocationPhoto ? "Uploading..." : 
+                            (photoHistory.some(p => p.image_type === 'location') || spot.location_photo_url) ? 
+                            "Replace Location Photo" : "Upload Location Photo"}
                         </Button>
                       </div>
                     )}
