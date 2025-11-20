@@ -166,31 +166,6 @@ export default function Settings() {
     setAlertSettings(updated);
   };
 
-  const handleTestAlert = async (severity: 'info' | 'warning' | 'critical') => {
-    setIsTestingAlert(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('test-slack-alert', {
-        body: {
-          severity,
-          message: `This is a test ${severity} alert to verify Slack mentions are working correctly.`
-        }
-      });
-
-      if (error) throw error;
-
-      if (data.mentioned_users && data.mentioned_users.length > 0) {
-        toast.success(`Test alert sent! Mentioned: ${data.mentioned_users.join(', ')}`);
-      } else {
-        toast.success('Test alert sent (no users configured for this severity level)');
-      }
-    } catch (error: any) {
-      console.error('Error sending test alert:', error);
-      toast.error(`Failed to send test alert: ${error.message || 'Unknown error'}`);
-    } finally {
-      setIsTestingAlert(false);
-    }
-  };
-
   const getAlertLabel = (type: string) => {
     switch (type) {
       case 'overdue_signage':
@@ -269,53 +244,6 @@ export default function Settings() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <SlackMentionManagement canEdit={canEdit} />
-                
-                {canEdit && (
-                  <div className="pt-4 border-t">
-                    <Alert>
-                      <AlertDescription>
-                        <div className="space-y-3">
-                          <p className="font-medium">Test Slack Alerts</p>
-                          <p className="text-sm text-muted-foreground">
-                            Send test alerts to verify your Slack webhook and mention settings are working correctly.
-                          </p>
-                          <div className="flex gap-2 flex-wrap">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleTestAlert('info')}
-                              disabled={isTestingAlert}
-                              className="border-blue-500 text-blue-700 hover:bg-blue-50 dark:border-blue-400 dark:text-blue-400"
-                            >
-                              {isTestingAlert ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
-                              Test Info Alert
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleTestAlert('warning')}
-                              disabled={isTestingAlert}
-                              className="border-yellow-500 text-yellow-700 hover:bg-yellow-50 dark:border-yellow-400 dark:text-yellow-400"
-                            >
-                              {isTestingAlert ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
-                              Test Warning Alert
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleTestAlert('critical')}
-                              disabled={isTestingAlert}
-                              className="border-destructive text-destructive hover:bg-destructive/10"
-                            >
-                              {isTestingAlert ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
-                              Test Critical Alert
-                            </Button>
-                          </div>
-                        </div>
-                      </AlertDescription>
-                    </Alert>
-                  </div>
-                )}
               </CardContent>
             </Card>
 
