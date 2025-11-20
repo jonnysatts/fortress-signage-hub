@@ -248,16 +248,19 @@ export default function FloorPlanMiniWidget({ spotId, spotData }: FloorPlanMiniW
 
                 return (
                   <>
-                    <circle
-                      cx={markerCenterX}
-                      cy={markerCenterY}
-                      r={30}
-                      fill="none"
-                      stroke="hsl(var(--primary))"
-                      strokeWidth="3"
-                      className="animate-pulse"
-                      opacity="0.4"
-                    />
+                    {/* Pulsing highlight - only for point and area markers */}
+                    {markerType !== 'line' && (
+                      <circle
+                        cx={markerCenterX}
+                        cy={markerCenterY}
+                        r={30}
+                        fill="none"
+                        stroke="hsl(var(--primary))"
+                        strokeWidth="3"
+                        className="animate-pulse"
+                        opacity="0.4"
+                      />
+                    )}
 
                     {(markerType === 'circle' || markerType === 'point') && (
                       <circle
@@ -284,16 +287,31 @@ export default function FloorPlanMiniWidget({ spotId, spotData }: FloorPlanMiniW
                       />
                     )}
                     {markerType === 'line' && markerX2 !== null && markerY2 !== null && (
-                      <line
-                        x1={markerCenterX}
-                        y1={markerCenterY}
-                        x2={markerX2}
-                        y2={markerY2}
-                        stroke={markerColor}
-                        strokeWidth="6"
-                        strokeLinecap="round"
-                        className={markerStatus === 'overdue' ? 'animate-pulse' : ''}
-                      />
+                      <>
+                        {/* Pulsing halo for line markers */}
+                        <line
+                          x1={markerCenterX}
+                          y1={markerCenterY}
+                          x2={markerX2}
+                          y2={markerY2}
+                          stroke="hsl(var(--primary))"
+                          strokeWidth="14"
+                          strokeLinecap="round"
+                          className="animate-pulse"
+                          opacity="0.3"
+                        />
+                        {/* Actual line marker */}
+                        <line
+                          x1={markerCenterX}
+                          y1={markerCenterY}
+                          x2={markerX2}
+                          y2={markerY2}
+                          stroke={markerColor}
+                          strokeWidth="6"
+                          strokeLinecap="round"
+                          className={markerStatus === 'overdue' ? 'animate-pulse' : ''}
+                        />
+                      </>
                     )}
                   </>
                 );
