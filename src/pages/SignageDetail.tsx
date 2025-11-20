@@ -14,7 +14,7 @@ import { StatusBadge } from "@/components/StatusBadge";
 import { TagSelector } from "@/components/TagSelector";
 import { GroupSelector } from "@/components/GroupSelector";
 import { CampaignLinker } from "@/components/CampaignLinker";
-import { ArrowLeft, Trash2, Image as ImageIcon, Edit2, Save, X, CheckCircle2, Maximize2, QrCode, Download, DollarSign, Calendar, Clock, Printer, Undo, MapPin, Upload } from "lucide-react";
+import { ArrowLeft, Trash2, Image as ImageIcon, Edit2, Save, X, CheckCircle2, Maximize2, QrCode, Download, DollarSign, Calendar, Clock, Printer, Undo, MapPin, Upload, AlertCircle } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
@@ -78,6 +78,9 @@ export default function SignageDetail() {
   const [isUploadingLocationPhoto, setIsUploadingLocationPhoto] = useState(false);
   const [uploadCaption, setUploadCaption] = useState("");
   const [imageType, setImageType] = useState<"current" | "before" | "after" | "reference" | "planned" | "location">("current");
+  const [showQuickIssueDialog, setShowQuickIssueDialog] = useState(false);
+  const [quickIssueText, setQuickIssueText] = useState("");
+  const [isSubmittingIssue, setIsSubmittingIssue] = useState(false);
   const [scheduledDate, setScheduledDate] = useState<string>("");
   const [autoPromote, setAutoPromote] = useState<boolean>(true);
   const [printRequired, setPrintRequired] = useState<boolean>(false);
@@ -503,6 +506,33 @@ export default function SignageDetail() {
     }
   };
 
+  const handleQuickIssueSubmit = async () => {
+    if (!quickIssueText.trim() || !user?.id) return;
+
+    setIsSubmittingIssue(true);
+    try {
+      const { error } = await supabase
+        .from('comments')
+        .insert({
+          signage_spot_id: id!,
+          body: quickIssueText.trim(),
+          author_id: user.id,
+          status: 'open',
+        });
+
+      if (error) throw error;
+
+      toast.success("Issue reported successfully");
+      setQuickIssueText("");
+      setShowQuickIssueDialog(false);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      toast.error("Failed to report issue: " + errorMessage);
+    } finally {
+      setIsSubmittingIssue(false);
+    }
+  };
+
   const handlePromotePlannedImage = async (photoId: string) => {
     try {
       const { data, error } = await supabase.rpc('promote_planned_to_current', {
@@ -626,7 +656,10 @@ export default function SignageDetail() {
             <TabsTrigger value="details">Details</TabsTrigger>
             <TabsTrigger value="upload">Upload Image</TabsTrigger>
             <TabsTrigger value="history">Photo History ({photoHistory.length})</TabsTrigger>
-            <TabsTrigger value="comments">Comments</TabsTrigger>
+            <TabsTrigger value="comments">
+              <AlertCircle className="w-4 h-4 mr-2" />
+              Issues
+            </TabsTrigger>
             <TabsTrigger value="qrcode">
               <QrCode className="w-4 h-4 mr-2" />
               QR Code
@@ -1808,6 +1841,49 @@ export default function SignageDetail() {
             </Card>
           </TabsContent>
         </Tabs>
+
+        {/* Quick Report Issue Button (Floating) */}
+        <Button
+          onClick={() => setShowQuickIssueDialog(true)}
+          className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg z-40"
+          size="icon"
+        >
+          <AlertCircle className="h-6 w-6" />
+        </Button>
+
+        {/* Quick Issue Report Dialog */}
+        <AlertDialog open={showQuickIssueDialog} onOpenChange={setShowQuickIssueDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle className="flex items-center gap-2">
+                <AlertCircle className="h-5 w-5 text-destructive" />
+                Report Issue
+              </AlertDialogTitle>
+              <AlertDialogDescription>
+                Quickly report a problem with this signage spot. Issues will be tracked and can be resolved once addressed.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <div className="py-4">
+              <Textarea
+                placeholder="Describe the issue (e.g., 'Content is outdated' or 'Image is damaged')"
+                value={quickIssueText}
+                onChange={(e) => setQuickIssueText(e.target.value)}
+                rows={4}
+                className="resize-none"
+              />
+            </div>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={isSubmittingIssue}>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleQuickIssueSubmit}
+                disabled={!quickIssueText.trim() || isSubmittingIssue}
+                className="bg-destructive hover:bg-destructive/90"
+              >
+                {isSubmittingIssue ? "Reporting..." : "Report Issue"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         {/* Full Image Viewer Dialog */}
         {expandedImage && (
