@@ -56,36 +56,96 @@ export type Database = {
           },
         ]
       }
+      alert_history: {
+        Row: {
+          alert_type: string
+          campaign_id: string | null
+          created_at: string | null
+          id: string
+          message: string
+          sent_at: string | null
+          severity: string
+          signage_spot_id: string | null
+        }
+        Insert: {
+          alert_type: string
+          campaign_id?: string | null
+          created_at?: string | null
+          id?: string
+          message: string
+          sent_at?: string | null
+          severity: string
+          signage_spot_id?: string | null
+        }
+        Update: {
+          alert_type?: string
+          campaign_id?: string | null
+          created_at?: string | null
+          id?: string
+          message?: string
+          sent_at?: string | null
+          severity?: string
+          signage_spot_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "alert_history_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "alert_history_signage_spot_id_fkey"
+            columns: ["signage_spot_id"]
+            isOneToOne: false
+            referencedRelation: "signage_spots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       alert_settings: {
         Row: {
+          alert_once: boolean | null
           alert_triggers: Json | null
           alert_type: string
           created_at: string | null
+          cron_schedule: string | null
           email_recipients: string[] | null
           enabled: boolean | null
           id: string
+          last_run: string | null
           slack_webhook_url: string | null
           updated_at: string | null
+          venue_filter: string[] | null
         }
         Insert: {
+          alert_once?: boolean | null
           alert_triggers?: Json | null
           alert_type: string
           created_at?: string | null
+          cron_schedule?: string | null
           email_recipients?: string[] | null
           enabled?: boolean | null
           id?: string
+          last_run?: string | null
           slack_webhook_url?: string | null
           updated_at?: string | null
+          venue_filter?: string[] | null
         }
         Update: {
+          alert_once?: boolean | null
           alert_triggers?: Json | null
           alert_type?: string
           created_at?: string | null
+          cron_schedule?: string | null
           email_recipients?: string[] | null
           enabled?: boolean | null
           id?: string
+          last_run?: string | null
           slack_webhook_url?: string | null
           updated_at?: string | null
+          venue_filter?: string[] | null
         }
         Relationships: []
       }
