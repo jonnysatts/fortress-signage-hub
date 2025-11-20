@@ -57,6 +57,8 @@ export default function Dashboard() {
   const [showUpcomingOnly, setShowUpcomingOnly] = useState(false);
   const [showQuickIssueDialog, setShowQuickIssueDialog] = useState(false);
   const [selectedSpotForIssue, setSelectedSpotForIssue] = useState<SignageSpot | null>(null);
+  const [showIssuesOnly, setShowIssuesOnly] = useState(false);
+  const [spotIssuesCounts, setSpotIssuesCounts] = useState<Record<string, number>>({});
 
   const checkAuth = useCallback(async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -117,6 +119,18 @@ export default function Dashboard() {
       })) as unknown as SignageSpot[];
 
       setSignageSpots(spots || []);
+
+      // Fetch open issues count for each spot
+      const { data: issuesData } = await supabase
+        .from("comments")
+        .select("signage_spot_id")
+        .eq("status", "open");
+
+      const issuesCounts: Record<string, number> = {};
+      issuesData?.forEach(issue => {
+        issuesCounts[issue.signage_spot_id] = (issuesCounts[issue.signage_spot_id] || 0) + 1;
+      });
+      setSpotIssuesCounts(issuesCounts);
     } catch (error: unknown) {
       console.error("Failed to load data:", error);
     } finally {
@@ -167,9 +181,14 @@ export default function Dashboard() {
         return false;
       }
 
+      // Issues filter
+      if (showIssuesOnly && !spotIssuesCounts[spot.id]) {
+        return false;
+      }
+
       return true;
     });
-  }, [signageSpots, searchQuery, selectedStatus, selectedPriority, selectedCategory, showAssignedToMe, showUpcomingOnly, user?.id]);
+  }, [signageSpots, searchQuery, selectedStatus, selectedPriority, selectedCategory, showAssignedToMe, showUpcomingOnly, showIssuesOnly, spotIssuesCounts, user?.id]);
 
   const upcomingCount = signageSpots.filter(s => s.next_planned_date).length;
 
@@ -216,22 +235,43 @@ export default function Dashboard() {
     }
   };
 
-  const handleQuickIssueSubmit = async (issueText: string) => {
+  const handleQuickIssueSubmit = async (issueText: string, mentionedUserIds: string[]) => {
     if (!user || !selectedSpotForIssue) return;
 
     try {
-      const { error } = await supabase
+      const { data: commentData, error: commentError } = await supabase
         .from("comments")
         .insert({
           signage_spot_id: selectedSpotForIssue.id,
           author_id: user.id,
           body: issueText,
           status: 'open',
+          needs_attention: true,
+          mentions: mentionedUserIds,
+        })
+        .select()
+        .single();
+
+      if (commentError) throw commentError;
+
+      // Send Slack notification
+      try {
+        await supabase.functions.invoke('send-comment-notification', {
+          body: {
+            comment_id: commentData.id,
+            signage_spot_id: selectedSpotForIssue.id,
+            body: issueText,
+            author_id: user.id,
+            mentions: mentionedUserIds,
+          }
         });
+      } catch (slackError) {
+        console.error('Failed to send Slack notification:', slackError);
+        // Don't throw - we still want to show success since the issue was created
+      }
 
-      if (error) throw error;
-
-      toast.success("Issue reported successfully");
+      toast.success("Issue reported and team notified");
+      fetchData(); // Refresh to update issue counts
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : "Unknown error";
       toast.error("Failed to report issue: " + errorMessage);
@@ -363,6 +403,8 @@ export default function Dashboard() {
           setSelectedSpots={setSelectedSpots}
           selectedSpots={selectedSpots}
           onBulkSuccess={fetchData}
+          showIssuesOnly={showIssuesOnly}
+          setShowIssuesOnly={setShowIssuesOnly}
         />
 
         {/* Bulk Operations Toolbar */}

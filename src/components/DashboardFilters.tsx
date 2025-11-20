@@ -27,6 +27,8 @@ interface DashboardFiltersProps {
   setSelectedSpots: (spots: Set<string>) => void;
   selectedSpots: Set<string>;
   onBulkSuccess: () => void;
+  showIssuesOnly: boolean;
+  setShowIssuesOnly: (value: boolean) => void;
 }
 
 export function DashboardFilters({
@@ -46,6 +48,8 @@ export function DashboardFilters({
   setSelectedSpots,
   selectedSpots,
   onBulkSuccess,
+  showIssuesOnly,
+  setShowIssuesOnly,
 }: DashboardFiltersProps) {
   return (
     <div className="flex flex-col md:flex-row gap-4 mb-6">
@@ -98,6 +102,14 @@ export function DashboardFilters({
           <SelectItem value="branding">Branding</SelectItem>
         </SelectContent>
       </Select>
+
+      <Button
+        variant={showIssuesOnly ? "default" : "outline"}
+        onClick={() => setShowIssuesOnly(!showIssuesOnly)}
+        className="whitespace-nowrap"
+      >
+        Has Issues
+      </Button>
 
       <div className="flex gap-2">
         <div
