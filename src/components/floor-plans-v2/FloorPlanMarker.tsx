@@ -4,7 +4,7 @@
  * Renders individual markers on the floor plan (point, area, line types)
  */
 
-import { Marker, PointMarker, AreaMarker, LineMarker } from './types';
+import { Marker, PointMarker, AreaMarker, LineMarker, EditorMode } from './types';
 import { getMarkerColor } from './utils';
 
 interface FloorPlanMarkerProps {
@@ -13,7 +13,7 @@ interface FloorPlanMarkerProps {
   isDragging: boolean;
   isDraft?: boolean;
   dimmed?: boolean;
-  mode?: 'view' | 'select' | 'place-point' | 'place-area' | 'place-line';
+  mode?: EditorMode;
   onMouseDown?: (event: React.MouseEvent) => void;
   onResizeStart?: (handle: string, event: React.MouseEvent) => void;
   onClick?: (event: React.MouseEvent) => void;
