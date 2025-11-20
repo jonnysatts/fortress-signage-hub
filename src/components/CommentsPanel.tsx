@@ -161,7 +161,8 @@ export function CommentsPanel({ signageSpotId }: CommentsPanelProps) {
 
       // Send Slack notification if there are mentions
       if (mentions.length > 0 && comment) {
-        await supabase.functions.invoke('send-comment-notification', {
+        console.log('Sending Slack notification for mentions:', mentions);
+        const { error: notificationError } = await supabase.functions.invoke('send-comment-notification', {
           body: {
             comment_id: comment.id,
             signage_spot_id: signageSpotId,
@@ -170,10 +171,18 @@ export function CommentsPanel({ signageSpotId }: CommentsPanelProps) {
             mentions,
           },
         });
+
+        if (notificationError) {
+          console.error('Failed to send Slack notification:', notificationError);
+          toast.warning("Comment added but Slack notification failed");
+        } else {
+          toast.success("Comment added and Slack notification sent");
+        }
+      } else {
+        toast.success("Comment added");
       }
 
       setNewComment("");
-      toast.success("Comment added");
       fetchComments();
     } catch (error: any) {
       console.error('Error adding comment:', error);
