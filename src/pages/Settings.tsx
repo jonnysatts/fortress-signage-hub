@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Bell, Save, Settings2, Users, Tags, MapPin } from "lucide-react";
+import { ArrowLeft, Bell, Settings2, Users, Tags, MapPin } from "lucide-react";
 import { toast } from "sonner";
 import { UserManagementPanel } from "@/components/UserManagementPanel";
 import { CategoryTagManagement } from "@/components/CategoryTagManagement";
@@ -27,7 +27,6 @@ export default function Settings() {
   const [alertSettings, setAlertSettings] = useState<AlertSetting[]>([]);
   const [venues, setVenues] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
 
   const checkAuth = useCallback(async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -101,84 +100,6 @@ export default function Settings() {
     });
   }, [checkAuth, fetchAlertSettings]);
 
-  const handleSaveSettings = async () => {
-    setIsSaving(true);
-    try {
-      for (const setting of alertSettings) {
-        if (setting.id.startsWith('new-')) {
-          // Insert new setting
-          const { error } = await supabase
-            .from('alert_settings')
-            .insert({
-              alert_type: setting.alert_type,
-              enabled: setting.enabled,
-              email_recipients: setting.email_recipients,
-              alert_triggers: setting.alert_triggers,
-            });
-
-          if (error) throw error;
-        } else {
-          // Update existing setting
-          const { error } = await supabase
-            .from('alert_settings')
-            .update({
-              enabled: setting.enabled,
-              email_recipients: setting.email_recipients,
-              alert_triggers: setting.alert_triggers,
-            })
-            .eq('id', setting.id);
-
-          if (error) throw error;
-        }
-      }
-
-      toast.success("Alert settings saved successfully!");
-      fetchAlertSettings();
-    } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : "Unknown error";
-      toast.error("Failed to save settings: " + errorMessage);
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const updateSetting = (index: number, field: keyof AlertSetting, value: unknown) => {
-    const updated = [...alertSettings];
-    updated[index] = { ...updated[index], [field]: value };
-    setAlertSettings(updated);
-  };
-
-  const addEmailRecipient = (index: number, email: string) => {
-    if (!email.trim()) return;
-    const updated = [...alertSettings];
-    const recipients = updated[index].email_recipients || [];
-    if (!recipients.includes(email.trim())) {
-      updated[index].email_recipients = [...recipients, email.trim()];
-      setAlertSettings(updated);
-    }
-  };
-
-  const removeEmailRecipient = (settingIndex: number, emailIndex: number) => {
-    const updated = [...alertSettings];
-    updated[settingIndex].email_recipients = updated[settingIndex].email_recipients.filter((_: string, i: number) => i !== emailIndex);
-    setAlertSettings(updated);
-  };
-
-  const getAlertLabel = (type: string) => {
-    switch (type) {
-      case 'overdue_signage':
-        return 'Overdue Signage Alerts';
-      case 'expiring_soon':
-        return 'Expiring Soon Alerts';
-      case 'empty_signage':
-        return 'Empty Signage Alerts';
-      case 'campaign_ended':
-        return 'Campaign Ended Alerts';
-      default:
-        return type;
-    }
-  };
-
   const canEdit = userRole === 'admin' || userRole === 'manager';
 
   if (isLoading) {
@@ -248,73 +169,30 @@ export default function Settings() {
             <div className="space-y-4">
               <h3 className="text-lg font-semibold">Alert Types</h3>
               {alertSettings.map((setting, index) => (
-              <Card key={setting.id || setting.alert_type}>
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <CardTitle>{getAlertLabel(setting.alert_type)}</CardTitle>
-                      <CardDescription>
-                        Configure notifications for {setting.alert_type.replace('_', ' ')}
-                      </CardDescription>
-                    </div>
-                    <Switch
-                      checked={setting.enabled}
-                      onCheckedChange={(checked) => updateSetting(index, 'enabled', checked)}
-                      disabled={!canEdit}
-                    />
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <Label>Email Recipients</Label>
-                    <div className="flex gap-2">
-                      <Input
-                        placeholder="Add email address"
-                        type="email"
-                        disabled={!canEdit}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            addEmailRecipient(index, e.currentTarget.value);
-                            e.currentTarget.value = '';
-                          }
-                        }}
-                      />
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      {setting.email_recipients?.map((email: string, emailIndex: number) => (
-                        <div key={emailIndex} className="flex items-center gap-1 bg-secondary text-secondary-foreground px-2 py-1 rounded-md text-sm">
-                          <span>{email}</span>
-                          {canEdit && (
-                            <button
-                              onClick={() => removeEmailRecipient(index, emailIndex)}
-                              className="ml-1 hover:text-destructive"
-                            >
-                              ×
-                            </button>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+                <AlertSettingCard
+                  key={setting.id || setting.alert_type}
+                  setting={{
+                    id: setting.id,
+                    alert_type: setting.alert_type,
+                    enabled: setting.enabled,
+                    email_recipients: setting.email_recipients || [],
+                    cron_schedule: setting.cron_schedule || 'daily_9am',
+                    alert_once: setting.alert_once ?? true,
+                    venue_filter: setting.venue_filter || [],
+                    last_run: setting.last_run,
+                  }}
+                  venues={venues}
+                  onUpdate={(updatedSetting) => {
+                    const updated = [...alertSettings];
+                    updated[index] = {
+                      ...updated[index],
+                      ...updatedSetting,
+                    };
+                    setAlertSettings(updated);
+                  }}
+                />
               ))}
             </div>
-
-            {canEdit && (
-              <div className="flex justify-end">
-                <Button onClick={handleSaveSettings} disabled={isSaving}>
-                  <Save className="w-4 h-4 mr-2" />
-                  {isSaving ? "Saving..." : "Save Settings"}
-                </Button>
-              </div>
-            )}
-
-            {!canEdit && (
-              <p className="text-sm text-muted-foreground text-center">
-                Only admins and managers can modify alert settings
-              </p>
-            )}
           </TabsContent>
 
           <TabsContent value="fields">
