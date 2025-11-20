@@ -24,6 +24,13 @@ Deno.serve(async (req) => {
 
     const { severity, message }: TestAlertRequest = await req.json();
 
+    // Get sample signage spots with images for demonstration
+    const { data: sampleSpots } = await supabase
+      .from('signage_spots')
+      .select('id, location_name, current_image_url, last_update_date, venues(name)')
+      .not('current_image_url', 'is', null)
+      .limit(3);
+
     // Get Slack webhook URL from environment
     const slackWebhookUrl = Deno.env.get('SLACK_WEBHOOK_URL');
     
@@ -48,14 +55,70 @@ Deno.serve(async (req) => {
       ? usersToMention.map(u => `<@${u.slack_user_id}>`).join(' ') + ' '
       : '';
     
+    // Build blocks with sample spots
+    const blocks: any[] = [
+      {
+        type: 'header',
+        text: {
+          type: 'plain_text',
+          text: `TEST ALERT - ${severity.toUpperCase()}: ${message}`,
+          emoji: true
+        }
+      }
+    ];
+
+    if (sampleSpots && sampleSpots.length > 0) {
+      sampleSpots.forEach((spot: any, index: number) => {
+        const daysInfo = spot.last_update_date 
+          ? `Last updated: ${spot.last_update_date}`
+          : 'Never updated';
+        
+        const venueName = spot.venues && typeof spot.venues === 'object' && !Array.isArray(spot.venues) 
+          ? spot.venues.name 
+          : 'Unknown Venue';
+        
+        blocks.push({
+          type: 'section',
+          text: {
+            type: 'mrkdwn',
+            text: `*${spot.location_name}* at ${venueName}\n${daysInfo}`
+          },
+          ...(spot.current_image_url && {
+            accessory: {
+              type: 'image',
+              image_url: spot.current_image_url,
+              alt_text: spot.location_name
+            }
+          })
+        });
+
+        if (index < sampleSpots.length - 1) {
+          blocks.push({ type: 'divider' });
+        }
+      });
+    } else {
+      blocks.push({
+        type: 'section',
+        text: {
+          type: 'mrkdwn',
+          text: message
+        }
+      });
+    }
+
+    blocks.push({
+      type: 'context',
+      elements: [
+        {
+          type: 'mrkdwn',
+          text: `Fortress Signage Management (Test) | ${new Date().toLocaleString()}`
+        }
+      ]
+    });
+    
     const slackPayload = {
-      text: `${mentions}*TEST ALERT - ${severity.toUpperCase()}*: ${message}`,
-      attachments: [{
-        color: severity === 'critical' ? 'danger' : severity === 'warning' ? 'warning' : '#36a64f',
-        text: message,
-        footer: 'Fortress Signage Management (Test)',
-        ts: Math.floor(Date.now() / 1000),
-      }],
+      text: `${mentions}TEST ALERT - ${severity.toUpperCase()}: ${message}`,
+      blocks: blocks
     };
 
     const slackResponse = await fetch(slackWebhookUrl, {

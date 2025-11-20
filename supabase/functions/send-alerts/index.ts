@@ -11,6 +11,7 @@ interface AlertEvent {
   campaign_id?: string;
   message: string;
   severity: 'info' | 'warning' | 'critical';
+  spots?: any[];
 }
 
 Deno.serve(async (req) => {
@@ -93,6 +94,7 @@ Deno.serve(async (req) => {
           type: 'overdue',
           message: `${overdueSpots.length} signage spot(s) are overdue for updates`,
           severity: 'critical',
+          spots: overdueSpots,
         });
         
         // Log individual spots
@@ -110,6 +112,7 @@ Deno.serve(async (req) => {
           type: 'expiring_soon',
           message: `${expiringSpots.length} signage spot(s) expiring soon`,
           severity: 'warning',
+          spots: expiringSpots,
         });
         
         expiringSpots.forEach(spot => {
@@ -126,6 +129,7 @@ Deno.serve(async (req) => {
           type: 'empty_too_long',
           message: `${emptySpots.length} signage spot(s) have been empty for 30+ days`,
           severity: 'warning',
+          spots: emptySpots,
         });
         
         emptySpots.forEach(spot => {
@@ -170,14 +174,73 @@ Deno.serve(async (req) => {
             ? usersToMention.map(u => `<@${u.slack_user_id}>`).join(' ') + ' '
             : '';
           
+          // Build detailed blocks with images for each spot
+          const blocks: any[] = [
+            {
+              type: 'header',
+              text: {
+                type: 'plain_text',
+                text: `${alert.severity.toUpperCase()}: ${alert.message}`,
+                emoji: true
+              }
+            }
+          ];
+
+          if (alert.spots && alert.spots.length > 0) {
+            // Limit to first 5 spots to avoid message size limits
+            const spotsToShow = alert.spots.slice(0, 5);
+            
+            spotsToShow.forEach((spot, index) => {
+              const daysInfo = spot.last_update_date 
+                ? `Last updated: ${spot.last_update_date}`
+                : 'Never updated';
+              
+              blocks.push({
+                type: 'section',
+                text: {
+                  type: 'mrkdwn',
+                  text: `*${spot.location_name}* at ${spot.venues?.name}\n${daysInfo}`
+                },
+                ...(spot.current_image_url && {
+                  accessory: {
+                    type: 'image',
+                    image_url: spot.current_image_url,
+                    alt_text: spot.location_name
+                  }
+                })
+              });
+
+              if (index < spotsToShow.length - 1) {
+                blocks.push({ type: 'divider' });
+              }
+            });
+
+            if (alert.spots.length > 5) {
+              blocks.push({
+                type: 'context',
+                elements: [
+                  {
+                    type: 'mrkdwn',
+                    text: `_...and ${alert.spots.length - 5} more spot(s)_`
+                  }
+                ]
+              });
+            }
+          }
+
+          blocks.push({
+            type: 'context',
+            elements: [
+              {
+                type: 'mrkdwn',
+                text: `Fortress Signage Management | ${new Date().toLocaleString()}`
+              }
+            ]
+          });
+
           const slackPayload = {
-            text: `${mentions}*${alert.severity.toUpperCase()}*: ${alert.message}`,
-            attachments: [{
-              color: alert.severity === 'critical' ? 'danger' : 'warning',
-              text: alert.message,
-              footer: 'Fortress Signage Management',
-              ts: Math.floor(Date.now() / 1000),
-            }],
+            text: `${mentions}${alert.severity.toUpperCase()}: ${alert.message}`,
+            blocks: blocks
           };
 
           const slackResponse = await fetch(slackWebhookUrl, {
