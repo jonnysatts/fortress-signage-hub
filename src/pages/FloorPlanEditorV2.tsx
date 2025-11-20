@@ -258,6 +258,12 @@ export default function FloorPlanEditorV2() {
     dispatch({ type: 'START_RESIZE', handle, markerId: marker.id, marker });
   }, []);
 
+  const handleResize = useCallback((point: SVGPoint) => {
+    if (state.isResizing) {
+      dispatch({ type: 'RESIZE', x: point.x, y: point.y });
+    }
+  }, [state.isResizing]);
+
   const handleResizeEnd = useCallback(async () => {
     if (state.draggedMarkerOverride) {
       // Save the final resized state
@@ -642,6 +648,7 @@ export default function FloorPlanEditorV2() {
           onMarkerDrag={handleMarkerDrag}
           onMarkerDragEnd={handleMarkerDragEnd}
           onResizeStart={handleResizeStart}
+          onResize={handleResize}
           onViewBoxChange={handleViewBoxChange}
           className="w-full h-full"
         />

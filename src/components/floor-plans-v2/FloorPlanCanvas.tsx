@@ -29,6 +29,7 @@ interface FloorPlanCanvasProps {
   onCanvasMouseDown?: (point: SVGPoint) => void;
   onCanvasMouseUp?: (point: SVGPoint) => void;
   onResizeStart?: (handle: string, marker: Marker, event: React.MouseEvent) => void;
+  onResize?: (point: SVGPoint) => void;
   className?: string;
 }
 
@@ -50,6 +51,7 @@ const FloorPlanCanvas = React.memo(function FloorPlanCanvas({
   onMarkerDrag,
   onMarkerDragEnd,
   onResizeStart,
+  onResize,
   onViewBoxChange,
   className = ''
 }: FloorPlanCanvasProps) {
@@ -156,22 +158,18 @@ const FloorPlanCanvas = React.memo(function FloorPlanCanvas({
         // Update ref for continuous panning
         panStartRef.current = clampedPoint;
         setPanStartState(clampedPoint); // Sync state for potential UI updates
-      } else if (onCanvasMouseMove) {
-        // Forward to parent for placement/resizing logic
-        // We only want to do this if we are "interacting" (mouse down).
-        // But we don't track "canvas mouse down" state here fully.
-        // However, the parent (FloorPlanEditor) tracks `state.draftMarker` or `state.isResizing`.
-        // So it's safe to call this, and the parent will decide if it needs to act.
-        // BUT: Calling this on *every* window mouse move might be too much if just hovering?
-        // "Hover" usually only matters inside the SVG.
-        // "Drag" matters outside.
-        // Let's only call this if buttons are pressed?
-        if (event.buttons === 1) {
+      } else if (event.buttons === 1) {
+        // Forward to parent for placement/resizing logic when mouse button is pressed
+        if (onResize) {
+          // Try resize first (parent will check if actually resizing)
+          onResize(clampedPoint);
+        }
+        if (onCanvasMouseMove) {
           onCanvasMouseMove(clampedPoint);
         }
       }
     });
-  }, [floorPlan, viewBox, onMarkerDrag, onViewBoxChange, onCanvasMouseMove]);
+  }, [floorPlan, viewBox, onMarkerDrag, onViewBoxChange, onCanvasMouseMove, onResize]);
 
   // Handle global mouse up (end drag)
   const handleWindowMouseUp = useCallback((event: MouseEvent) => {
