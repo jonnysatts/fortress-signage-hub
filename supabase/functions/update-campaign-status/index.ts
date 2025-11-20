@@ -75,8 +75,8 @@ Deno.serve(async (req) => {
       // Update all linked signage spots to "overdue" if they're currently "current"
       if (linkedSpots && linkedSpots.length > 0) {
         const spotIds = linkedSpots
-          .filter((ls: { signage_spots: { status: string } | null }) => ls.signage_spots?.status === 'current')
-          .map((ls: { signage_spot_id: string }) => ls.signage_spot_id);
+          .filter((ls: any) => ls.signage_spots?.status === 'current')
+          .map((ls: any) => ls.signage_spot_id);
 
         if (spotIds.length > 0) {
           const { error: updateError } = await supabase

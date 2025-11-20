@@ -19,6 +19,7 @@ import type { Database } from "@/integrations/supabase/types";
 
 type CampaignRow = Database["public"]["Tables"]["campaigns"]["Row"];
 type CampaignUpdate = Database["public"]["Tables"]["campaigns"]["Update"];
+type CampaignInsert = Database["public"]["Tables"]["campaigns"]["Insert"];
 type CampaignTemplateRow = Database["public"]["Tables"]["campaign_templates"]["Row"];
 type SignageGroupRow = Database["public"]["Tables"]["signage_groups"]["Row"];
 
@@ -138,7 +139,7 @@ export function CampaignDialog({ campaign, onSuccess, trigger }: CampaignDialogP
       const { data: { user } } = await supabase.auth.getUser();
       
       const campaignData: CampaignUpdate = {
-        name,
+        name: name || '',
         description,
         start_date: startDate ? format(startDate, "yyyy-MM-dd") : null,
         end_date: endDate ? format(endDate, "yyyy-MM-dd") : null,
@@ -159,9 +160,13 @@ export function CampaignDialog({ campaign, onSuccess, trigger }: CampaignDialogP
         if (error) throw error;
         toast.success("Campaign updated successfully");
       } else {
+        const insertData: CampaignInsert = {
+          ...campaignData,
+          name: name,
+        };
         const { error } = await supabase
           .from("campaigns")
-          .insert(campaignData);
+          .insert([insertData]);
 
         if (error) throw error;
         toast.success("Campaign created successfully");

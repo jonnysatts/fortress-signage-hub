@@ -86,9 +86,11 @@ export function useUpdateSignageSpot() {
 
   return useMutation({
     mutationFn: async ({ spotId, updates }: { spotId: string; updates: Partial<SignageSpotData> }) => {
+      const validUpdates: any = { ...updates };
+      
       const { data, error } = await supabase
         .from('signage_spots')
-        .update(updates)
+        .update(validUpdates)
         .eq('id', spotId)
         .select()
         .single();
