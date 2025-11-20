@@ -15,8 +15,6 @@ import { UserManagementPanel } from "@/components/UserManagementPanel";
 import { CategoryTagManagement } from "@/components/CategoryTagManagement";
 import { SlackMentionManagement } from "@/components/SlackMentionManagement";
 import { AlertSettingCard } from "@/components/AlertSettingCard";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2 } from "lucide-react";
 
 type AlertSetting = Omit<Database['public']['Tables']['alert_settings']['Row'], 'slack_webhook_url'> & {
   slack_webhook_url?: string | null;
