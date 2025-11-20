@@ -639,6 +639,7 @@ export default function FloorPlanEditorV2() {
           onCanvasMouseUp={handleCanvasMouseUp}
           onCanvasMouseMove={handleCanvasMouseMove}
           onMarkerDragStart={handleMarkerDragStart}
+          onMarkerDrag={handleMarkerDrag}
           onMarkerDragEnd={handleMarkerDragEnd}
           onResizeStart={handleResizeStart}
           onViewBoxChange={handleViewBoxChange}
