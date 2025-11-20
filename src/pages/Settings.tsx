@@ -195,28 +195,30 @@ export default function Settings() {
         </div>
 
         <Tabs defaultValue="alerts" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-5">
-            <TabsTrigger value="alerts">
-              <Bell className="w-4 h-4 mr-2" />
-              Alerts
-            </TabsTrigger>
-            <TabsTrigger value="fields">
-              <Settings2 className="w-4 h-4 mr-2" />
-              Custom Fields
-            </TabsTrigger>
-            <TabsTrigger value="floor-plans">
-              <MapPin className="w-4 h-4 mr-2" />
-              Floor Plans
-            </TabsTrigger>
-            <TabsTrigger value="users">
-              <Users className="w-4 h-4 mr-2" />
-              Users
-            </TabsTrigger>
-            <TabsTrigger value="categories">
-              <Tags className="w-4 h-4 mr-2" />
-              Categories
-            </TabsTrigger>
-          </TabsList>
+          <div className="relative">
+            <TabsList className="w-full inline-flex overflow-x-auto overflow-y-hidden whitespace-nowrap scrollbar-hide md:grid md:grid-cols-5 gap-1">
+              <TabsTrigger value="alerts" className="flex-shrink-0">
+                <Bell className="w-4 h-4 md:mr-2" />
+                <span className="hidden sm:inline">Alerts</span>
+              </TabsTrigger>
+              <TabsTrigger value="fields" className="flex-shrink-0">
+                <Settings2 className="w-4 h-4 md:mr-2" />
+                <span className="hidden sm:inline">Custom Fields</span>
+              </TabsTrigger>
+              <TabsTrigger value="floor-plans" className="flex-shrink-0">
+                <MapPin className="w-4 h-4 md:mr-2" />
+                <span className="hidden sm:inline">Floor Plans</span>
+              </TabsTrigger>
+              <TabsTrigger value="users" className="flex-shrink-0">
+                <Users className="w-4 h-4 md:mr-2" />
+                <span className="hidden sm:inline">Users</span>
+              </TabsTrigger>
+              <TabsTrigger value="categories" className="flex-shrink-0">
+                <Tags className="w-4 h-4 md:mr-2" />
+                <span className="hidden sm:inline">Categories</span>
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
           <TabsContent value="alerts" className="space-y-4">
             {alertSettings.map((setting, index) => (
