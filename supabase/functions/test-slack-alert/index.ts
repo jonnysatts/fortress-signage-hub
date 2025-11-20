@@ -47,9 +47,25 @@ Deno.serve(async (req) => {
       console.error('Error fetching mention settings:', mentionError);
     }
 
-    const usersToMention = mentionSettings?.filter(setting => 
-      setting.mention_for_severities.includes(severity)
-    ) || [];
+    const usersToMention = mentionSettings?.filter(setting => {
+      if (!setting.mention_for_severities.includes(severity)) {
+        return false;
+      }
+      
+      // Filter by venue if sample spots are available
+      if (sampleSpots && sampleSpots.length > 0) {
+        return setting.venues.some((venue: string) => 
+          sampleSpots.some((spot: any) => {
+            const venueName = spot.venues && typeof spot.venues === 'object' && !Array.isArray(spot.venues) 
+              ? spot.venues.name 
+              : null;
+            return venueName === venue;
+          })
+        );
+      }
+      
+      return true;
+    }) || [];
     
     const mentions = usersToMention.length > 0 
       ? usersToMention.map(u => `<@${u.slack_user_id}>`).join(' ') + ' '

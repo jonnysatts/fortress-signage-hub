@@ -25,6 +25,7 @@ interface SlackMention {
   user_name: string;
   slack_user_id: string;
   mention_for_severities: string[];
+  venues: string[];
 }
 
 export function SlackMentionManagement({ canEdit }: { canEdit: boolean }) {
@@ -36,6 +37,7 @@ export function SlackMentionManagement({ canEdit }: { canEdit: boolean }) {
     user_name: "",
     slack_user_id: "",
     mention_for_severities: ["critical"] as string[],
+    venues: ["Melbourne", "Sydney"] as string[],
   });
 
   useEffect(() => {
@@ -67,6 +69,7 @@ export function SlackMentionManagement({ canEdit }: { canEdit: boolean }) {
         user_name: mention.user_name,
         slack_user_id: mention.slack_user_id,
         mention_for_severities: mention.mention_for_severities,
+        venues: mention.venues || ["Melbourne", "Sydney"],
       });
     } else {
       setEditingMention(null);
@@ -74,6 +77,7 @@ export function SlackMentionManagement({ canEdit }: { canEdit: boolean }) {
         user_name: "",
         slack_user_id: "",
         mention_for_severities: ["critical"],
+        venues: ["Melbourne", "Sydney"],
       });
     }
     setIsDialogOpen(true);
@@ -128,6 +132,15 @@ export function SlackMentionManagement({ canEdit }: { canEdit: boolean }) {
       mention_for_severities: prev.mention_for_severities.includes(severity)
         ? prev.mention_for_severities.filter((s) => s !== severity)
         : [...prev.mention_for_severities, severity],
+    }));
+  };
+
+  const toggleVenue = (venue: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      venues: prev.venues.includes(venue)
+        ? prev.venues.filter((v) => v !== venue)
+        : [...prev.venues, venue],
     }));
   };
 
@@ -186,21 +199,33 @@ export function SlackMentionManagement({ canEdit }: { canEdit: boolean }) {
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="flex gap-2 flex-wrap">
-                  {mention.mention_for_severities.map((severity) => (
-                    <span
-                      key={severity}
-                      className={`px-2 py-1 rounded text-xs font-medium ${
-                        severity === "critical"
-                          ? "bg-destructive/10 text-destructive"
-                          : severity === "warning"
-                          ? "bg-yellow-100 text-yellow-900 dark:bg-yellow-900/20 dark:text-yellow-400"
-                          : "bg-blue-100 text-blue-900 dark:bg-blue-900/20 dark:text-blue-400"
-                      }`}
-                    >
-                      {severity}
-                    </span>
-                  ))}
+                <div className="space-y-2">
+                  <div className="flex gap-2 flex-wrap">
+                    {mention.mention_for_severities.map((severity) => (
+                      <span
+                        key={severity}
+                        className={`px-2 py-1 rounded text-xs font-medium ${
+                          severity === "critical"
+                            ? "bg-destructive/10 text-destructive"
+                            : severity === "warning"
+                            ? "bg-yellow-100 text-yellow-900 dark:bg-yellow-900/20 dark:text-yellow-400"
+                            : "bg-blue-100 text-blue-900 dark:bg-blue-900/20 dark:text-blue-400"
+                        }`}
+                      >
+                        {severity}
+                      </span>
+                    ))}
+                  </div>
+                  <div className="flex gap-2 flex-wrap mt-2">
+                    {mention.venues.map((venue) => (
+                      <span
+                        key={venue}
+                        className="px-2 py-1 rounded text-xs font-medium bg-primary/10 text-primary"
+                      >
+                        {venue}
+                      </span>
+                    ))}
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -270,6 +295,27 @@ export function SlackMentionManagement({ canEdit }: { canEdit: boolean }) {
                       className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 capitalize"
                     >
                       {severity}
+                    </label>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Venues</Label>
+              <div className="space-y-2">
+                {["Melbourne", "Sydney"].map((venue) => (
+                  <div key={venue} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={venue}
+                      checked={formData.venues.includes(venue)}
+                      onCheckedChange={() => toggleVenue(venue)}
+                    />
+                    <label
+                      htmlFor={venue}
+                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                    >
+                      {venue}
                     </label>
                   </div>
                 ))}
