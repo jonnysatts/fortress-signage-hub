@@ -623,7 +623,7 @@ export default function FloorPlanEditorV2() {
       />
 
       {/* Canvas */}
-      <div className="flex-1 overflow-hidden bg-muted">
+      <div className="flex-1 overflow-hidden bg-muted relative">
         <FloorPlanCanvas
           floorPlan={floorPlan}
           markers={displayMarkers}

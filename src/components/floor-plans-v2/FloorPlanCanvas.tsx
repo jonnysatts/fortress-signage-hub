@@ -327,6 +327,14 @@ const FloorPlanCanvas = React.memo(function FloorPlanCanvas({
     return <g className="grid-lines">{lines}</g>;
   };
 
+  const handleMarkerClickWrapper = useCallback((marker: Marker, event: React.MouseEvent) => {
+    event.stopPropagation();
+    event.preventDefault();
+    if (onMarkerClick) {
+      onMarkerClick(marker, event);
+    }
+  }, [onMarkerClick]);
+
   const viewBoxStr = `${viewBox.x} ${viewBox.y} ${viewBox.width} ${viewBox.height}`;
 
   return (
@@ -371,6 +379,7 @@ const FloorPlanCanvas = React.memo(function FloorPlanCanvas({
           dimmed={mode.startsWith('place-')}
           onMouseDown={(event) => handleMarkerMouseDown(marker, event)}
           onResizeStart={onResizeStart ? (handle, event) => onResizeStart(handle, marker, event) : undefined}
+          onClick={(event) => handleMarkerClickWrapper(marker, event)}
         />
       ))}
 

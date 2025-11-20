@@ -15,6 +15,7 @@ interface FloorPlanMarkerProps {
   dimmed?: boolean;
   onMouseDown?: (event: React.MouseEvent) => void;
   onResizeStart?: (handle: string, event: React.MouseEvent) => void;
+  onClick?: (event: React.MouseEvent) => void;
 }
 
 export default function FloorPlanMarker({
@@ -24,7 +25,8 @@ export default function FloorPlanMarker({
   isDraft = false,
   dimmed = false,
   onMouseDown,
-  onResizeStart
+  onResizeStart,
+  onClick
 }: FloorPlanMarkerProps) {
   // Get color based on status
   const baseColor = getMarkerColor(marker as Marker);
@@ -42,7 +44,8 @@ export default function FloorPlanMarker({
     opacity,
     style: { cursor, pointerEvents: 'all' as const },
     onMouseDown,
-    className: `floor-plan-marker ${isSelected ? 'selected' : ''} ${isDragging ? 'dragging' : ''}`
+    className: `floor-plan-marker ${isSelected ? 'selected' : ''} ${isDragging ? 'dragging' : ''}`,
+    onClick
   };
 
   // Render based on marker type
@@ -241,6 +244,7 @@ export default function FloorPlanMarker({
             strokeLinecap="round"
             style={{ cursor, pointerEvents: 'all' as const }}
             onMouseDown={onMouseDown}
+            onClick={onClick}
           />
           {/* Visible line */}
           <line
