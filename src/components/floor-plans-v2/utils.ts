@@ -222,24 +222,23 @@ export function findMarkerAtPoint(point: SVGPoint, markers: Marker[]): Marker | 
 }
 
 /**
- * Get marker color based on status
+ * Get marker color based on actual content, not just status field
+ * Using actual color values instead of CSS variables for SVG compatibility
  */
 export function getMarkerColor(marker: Marker): string {
-  if (marker.status === 'empty') return 'hsl(var(--muted-foreground))';
-
-  // Check for scheduled future content
+  // Check for scheduled future content first
   if (marker.next_planned_date) {
     const scheduledDate = new Date(marker.next_planned_date);
     if (scheduledDate > new Date()) {
-      return 'hsl(var(--primary))'; // scheduled
+      return '#3b82f6'; // blue-500 (scheduled)
     }
   }
 
-  // Check if overdue
+  // Check if overdue (has content but expired)
   if (marker.expiry_date) {
     const expiryDate = new Date(marker.expiry_date);
     if (expiryDate < new Date()) {
-      return 'hsl(var(--destructive))'; // overdue
+      return '#ef4444'; // red-500 (overdue)
     }
 
     // Check if expiring soon (within 7 days)
@@ -247,11 +246,17 @@ export function getMarkerColor(marker: Marker): string {
       (expiryDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24)
     );
     if (daysUntilExpiry >= 0 && daysUntilExpiry <= 7) {
-      return 'hsl(var(--warning))'; // expiring
+      return '#f59e0b'; // amber-500 (expiring)
     }
   }
 
-  return 'hsl(var(--success))'; // current
+  // Check if truly empty - no current image and status is empty
+  if (!marker.current_image_url && (marker.status === 'empty' || !marker.status)) {
+    return '#9ca3af'; // grey-400 (empty)
+  }
+
+  // Has content and not expired = current
+  return '#22c55e'; // green-500 (current)
 }
 
 /**

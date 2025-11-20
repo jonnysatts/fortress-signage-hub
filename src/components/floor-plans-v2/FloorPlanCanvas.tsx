@@ -380,6 +380,7 @@ const FloorPlanCanvas = React.memo(function FloorPlanCanvas({
           isSelected={selectedMarkerIds.includes(marker.id)}
           isDragging={isDraggingState && draggedMarkerState?.id === marker.id}
           dimmed={mode.startsWith('place-')}
+          mode={mode}
           onMouseDown={(event) => handleMarkerMouseDown(marker, event)}
           onResizeStart={onResizeStart ? (handle, event) => onResizeStart(handle, marker, event) : undefined}
           onClick={(event) => handleMarkerClickWrapper(marker, event)}
@@ -393,6 +394,7 @@ const FloorPlanCanvas = React.memo(function FloorPlanCanvas({
           isSelected={false}
           isDragging={false}
           isDraft={true}
+          mode={mode}
         />
       )}
     </svg>

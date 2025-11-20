@@ -161,7 +161,6 @@ export function useFloorPlanMarkers(floorPlanId: string): UseFloorPlanMarkersRes
   const loadMarkers = useCallback(async () => {
     // Don't attempt to load if floor plan ID is missing/invalid
     if (!floorPlanId || floorPlanId === '') {
-      console.warn('Cannot load markers: floor plan ID is empty');
       setMarkers([]);
       setLoading(false);
       return;

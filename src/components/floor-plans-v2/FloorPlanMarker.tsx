@@ -13,6 +13,7 @@ interface FloorPlanMarkerProps {
   isDragging: boolean;
   isDraft?: boolean;
   dimmed?: boolean;
+  mode?: 'view' | 'select' | 'place-point' | 'place-area' | 'place-line';
   onMouseDown?: (event: React.MouseEvent) => void;
   onResizeStart?: (handle: string, event: React.MouseEvent) => void;
   onClick?: (event: React.MouseEvent) => void;
@@ -24,17 +25,19 @@ export default function FloorPlanMarker({
   isDragging,
   isDraft = false,
   dimmed = false,
+  mode = 'select',
   onMouseDown,
   onResizeStart,
   onClick
 }: FloorPlanMarkerProps) {
   // Get color based on status
   const baseColor = getMarkerColor(marker as Marker);
-  const fill = isDraft ? 'hsl(var(--primary))' : baseColor;
-  const stroke = isSelected ? 'hsl(var(--primary))' : 'white';
+  const fill = isDraft ? '#3b82f6' : baseColor; // blue-500 for drafts
+  const stroke = isSelected ? '#3b82f6' : 'white'; // blue-500 for selected
   const strokeWidth = isSelected ? 5 : 2;
   const opacity = dimmed ? 0.5 : isDraft ? 0.6 : isDragging ? 0.8 : 1;
-  const cursor = onMouseDown ? 'move' : 'pointer';
+  // In view mode, always show pointer cursor. In edit modes, show move cursor when draggable.
+  const cursor = mode === 'view' ? 'pointer' : (onMouseDown ? 'move' : 'pointer');
 
   // Common props for all marker types
   const commonProps = {
@@ -64,7 +67,7 @@ export default function FloorPlanMarker({
             cy={pointMarker.y}
             r={pointMarker.radius + 15}
             fill="none"
-            stroke="hsl(var(--primary))"
+            stroke="#3b82f6"
             strokeWidth="3"
             opacity="0.6"
             className="animate-pulse"
@@ -108,7 +111,7 @@ export default function FloorPlanMarker({
               width={areaMarker.width + 30}
               height={areaMarker.height + 30}
               fill="none"
-              stroke="hsl(var(--primary))"
+              stroke="#3b82f6"
               strokeWidth="3"
               opacity="0.6"
               className="animate-pulse"
@@ -125,7 +128,7 @@ export default function FloorPlanMarker({
                   cy={areaMarker.y - halfH}
                   r={6}
                   fill="white"
-                  stroke="hsl(var(--primary))"
+                  stroke="#3b82f6"
                   strokeWidth={2}
                   style={{ cursor: 'nw-resize' }}
                   onMouseDown={(e) => onResizeStart('nw', e)}
@@ -135,7 +138,7 @@ export default function FloorPlanMarker({
                   cy={areaMarker.y - halfH}
                   r={6}
                   fill="white"
-                  stroke="hsl(var(--primary))"
+                  stroke="#3b82f6"
                   strokeWidth={2}
                   style={{ cursor: 'ne-resize' }}
                   onMouseDown={(e) => onResizeStart('ne', e)}
@@ -145,7 +148,7 @@ export default function FloorPlanMarker({
                   cy={areaMarker.y + halfH}
                   r={6}
                   fill="white"
-                  stroke="hsl(var(--primary))"
+                  stroke="#3b82f6"
                   strokeWidth={2}
                   style={{ cursor: 'se-resize' }}
                   onMouseDown={(e) => onResizeStart('se', e)}
@@ -155,7 +158,7 @@ export default function FloorPlanMarker({
                   cy={areaMarker.y + halfH}
                   r={6}
                   fill="white"
-                  stroke="hsl(var(--primary))"
+                  stroke="#3b82f6"
                   strokeWidth={2}
                   style={{ cursor: 'sw-resize' }}
                   onMouseDown={(e) => onResizeStart('sw', e)}
@@ -196,7 +199,7 @@ export default function FloorPlanMarker({
             y1={lineMarker.y}
             x2={lineMarker.x2}
             y2={lineMarker.y2}
-            stroke="hsl(var(--primary))"
+            stroke="#3b82f6"
             strokeWidth={40}
             strokeLinecap="round"
             opacity="0.4"
@@ -218,14 +221,25 @@ export default function FloorPlanMarker({
             onMouseDown={onMouseDown}
             onClick={onClick}
           />
-          {/* Visible line */}
+          {/* White outline for contrast */}
+          <line
+            x1={lineMarker.x}
+            y1={lineMarker.y}
+            x2={lineMarker.x2}
+            y2={lineMarker.y2}
+            stroke="white"
+            strokeWidth={20}
+            strokeLinecap="round"
+            style={{ pointerEvents: 'none' }}
+          />
+          {/* Visible colored line */}
           <line
             x1={lineMarker.x}
             y1={lineMarker.y}
             x2={lineMarker.x2}
             y2={lineMarker.y2}
             stroke={fill}
-            strokeWidth={12}
+            strokeWidth={16}
             strokeLinecap="round"
             opacity={opacity}
             style={{ pointerEvents: 'none' }} // Events handled by hit area
@@ -239,7 +253,7 @@ export default function FloorPlanMarker({
               cy={lineMarker.y}
               r={8}
               fill="white"
-              stroke="hsl(var(--primary))"
+              stroke="#3b82f6"
               strokeWidth={3}
               style={{ cursor: 'move', pointerEvents: 'all' }}
               onMouseDown={(e) => onResizeStart('start', e)}
@@ -249,7 +263,7 @@ export default function FloorPlanMarker({
               cy={lineMarker.y2}
               r={8}
               fill="white"
-              stroke="hsl(var(--primary))"
+              stroke="#3b82f6"
               strokeWidth={3}
               style={{ cursor: 'move', pointerEvents: 'all' }}
               onMouseDown={(e) => onResizeStart('end', e)}

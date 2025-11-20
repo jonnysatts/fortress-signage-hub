@@ -29,11 +29,6 @@ export default function FloorPlanViewerV2() {
 
   const { markers, refetch } = useFloorPlanMarkers(selectedPlanId);
 
-  // Debug marker data
-  useEffect(() => {
-    console.log('Floor plan viewer - loaded markers:', markers.length, markers);
-  }, [markers]);
-
   // Load floor plans
   useEffect(() => {
     const loadFloorPlans = async () => {
@@ -84,7 +79,6 @@ export default function FloorPlanViewerV2() {
     // Find the marker to highlight
     const markerToHighlight = markers.find(m => m.signage_spot_id === highlightMarkerId);
     if (!markerToHighlight) {
-      console.warn('Marker to highlight not found:', highlightMarkerId);
       return;
     }
 
@@ -106,8 +100,6 @@ export default function FloorPlanViewerV2() {
       width: zoomWidth,
       height: zoomHeight
     });
-
-    console.log('Auto-zoomed to marker:', markerToHighlight);
   }, [searchParams, floorPlan, viewBox, markers]);
 
   const handleZoomIn = () => {

@@ -39,7 +39,7 @@ CREATE OR REPLACE FUNCTION calculate_spot_status(
   p_expiry_date DATE,
   p_next_planned_date DATE
 )
-RETURNS signage_status AS \$\$
+RETURNS signage_status AS $$
 BEGIN
   -- Check for scheduled future content first
   IF p_next_planned_date IS NOT NULL AND p_next_planned_date > CURRENT_DATE THEN
@@ -67,11 +67,11 @@ BEGIN
   -- No content = empty
   RETURN 'empty'::signage_status;
 END;
-\$\$ LANGUAGE plpgsql IMMUTABLE;
+$$ LANGUAGE plpgsql IMMUTABLE;
 
 -- STEP 3: Update handle_photo_upload to use the new status calculation
 CREATE OR REPLACE FUNCTION handle_photo_upload()
-RETURNS TRIGGER AS \$\$
+RETURNS TRIGGER AS $$
 DECLARE
   v_expiry_behavior text;
   v_install_date date;
@@ -128,11 +128,11 @@ BEGIN
 
   RETURN NEW;
 END;
-\$\$ LANGUAGE plpgsql SET search_path = public;
+$$ LANGUAGE plpgsql SET search_path = public;
 
 -- STEP 4: Create trigger to auto-update status when key fields change
 CREATE OR REPLACE FUNCTION update_spot_status_on_change()
-RETURNS TRIGGER AS \$\$
+RETURNS TRIGGER AS $$
 BEGIN
   -- Auto-calculate status whenever relevant fields change
   IF (NEW.current_image_url IS DISTINCT FROM OLD.current_image_url)
@@ -148,7 +148,7 @@ BEGIN
 
   RETURN NEW;
 END;
-\$\$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql;
 
 DROP TRIGGER IF EXISTS trg_update_spot_status ON signage_spots;
 CREATE TRIGGER trg_update_spot_status
@@ -160,7 +160,7 @@ CREATE TRIGGER trg_update_spot_status
 COMMENT ON COLUMN signage_spots.status IS 'Auto-calculated based on current_image_url, expiry_date, and next_planned_date. Updated automatically by triggers.';
 
 -- STEP 6: Log results
-DO \$\$
+DO $$
 DECLARE
   v_fixed_count int;
   v_current_count int;
@@ -185,4 +185,4 @@ BEGIN
 
   RAISE NOTICE 'Status sync complete: % current, % empty, % overdue',
     v_current_count, v_empty_count, v_overdue_count;
-END \$\$;
+END $$;
