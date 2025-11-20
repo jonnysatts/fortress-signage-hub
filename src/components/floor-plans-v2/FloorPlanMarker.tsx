@@ -187,50 +187,29 @@ export default function FloorPlanMarker({
       return null;
     }
 
+    console.log('[FloorPlanMarker] Line marker:',
+      'isSelected:', isSelected,
+      'isDragging:', isDragging,
+      'hasOnResizeStart:', !!onResizeStart,
+      'showHandles:', isSelected && !isDragging && !!onResizeStart
+    );
+
     return (
       <>
         {/* Pulsing outline for selected line markers */}
         {isSelected && (
-          <>
-            <line
-              x1={lineMarker.x}
-              y1={lineMarker.y}
-              x2={lineMarker.x2}
-              y2={lineMarker.y2}
-              stroke="hsl(var(--primary))"
-              strokeWidth={40}
-              strokeLinecap="round"
-              opacity="0.4"
-              className="animate-pulse"
-              style={{ cursor, pointerEvents: 'all' as const }}
-              onMouseDown={onMouseDown}
-            />
-            {/* Endpoint Handles */}
-            {!isDragging && onResizeStart && (
-              <>
-                <circle
-                  cx={lineMarker.x}
-                  cy={lineMarker.y}
-                  r={6}
-                  fill="white"
-                  stroke="hsl(var(--primary))"
-                  strokeWidth={2}
-                  style={{ cursor: 'move' }}
-                  onMouseDown={(e) => onResizeStart('start', e)}
-                />
-                <circle
-                  cx={lineMarker.x2}
-                  cy={lineMarker.y2}
-                  r={6}
-                  fill="white"
-                  stroke="hsl(var(--primary))"
-                  strokeWidth={2}
-                  style={{ cursor: 'move' }}
-                  onMouseDown={(e) => onResizeStart('end', e)}
-                />
-              </>
-            )}
-          </>
+          <line
+            x1={lineMarker.x}
+            y1={lineMarker.y}
+            x2={lineMarker.x2}
+            y2={lineMarker.y2}
+            stroke="hsl(var(--primary))"
+            strokeWidth={40}
+            strokeLinecap="round"
+            opacity="0.4"
+            className="animate-pulse"
+            style={{ cursor, pointerEvents: 'none' as const }}
+          />
         )}
         <g className={`floor-plan-marker line ${isSelected ? 'selected' : ''} ${isDragging ? 'dragging' : ''}`}>
           {/* Invisible thick hit area */}
@@ -259,6 +238,31 @@ export default function FloorPlanMarker({
             style={{ pointerEvents: 'none' }} // Events handled by hit area
           />
         </g>
+        {/* Endpoint Handles - rendered LAST so they're on top */}
+        {isSelected && !isDragging && onResizeStart && (
+          <>
+            <circle
+              cx={lineMarker.x}
+              cy={lineMarker.y}
+              r={8}
+              fill="white"
+              stroke="hsl(var(--primary))"
+              strokeWidth={3}
+              style={{ cursor: 'move', pointerEvents: 'all' }}
+              onMouseDown={(e) => onResizeStart('start', e)}
+            />
+            <circle
+              cx={lineMarker.x2}
+              cy={lineMarker.y2}
+              r={8}
+              fill="white"
+              stroke="hsl(var(--primary))"
+              strokeWidth={3}
+              style={{ cursor: 'move', pointerEvents: 'all' }}
+              onMouseDown={(e) => onResizeStart('end', e)}
+            />
+          </>
+        )}
       </>
     );
   }
