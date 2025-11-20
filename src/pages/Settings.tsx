@@ -14,7 +14,9 @@ import { toast } from "sonner";
 import { UserManagementPanel } from "@/components/UserManagementPanel";
 import { CategoryTagManagement } from "@/components/CategoryTagManagement";
 
-type AlertSetting = Database['public']['Tables']['alert_settings']['Row'];
+type AlertSetting = Omit<Database['public']['Tables']['alert_settings']['Row'], 'slack_webhook_url'> & {
+  slack_webhook_url?: string | null;
+};
 
 export default function Settings() {
   const navigate = useNavigate();
@@ -66,7 +68,6 @@ export default function Settings() {
             alert_type: type,
             enabled: false,
             email_recipients: [],
-            slack_webhook_url: null,
             alert_triggers: {},
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
@@ -100,7 +101,6 @@ export default function Settings() {
               alert_type: setting.alert_type,
               enabled: setting.enabled,
               email_recipients: setting.email_recipients,
-              slack_webhook_url: setting.slack_webhook_url,
               alert_triggers: setting.alert_triggers,
             });
 
@@ -112,7 +112,6 @@ export default function Settings() {
             .update({
               enabled: setting.enabled,
               email_recipients: setting.email_recipients,
-              slack_webhook_url: setting.slack_webhook_url,
               alert_triggers: setting.alert_triggers,
             })
             .eq('id', setting.id);
@@ -270,16 +269,6 @@ export default function Settings() {
                         </div>
                       ))}
                     </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Slack Webhook URL (Optional)</Label>
-                    <Input
-                      placeholder="https://hooks.slack.com/services/..."
-                      value={setting.slack_webhook_url || ''}
-                      onChange={(e) => updateSetting(index, 'slack_webhook_url', e.target.value)}
-                      disabled={!canEdit}
-                    />
                   </div>
                 </CardContent>
               </Card>
