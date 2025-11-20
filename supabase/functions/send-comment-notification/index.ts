@@ -76,8 +76,23 @@ Deno.serve(async (req) => {
     const slackMentions = mentionedUsers
       ?.map(user => {
         const setting = slackSettings?.find(s => s.user_name === user.full_name);
-        console.log(`Matching ${user.full_name} to Slack ID:`, setting?.slack_user_id);
-        return setting ? `<@${setting.slack_user_id}>` : null;
+        const rawSlackId = setting?.slack_user_id;
+        // Support both raw IDs (U123...) and preformatted mentions like <@U123> or @handle
+        let mention: string | null = null;
+        if (rawSlackId) {
+          if (rawSlackId.startsWith('<@') && rawSlackId.endsWith('>')) {
+            mention = rawSlackId; // already in correct format
+          } else if (rawSlackId.startsWith('U')) {
+            mention = `<@${rawSlackId}>`; // user ID, wrap it
+          } else if (rawSlackId.startsWith('@')) {
+            mention = rawSlackId; // handle-style mention, send as-is
+          } else {
+            // Fallback: try treating it as a handle
+            mention = `@${rawSlackId}`;
+          }
+        }
+        console.log(`Matching ${user.full_name} to Slack identifier:`, rawSlackId, '-> mention token:', mention);
+        return mention;
       })
       .filter(Boolean)
       .join(' ') || '';
@@ -223,7 +238,8 @@ Deno.serve(async (req) => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         text: slackText,
-        blocks
+        blocks,
+        link_names: 1 // ensure Slack resolves @mentions in text
       }),
     });
 
