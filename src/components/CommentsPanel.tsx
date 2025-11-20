@@ -98,10 +98,11 @@ export function CommentsPanel({ signageSpotId }: CommentsPanelProps) {
       return;
     }
 
-    // Get author profiles separately
+    // Get all user IDs (authors, resolvers, AND mentioned users)
     const authorIds = commentsData.map(c => c.author_id);
     const resolverIds = commentsData.map(c => c.resolved_by).filter(Boolean) as string[];
-    const allUserIds = [...new Set([...authorIds, ...resolverIds])];
+    const mentionedIds = commentsData.flatMap(c => c.mentions || []);
+    const allUserIds = [...new Set([...authorIds, ...resolverIds, ...mentionedIds])];
     
     const { data: profilesData } = await supabase
       .from('profiles')
