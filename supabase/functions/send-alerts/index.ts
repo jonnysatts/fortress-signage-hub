@@ -157,8 +157,21 @@ Deno.serve(async (req) => {
       const slackWebhookUrl = Deno.env.get('SLACK_WEBHOOK_URL');
       if (slackWebhookUrl) {
         try {
+          // Fetch users to mention based on severity
+          const { data: mentionSettings } = await supabase
+            .from('slack_mention_settings')
+            .select('*');
+          
+          const usersToMention = mentionSettings?.filter(setting => 
+            setting.mention_for_severities.includes(alert.severity)
+          ) || [];
+          
+          const mentions = usersToMention.length > 0 
+            ? usersToMention.map(u => `<@${u.slack_user_id}>`).join(' ') + ' '
+            : '';
+          
           const slackPayload = {
-            text: `*${alert.severity.toUpperCase()}*: ${alert.message}`,
+            text: `${mentions}*${alert.severity.toUpperCase()}*: ${alert.message}`,
             attachments: [{
               color: alert.severity === 'critical' ? 'danger' : 'warning',
               text: alert.message,

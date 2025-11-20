@@ -923,6 +923,33 @@ export type Database = {
           },
         ]
       }
+      slack_mention_settings: {
+        Row: {
+          created_at: string | null
+          id: string
+          mention_for_severities: string[]
+          slack_user_id: string
+          updated_at: string | null
+          user_name: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          mention_for_severities?: string[]
+          slack_user_id: string
+          updated_at?: string | null
+          user_name: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          mention_for_severities?: string[]
+          slack_user_id?: string
+          updated_at?: string | null
+          user_name?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string | null
