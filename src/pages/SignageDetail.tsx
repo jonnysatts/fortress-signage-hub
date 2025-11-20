@@ -505,16 +505,15 @@ export default function SignageDetail() {
     }
   };
 
-  const handleQuickIssueSubmit = async () => {
-    if (!quickIssueText.trim() || !user?.id) return;
+  const handleQuickIssueSubmit = async (issueText: string) => {
+    if (!user?.id || !id) return;
 
-    setIsSubmittingIssue(true);
     try {
       const { error } = await supabase
         .from('comments')
         .insert({
-          signage_spot_id: id!,
-          body: quickIssueText.trim(),
+          signage_spot_id: id,
+          body: issueText.trim(),
           author_id: user.id,
           status: 'open',
         });
@@ -522,13 +521,9 @@ export default function SignageDetail() {
       if (error) throw error;
 
       toast.success("Issue reported successfully");
-      setQuickIssueText("");
-      setShowQuickIssueDialog(false);
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : "Unknown error";
       toast.error("Failed to report issue: " + errorMessage);
-    } finally {
-      setIsSubmittingIssue(false);
     }
   };
 
