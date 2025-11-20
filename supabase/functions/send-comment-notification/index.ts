@@ -87,7 +87,7 @@ Deno.serve(async (req) => {
         type: 'header',
         text: {
           type: 'plain_text',
-          text: '💬 New Comment',
+          text: '🚨 Issue Reported',
           emoji: true
         }
       },
@@ -95,14 +95,14 @@ Deno.serve(async (req) => {
         type: 'section',
         text: {
           type: 'mrkdwn',
-          text: `${slackMentions ? slackMentions + '\n' : ''}*${author?.full_name || 'Someone'}* commented on *${spot.location_name}* at ${venueName}:`
+          text: `${slackMentions ? slackMentions + '\n' : ''}*${author?.full_name || 'Someone'}* reported an issue on *${spot.location_name}* at ${venueName}:`
         }
       },
       {
         type: 'section',
         text: {
           type: 'mrkdwn',
-          text: `> ${body}`
+          text: `> ${body}\n\n_This requires your attention and resolution._`
         },
         ...(spot.current_image_url && {
           accessory: {
@@ -119,11 +119,11 @@ Deno.serve(async (req) => {
             type: 'button',
             text: {
               type: 'plain_text',
-              text: 'View Signage Spot',
+              text: 'View & Resolve Issue',
               emoji: true
             },
             url: spotUrl,
-            style: 'primary'
+            style: 'danger'
           }
         ]
       },
