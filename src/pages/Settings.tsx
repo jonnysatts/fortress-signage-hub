@@ -11,6 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, Bell, Save, Settings2, Users, Tags, MapPin } from "lucide-react";
 import { toast } from "sonner";
+import { UserManagementPanel } from "@/components/UserManagementPanel";
 
 type AlertSetting = Database['public']['Tables']['alert_settings']['Row'];
 
@@ -340,19 +341,10 @@ export default function Settings() {
           </TabsContent>
 
           <TabsContent value="users">
-            <Card>
-              <CardHeader>
-                <CardTitle>User Management</CardTitle>
-                <CardDescription>
-                  Manage user roles and permissions (Admin only)
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground">
-                  User management features coming soon. Contact your administrator to manage user roles.
-                </p>
-              </CardContent>
-            </Card>
+            <UserManagementPanel 
+              currentUserId={user?.id || ''} 
+              userRole={userRole || 'staff'} 
+            />
           </TabsContent>
 
           <TabsContent value="categories">
