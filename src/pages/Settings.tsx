@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { UserManagementPanel } from "@/components/UserManagementPanel";
 import { CategoryTagManagement } from "@/components/CategoryTagManagement";
 import { SlackMentionManagement } from "@/components/SlackMentionManagement";
+import { AlertSettingCard } from "@/components/AlertSettingCard";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2 } from "lucide-react";
 
@@ -26,9 +27,9 @@ export default function Settings() {
   const [user, setUser] = useState<User | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [alertSettings, setAlertSettings] = useState<AlertSetting[]>([]);
+  const [venues, setVenues] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [isTestingAlert, setIsTestingAlert] = useState(false);
 
   const checkAuth = useCallback(async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -73,6 +74,10 @@ export default function Settings() {
             enabled: false,
             email_recipients: [],
             alert_triggers: {},
+            cron_schedule: 'daily_9am',
+            alert_once: true,
+            venue_filter: [],
+            last_run: null,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
           });
@@ -91,6 +96,11 @@ export default function Settings() {
   useEffect(() => {
     checkAuth();
     fetchAlertSettings();
+    
+    // Fetch venues
+    supabase.from('venues').select('name').then(({ data }) => {
+      setVenues(data?.map(v => v.name) || []);
+    });
   }, [checkAuth, fetchAlertSettings]);
 
   const handleSaveSettings = async () => {
