@@ -14,6 +14,7 @@ import { StatusBadge } from "@/components/StatusBadge";
 import { TagSelector } from "@/components/TagSelector";
 import { GroupSelector } from "@/components/GroupSelector";
 import { CampaignLinker } from "@/components/CampaignLinker";
+import { QuickIssueDialog } from "@/components/QuickIssueDialog";
 import { ArrowLeft, Trash2, Image as ImageIcon, Edit2, Save, X, CheckCircle2, Maximize2, QrCode, Download, DollarSign, Calendar, Clock, Printer, Undo, MapPin, Upload, AlertCircle } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
@@ -79,8 +80,6 @@ export default function SignageDetail() {
   const [uploadCaption, setUploadCaption] = useState("");
   const [imageType, setImageType] = useState<"current" | "before" | "after" | "reference" | "planned" | "location">("current");
   const [showQuickIssueDialog, setShowQuickIssueDialog] = useState(false);
-  const [quickIssueText, setQuickIssueText] = useState("");
-  const [isSubmittingIssue, setIsSubmittingIssue] = useState(false);
   const [scheduledDate, setScheduledDate] = useState<string>("");
   const [autoPromote, setAutoPromote] = useState<boolean>(true);
   const [printRequired, setPrintRequired] = useState<boolean>(false);
@@ -1852,38 +1851,12 @@ export default function SignageDetail() {
         </Button>
 
         {/* Quick Issue Report Dialog */}
-        <AlertDialog open={showQuickIssueDialog} onOpenChange={setShowQuickIssueDialog}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle className="flex items-center gap-2">
-                <AlertCircle className="h-5 w-5 text-destructive" />
-                Report Issue
-              </AlertDialogTitle>
-              <AlertDialogDescription>
-                Quickly report a problem with this signage spot. Issues will be tracked and can be resolved once addressed.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <div className="py-4">
-              <Textarea
-                placeholder="Describe the issue (e.g., 'Content is outdated' or 'Image is damaged')"
-                value={quickIssueText}
-                onChange={(e) => setQuickIssueText(e.target.value)}
-                rows={4}
-                className="resize-none"
-              />
-            </div>
-            <AlertDialogFooter>
-              <AlertDialogCancel disabled={isSubmittingIssue}>Cancel</AlertDialogCancel>
-              <AlertDialogAction
-                onClick={handleQuickIssueSubmit}
-                disabled={!quickIssueText.trim() || isSubmittingIssue}
-                className="bg-destructive hover:bg-destructive/90"
-              >
-                {isSubmittingIssue ? "Reporting..." : "Report Issue"}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+        <QuickIssueDialog
+          open={showQuickIssueDialog}
+          onOpenChange={setShowQuickIssueDialog}
+          onSubmit={handleQuickIssueSubmit}
+          locationName={spot?.location_name || ""}
+        />
 
         {/* Full Image Viewer Dialog */}
         {expandedImage && (
