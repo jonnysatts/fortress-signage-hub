@@ -153,8 +153,9 @@ Deno.serve(async (req) => {
         // TODO: Integrate with email service (e.g., Resend, SendGrid)
       }
 
-      // Send Slack notifications
-      if (setting.slack_webhook_url) {
+      // Send Slack notifications using environment variable
+      const slackWebhookUrl = Deno.env.get('SLACK_WEBHOOK_URL');
+      if (slackWebhookUrl) {
         try {
           const slackPayload = {
             text: `*${alert.severity.toUpperCase()}*: ${alert.message}`,
@@ -166,7 +167,7 @@ Deno.serve(async (req) => {
             }],
           };
 
-          const slackResponse = await fetch(setting.slack_webhook_url, {
+          const slackResponse = await fetch(slackWebhookUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(slackPayload),
