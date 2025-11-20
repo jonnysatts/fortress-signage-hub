@@ -283,7 +283,10 @@ export type Database = {
           id: string
           mentions: string[] | null
           needs_attention: boolean | null
+          resolved_at: string | null
+          resolved_by: string | null
           signage_spot_id: string
+          status: Database["public"]["Enums"]["comment_status"]
           updated_at: string | null
         }
         Insert: {
@@ -293,7 +296,10 @@ export type Database = {
           id?: string
           mentions?: string[] | null
           needs_attention?: boolean | null
+          resolved_at?: string | null
+          resolved_by?: string | null
           signage_spot_id: string
+          status?: Database["public"]["Enums"]["comment_status"]
           updated_at?: string | null
         }
         Update: {
@@ -303,10 +309,20 @@ export type Database = {
           id?: string
           mentions?: string[] | null
           needs_attention?: boolean | null
+          resolved_at?: string | null
+          resolved_by?: string | null
           signage_spot_id?: string
+          status?: Database["public"]["Enums"]["comment_status"]
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "comments_resolved_by_fkey"
+            columns: ["resolved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "comments_signage_spot_id_fkey"
             columns: ["signage_spot_id"]
@@ -1117,6 +1133,7 @@ export type Database = {
         | "assigned"
       app_role: "admin" | "manager" | "staff"
       approval_status: "pending" | "approved" | "rejected"
+      comment_status: "open" | "resolved"
       content_category:
         | "evergreen"
         | "event_based"
@@ -1280,6 +1297,7 @@ export const Constants = {
       ],
       app_role: ["admin", "manager", "staff"],
       approval_status: ["pending", "approved", "rejected"],
+      comment_status: ["open", "resolved"],
       content_category: [
         "evergreen",
         "event_based",
