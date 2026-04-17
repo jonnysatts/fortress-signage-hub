@@ -1182,6 +1182,15 @@ export type Database = {
         }
         Returns: boolean
       }
+      list_cron_jobs: {
+        Args: never
+        Returns: {
+          active: boolean
+          command: string
+          jobname: string
+          schedule: string
+        }[]
+      }
       promote_planned_to_current: {
         Args: { p_photo_id: string; p_promoted_by: string }
         Returns: Json
