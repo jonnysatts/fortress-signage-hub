@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "13.0.5"
+    PostgrestVersion: "14.5"
   }
   public: {
     Tables: {
@@ -1181,6 +1181,15 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      list_cron_jobs: {
+        Args: never
+        Returns: {
+          active: boolean
+          command: string
+          jobname: string
+          schedule: string
+        }[]
       }
       promote_planned_to_current: {
         Args: { p_photo_id: string; p_promoted_by: string }
