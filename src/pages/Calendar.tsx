@@ -368,9 +368,11 @@ export default function Calendar() {
         if (error) throw error;
       } else if ((event.type === 'campaign_start' || event.type === 'campaign_end') && event.campaignId) {
         const field = event.type === 'campaign_start' ? 'start_date' : 'end_date';
+        const updateData: { start_date?: string; end_date?: string } = {};
+        updateData[field] = start.toISOString().split('T')[0];
         const { error } = await supabase
           .from('campaigns')
-          .update({ [field]: start.toISOString().split('T')[0] })
+          .update(updateData)
           .eq('id', event.campaignId);
         if (error) throw error;
       } else if (event.type === 'expiry' && event.spotId) {
