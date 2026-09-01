@@ -118,103 +118,139 @@ export default function Auth() {
             <CardDescription>Sign in to manage your venue signage</CardDescription>
           </CardHeader>
           <CardContent>
-            <Tabs defaultValue="signin" className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="signin">Sign In</TabsTrigger>
-                <TabsTrigger value="signup">Sign Up</TabsTrigger>
-              </TabsList>
+            {authMode === "forgot" ? (
+              <form onSubmit={handleForgotPassword} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="forgot-email">Email</Label>
+                  <Input
+                    id="forgot-email"
+                    type="email"
+                    placeholder="your@email.com"
+                    value={forgotEmail}
+                    onChange={(e) => setForgotEmail(e.target.value)}
+                    required
+                  />
+                </div>
+                <Button type="submit" className="w-full" disabled={isLoading}>
+                  {isLoading ? "Sending reset email..." : "Send reset email"}
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="w-full"
+                  onClick={() => setAuthMode("signin")}
+                >
+                  Back to sign in
+                </Button>
+              </form>
+            ) : (
+              <Tabs value={authMode} onValueChange={(v) => setAuthMode(v as "signin" | "signup")} className="w-full">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="signin">Sign In</TabsTrigger>
+                  <TabsTrigger value="signup">Sign Up</TabsTrigger>
+                </TabsList>
 
-              <TabsContent value="signin">
-                <form onSubmit={handleSignIn} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="signin-email">Email</Label>
-                    <Input
-                      id="signin-email"
-                      type="email"
-                      placeholder="your@email.com"
-                      value={signInForm.email}
-                      onChange={(e) => setSignInForm({ ...signInForm, email: e.target.value })}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="signin-password">Password</Label>
-                    <div className="relative">
+                <TabsContent value="signin">
+                  <form onSubmit={handleSignIn} className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="signin-email">Email</Label>
                       <Input
-                        id="signin-password"
-                        type={showPassword ? "text" : "password"}
-                        placeholder="••••••••"
-                        value={signInForm.password}
-                        onChange={(e) => setSignInForm({ ...signInForm, password: e.target.value })}
+                        id="signin-email"
+                        type="email"
+                        placeholder="your@email.com"
+                        value={signInForm.email}
+                        onChange={(e) => setSignInForm({ ...signInForm, email: e.target.value })}
                         required
                       />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="signin-password">Password</Label>
+                      <div className="relative">
+                        <Input
+                          id="signin-password"
+                          type={showPassword ? "text" : "password"}
+                          placeholder="••••••••"
+                          value={signInForm.password}
+                          onChange={(e) => setSignInForm({ ...signInForm, password: e.target.value })}
+                          required
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                        >
+                          {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                      </div>
+                    </div>
+                    <Button type="submit" className="w-full" disabled={isLoading}>
+                      {isLoading ? "Signing in..." : "Sign In"}
+                    </Button>
+                    <div className="text-center">
                       <button
                         type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                        onClick={() => setAuthMode("forgot")}
+                        className="text-sm text-primary hover:underline"
                       >
-                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        Forgot password?
                       </button>
                     </div>
-                  </div>
-                  <Button type="submit" className="w-full" disabled={isLoading}>
-                    {isLoading ? "Signing in..." : "Sign In"}
-                  </Button>
-                </form>
-              </TabsContent>
+                  </form>
+                </TabsContent>
 
-              <TabsContent value="signup">
-                <form onSubmit={handleSignUp} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-name">Full Name</Label>
-                    <Input
-                      id="signup-name"
-                      type="text"
-                      placeholder="John Doe"
-                      value={signUpForm.fullName}
-                      onChange={(e) => setSignUpForm({ ...signUpForm, fullName: e.target.value })}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-email">Email</Label>
-                    <Input
-                      id="signup-email"
-                      type="email"
-                      placeholder="your@email.com"
-                      value={signUpForm.email}
-                      onChange={(e) => setSignUpForm({ ...signUpForm, email: e.target.value })}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-password">Password</Label>
-                    <div className="relative">
+                <TabsContent value="signup">
+                  <form onSubmit={handleSignUp} className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="signup-name">Full Name</Label>
                       <Input
-                        id="signup-password"
-                        type={showPassword ? "text" : "password"}
-                        placeholder="••••••••"
-                        value={signUpForm.password}
-                        onChange={(e) => setSignUpForm({ ...signUpForm, password: e.target.value })}
+                        id="signup-name"
+                        type="text"
+                        placeholder="John Doe"
+                        value={signUpForm.fullName}
+                        onChange={(e) => setSignUpForm({ ...signUpForm, fullName: e.target.value })}
                         required
-                        minLength={6}
                       />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                      >
-                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                      </button>
                     </div>
-                    <p className="text-xs text-muted-foreground">Minimum 6 characters</p>
-                  </div>
-                  <Button type="submit" className="w-full" disabled={isLoading}>
-                    {isLoading ? "Creating account..." : "Create Account"}
-                  </Button>
-                </form>
-              </TabsContent>
-            </Tabs>
+                    <div className="space-y-2">
+                      <Label htmlFor="signup-email">Email</Label>
+                      <Input
+                        id="signup-email"
+                        type="email"
+                        placeholder="your@email.com"
+                        value={signUpForm.email}
+                        onChange={(e) => setSignUpForm({ ...signUpForm, email: e.target.value })}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="signup-password">Password</Label>
+                      <div className="relative">
+                        <Input
+                          id="signup-password"
+                          type={showPassword ? "text" : "password"}
+                          placeholder="••••••••"
+                          value={signUpForm.password}
+                          onChange={(e) => setSignUpForm({ ...signUpForm, password: e.target.value })}
+                          required
+                          minLength={6}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                        >
+                          {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                      </div>
+                      <p className="text-xs text-muted-foreground">Minimum 6 characters</p>
+                    </div>
+                    <Button type="submit" className="w-full" disabled={isLoading}>
+                      {isLoading ? "Creating account..." : "Create Account"}
+                    </Button>
+                  </form>
+                </TabsContent>
+              </Tabs>
+            )}
           </CardContent>
         </Card>
       </div>
