@@ -14,6 +14,7 @@ export default function Auth() {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [authMode, setAuthMode] = useState<"signin" | "signup" | "forgot">("signin");
   const [signUpForm, setSignUpForm] = useState({
     email: "",
     password: "",
@@ -23,6 +24,7 @@ export default function Auth() {
     email: "",
     password: "",
   });
+  const [forgotEmail, setForgotEmail] = useState("");
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
